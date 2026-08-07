@@ -4,7 +4,9 @@ import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.ashwake.domain.scheduler.HabitReminderScheduler
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
+import dev.ashwake.platform.alarm.AlarmHabitReminderScheduler
 import dev.ashwake.platform.alarm.AlarmTaskReminderScheduler
 import javax.inject.Singleton
 
@@ -16,4 +18,9 @@ abstract class PlatformModule {
     abstract fun bindTaskReminderScheduler(
         impl: AlarmTaskReminderScheduler
     ): TaskReminderScheduler
+
+    @Binds @Singleton
+    abstract fun bindHabitReminderScheduler(
+        impl: AlarmHabitReminderScheduler
+    ): HabitReminderScheduler
 }

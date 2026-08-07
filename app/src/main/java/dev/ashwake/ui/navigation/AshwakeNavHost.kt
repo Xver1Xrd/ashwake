@@ -23,6 +23,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.ashwake.ui.habits.HabitsScreen
+import dev.ashwake.ui.habits.detail.HabitDetailScreen
+import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 
@@ -35,7 +38,9 @@ fun AshwakeRoot() {
     Scaffold(
         bottomBar = {
             // На экране редактора нижняя навигация только мешает — прячем
-            val showBottomBar = currentRoute?.startsWith("task?") != true
+            val showBottomBar = FULLSCREEN_ROUTE_PREFIXES.none {
+                currentRoute?.startsWith(it) == true
+            }
             if (showBottomBar) NavigationBar {
                 Destination.bottomBar.forEach { destination ->
                     NavigationBarItem(
@@ -77,7 +82,31 @@ fun AshwakeRoot() {
             // Экраны следующих этапов: заглушки, чтобы навигация была целой с самого начала
             composable(Destination.Home.route) { StageStub("Главный экран", 4) }
             composable(Destination.Today.route) { StageStub("Сегодня", 2) }
-            composable(Destination.Habits.route) { StageStub("Привычки", 2) }
+            composable(Destination.Habits.route) {
+                HabitsScreen(
+                    onOpenHabit = { id -> navController.navigate("habit/$id") },
+                    onCreateHabit = { navController.navigate("habit-editor?habitId=0") }
+                )
+            }
+
+            composable(
+                route = "habit/{habitId}",
+                arguments = listOf(navArgument("habitId") { type = NavType.StringType })
+            ) {
+                HabitDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    onEdit = { id -> navController.navigate("habit-editor?habitId=$id") }
+                )
+            }
+
+            composable(
+                route = "habit-editor?habitId={habitId}",
+                arguments = listOf(
+                    navArgument("habitId") { type = NavType.StringType; defaultValue = "0" }
+                )
+            ) {
+                HabitEditorScreen(onDone = { navController.popBackStack() })
+            }
             composable(Destination.Abstinence.route) { StageStub("Отказы", 3) }
             composable(Destination.Character.route) { StageStub("Персонаж", 4) }
             composable(Destination.Stats.route) { StageStub("Статистика", 7) }
@@ -85,6 +114,9 @@ fun AshwakeRoot() {
         }
     }
 }
+
+/** Экраны, на которых нижняя навигация только мешает. */
+private val FULLSCREEN_ROUTE_PREFIXES = listOf("task?", "habit/", "habit-editor?")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable

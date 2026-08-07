@@ -1,0 +1,99 @@
+{
+  "categories": [
+    {
+      "sphere": "HEALTH",
+      "title": "Здоровье",
+      "habits": [
+        { "name": "Выпить воды", "type": "COUNTER", "target": 8, "unit": "стаканов", "minimum": 4, "schedule": "DAILY" },
+        { "name": "Лечь до полуночи", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Восемь часов сна", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Завтрак", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Овощи в рационе", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Витамины", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Без сахара", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Без фастфуда", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Без еды после 21:00", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Прогулка на улице", "type": "COUNTER", "target": 30, "unit": "минут", "minimum": 10, "schedule": "DAILY" },
+        { "name": "Почистить зубы вечером", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Зубная нить", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Взвеситься", "type": "CHECK", "schedule": "WEEKDAYS", "weekdays": ["MONDAY"] },
+        { "name": "Контрастный душ", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Не сидеть больше часа подряд", "type": "CHECK", "schedule": "DAILY" }
+      ]
+    },
+    {
+      "sphere": "SPORT",
+      "title": "Спорт",
+      "habits": [
+        { "name": "Зарядка", "type": "COUNTER", "target": 15, "unit": "минут", "minimum": 2, "schedule": "DAILY" },
+        { "name": "Тренировка", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 },
+        { "name": "Пробежка", "type": "COUNTER", "target": 5, "unit": "км", "minimum": 1, "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 },
+        { "name": "Отжимания", "type": "COUNTER", "target": 50, "unit": "раз", "minimum": 10, "schedule": "DAILY" },
+        { "name": "Подтягивания", "type": "COUNTER", "target": 20, "unit": "раз", "minimum": 3, "schedule": "EVERY_OTHER_DAY" },
+        { "name": "Планка", "type": "COUNTER", "target": 120, "unit": "секунд", "minimum": 30, "schedule": "DAILY" },
+        { "name": "Приседания", "type": "COUNTER", "target": 60, "unit": "раз", "minimum": 15, "schedule": "DAILY" },
+        { "name": "Растяжка", "type": "COUNTER", "target": 10, "unit": "минут", "minimum": 3, "schedule": "DAILY" },
+        { "name": "10 000 шагов", "type": "COUNTER", "target": 10000, "unit": "шагов", "minimum": 4000, "schedule": "DAILY" },
+        { "name": "Бассейн", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Йога", "type": "COUNTER", "target": 20, "unit": "минут", "minimum": 5, "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 },
+        { "name": "Велосипед", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Разминка для шеи", "type": "CHECK", "schedule": "DAILY" }
+      ]
+    },
+    {
+      "sphere": "STUDY",
+      "title": "Учёба",
+      "habits": [
+        { "name": "Читать", "type": "COUNTER", "target": 30, "unit": "страниц", "minimum": 5, "schedule": "DAILY" },
+        { "name": "Иностранный язык", "type": "COUNTER", "target": 20, "unit": "минут", "minimum": 5, "schedule": "DAILY" },
+        { "name": "Новые слова", "type": "COUNTER", "target": 10, "unit": "слов", "minimum": 3, "schedule": "DAILY" },
+        { "name": "Курс или лекция", "type": "COUNTER", "target": 45, "unit": "минут", "minimum": 15, "schedule": "WEEKDAYS", "weekdays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] },
+        { "name": "Практика кода", "type": "COUNTER", "target": 60, "unit": "минут", "minimum": 15, "schedule": "DAILY" },
+        { "name": "Конспект прочитанного", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 },
+        { "name": "Разбор задачи", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Профессиональная статья", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 4 },
+        { "name": "Повторение пройденного", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Подкаст на языке", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Писать заметки", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Час глубокой работы", "type": "COUNTER", "target": 60, "unit": "минут", "minimum": 25, "schedule": "WEEKDAYS", "weekdays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] }
+      ]
+    },
+    {
+      "sphere": "CHORES",
+      "title": "Быт",
+      "habits": [
+        { "name": "Заправить кровать", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Помыть посуду", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Разобрать почту", "type": "CHECK", "schedule": "WEEKDAYS", "weekdays": ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"] },
+        { "name": "Уборка комнаты", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Стирка", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Вынести мусор", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Приготовить еду дома", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Учёт расходов", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Разбор рабочего стола", "type": "CHECK", "schedule": "WEEKDAYS", "weekdays": ["FRIDAY"] },
+        { "name": "Полить цветы", "type": "CHECK", "schedule": "EVERY_OTHER_DAY" },
+        { "name": "Планирование недели", "type": "CHECK", "schedule": "WEEKDAYS", "weekdays": ["SUNDAY"] },
+        { "name": "Бэкап данных", "type": "CHECK", "schedule": "BIWEEKLY" }
+      ]
+    },
+    {
+      "sphere": "MENTAL",
+      "title": "Ментальное",
+      "habits": [
+        { "name": "Медитация", "type": "COUNTER", "target": 10, "unit": "минут", "minimum": 2, "schedule": "DAILY" },
+        { "name": "Дневник", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Три благодарности", "type": "COUNTER", "target": 3, "unit": "пункта", "minimum": 1, "schedule": "DAILY" },
+        { "name": "Дыхательная практика", "type": "COUNTER", "target": 5, "unit": "минут", "minimum": 1, "schedule": "DAILY" },
+        { "name": "Без соцсетей до обеда", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Без телефона в кровати", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Без новостей", "type": "NEGATIVE", "schedule": "DAILY" },
+        { "name": "Позвонить близким", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 2 },
+        { "name": "Время без экранов", "type": "COUNTER", "target": 60, "unit": "минут", "minimum": 15, "schedule": "DAILY" },
+        { "name": "Побыть в тишине", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Отметить, что получилось", "type": "CHECK", "schedule": "DAILY" },
+        { "name": "Хобби без пользы", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 },
+        { "name": "Прогулка без наушников", "type": "CHECK", "schedule": "TIMES_PER_WEEK", "timesPerWeek": 3 }
+      ]
+    }
+  ]
+}

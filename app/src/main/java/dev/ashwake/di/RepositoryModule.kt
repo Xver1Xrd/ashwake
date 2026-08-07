@@ -6,9 +6,11 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.core.time.SystemAppClock
+import dev.ashwake.data.repository.habits.HabitRepositoryImpl
 import dev.ashwake.data.repository.tasks.ProjectRepositoryImpl
 import dev.ashwake.data.repository.tasks.TagRepositoryImpl
 import dev.ashwake.data.repository.tasks.TaskRepositoryImpl
+import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.tasks.TagRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
@@ -29,4 +31,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindTagRepository(impl: TagRepositoryImpl): TagRepository
+
+    @Binds @Singleton
+    abstract fun bindHabitRepository(impl: HabitRepositoryImpl): HabitRepository
 }

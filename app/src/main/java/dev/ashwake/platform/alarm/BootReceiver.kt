@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import dagger.hilt.android.AndroidEntryPoint
+import dev.ashwake.domain.scheduler.HabitReminderScheduler
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class BootReceiver : BroadcastReceiver() {
 
-    @Inject lateinit var scheduler: TaskReminderScheduler
+    @Inject lateinit var taskScheduler: TaskReminderScheduler
+    @Inject lateinit var habitScheduler: HabitReminderScheduler
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -27,7 +29,8 @@ class BootReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         scope.launch {
             try {
-                scheduler.rescheduleAll()
+                taskScheduler.rescheduleAll()
+                habitScheduler.rescheduleAll()
             } finally {
                 pendingResult.finish()
             }
