@@ -6,9 +6,18 @@ Room, `AshwakeDatabase`, версия 1. Схема спроектирована
 > **Что уже в коде.** Задачи: `projects`, `tags`, `tasks`, `task_tag_cross_ref`,
 > `recurrence_rules`, `task_postponements`. Привычки: `habits`, `habit_entries`,
 > `habit_skip_reasons`, `habit_freezes`, `habit_pauses`, `habit_anchors`.
+> Отказы: `abstinences`, `abstinence_attempts`, `abstinence_milestones`,
+> `abstinence_relapse_reasons`, `craving_triggers`, `craving_events`,
+> `abstinence_substitutes`.
 > Экспортированная схема лежит в `app/schemas/` и коммитится — миграции
 > ревьюятся по диффу. Остальные таблицы подключаются на своих этапах;
 > до версии 1.0 база в debug пересоздаётся, миграции пишутся с первого релиза.
+>
+> **Расхождение с проектом:** в `abstinence_attempts` поле `penaltyDaysApplied`
+> названо `penaltyDays` и работает накопительно — в режиме GENTLE каждый срыв
+> прибавляет к нему свои дни, а попытка остаётся открытой. Следствие, которое
+> стоит знать: отменить можно только последний срыв, предыдущие штрафы уже
+> слились в общую сумму.
 >
 > **Отменено:** `habit_score_snapshots` не заведена. Это был кэш, а год истории —
 > 365 контрольных точек, которые движок считает за микросекунды. Таблицу

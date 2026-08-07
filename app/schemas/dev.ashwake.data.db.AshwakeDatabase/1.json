@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "306673c8d6f60c63bf21005c74ce793d",
+    "identityHash": "4ab60f0e84e3852aba90df968b300f85",
     "entities": [
       {
         "tableName": "projects",
@@ -1026,12 +1026,576 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "abstinences",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `icon` TEXT, `paletteId` TEXT NOT NULL, `mode` TEXT NOT NULL, `gentlePenaltyDays` INTEGER NOT NULL, `milestonesEnabled` INTEGER NOT NULL, `motivationText` TEXT, `baselineUnitName` TEXT, `baselineUnitsPerDay` REAL, `baselineCostPerUnit` REAL, `baselineCurrency` TEXT, `stickyNotification` INTEGER NOT NULL, `substanceWarningAck` INTEGER NOT NULL, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "paletteId",
+            "columnName": "paletteId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mode",
+            "columnName": "mode",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gentlePenaltyDays",
+            "columnName": "gentlePenaltyDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "milestonesEnabled",
+            "columnName": "milestonesEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "motivationText",
+            "columnName": "motivationText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "baselineUnitName",
+            "columnName": "baselineUnitName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "baselineUnitsPerDay",
+            "columnName": "baselineUnitsPerDay",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "baselineCostPerUnit",
+            "columnName": "baselineCostPerUnit",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "baselineCurrency",
+            "columnName": "baselineCurrency",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "stickyNotification",
+            "columnName": "stickyNotification",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "substanceWarningAck",
+            "columnName": "substanceWarningAck",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "abstinence_attempts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `abstinenceId` INTEGER NOT NULL, `ordinal` INTEGER NOT NULL, `startedAt` INTEGER NOT NULL, `endedAt` INTEGER, `relapseReasonId` INTEGER, `note` TEXT, `penaltyDays` INTEGER NOT NULL, `undoDeadline` INTEGER, FOREIGN KEY(`abstinenceId`) REFERENCES `abstinences`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abstinenceId",
+            "columnName": "abstinenceId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordinal",
+            "columnName": "ordinal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAt",
+            "columnName": "startedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endedAt",
+            "columnName": "endedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "relapseReasonId",
+            "columnName": "relapseReasonId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "penaltyDays",
+            "columnName": "penaltyDays",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "undoDeadline",
+            "columnName": "undoDeadline",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_abstinence_attempts_abstinenceId",
+            "unique": false,
+            "columnNames": [
+              "abstinenceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_abstinence_attempts_abstinenceId` ON `${TABLE_NAME}` (`abstinenceId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "abstinences",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "abstinenceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "abstinence_milestones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `abstinenceId` INTEGER NOT NULL, `days` INTEGER NOT NULL, `title` TEXT NOT NULL, `userText` TEXT, `custom` INTEGER NOT NULL, `reachedAt` INTEGER, `notified` INTEGER NOT NULL, FOREIGN KEY(`abstinenceId`) REFERENCES `abstinences`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abstinenceId",
+            "columnName": "abstinenceId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userText",
+            "columnName": "userText",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "custom",
+            "columnName": "custom",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "reachedAt",
+            "columnName": "reachedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "notified",
+            "columnName": "notified",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_abstinence_milestones_abstinenceId_days",
+            "unique": true,
+            "columnNames": [
+              "abstinenceId",
+              "days"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_abstinence_milestones_abstinenceId_days` ON `${TABLE_NAME}` (`abstinenceId`, `days`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "abstinences",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "abstinenceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "abstinence_relapse_reasons",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `code` TEXT NOT NULL, `label` TEXT NOT NULL, `builtin` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "builtin",
+            "columnName": "builtin",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_abstinence_relapse_reasons_code",
+            "unique": true,
+            "columnNames": [
+              "code"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_abstinence_relapse_reasons_code` ON `${TABLE_NAME}` (`code`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "craving_triggers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `code` TEXT NOT NULL, `label` TEXT NOT NULL, `builtin` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "code",
+            "columnName": "code",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "label",
+            "columnName": "label",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "builtin",
+            "columnName": "builtin",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_craving_triggers_code",
+            "unique": true,
+            "columnNames": [
+              "code"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_craving_triggers_code` ON `${TABLE_NAME}` (`code`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "craving_events",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `abstinenceId` INTEGER NOT NULL, `at` INTEGER NOT NULL, `hourOfDay` INTEGER NOT NULL, `dayOfWeek` INTEGER NOT NULL, `intensity` INTEGER NOT NULL, `triggerId` INTEGER, `note` TEXT, `resisted` INTEGER, `durationSeconds` INTEGER, `usedBreathing` INTEGER NOT NULL, `usedSubstituteId` INTEGER, FOREIGN KEY(`abstinenceId`) REFERENCES `abstinences`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abstinenceId",
+            "columnName": "abstinenceId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "at",
+            "columnName": "at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hourOfDay",
+            "columnName": "hourOfDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "intensity",
+            "columnName": "intensity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "triggerId",
+            "columnName": "triggerId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "resisted",
+            "columnName": "resisted",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "durationSeconds",
+            "columnName": "durationSeconds",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "usedBreathing",
+            "columnName": "usedBreathing",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "usedSubstituteId",
+            "columnName": "usedSubstituteId",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_craving_events_abstinenceId",
+            "unique": false,
+            "columnNames": [
+              "abstinenceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_craving_events_abstinenceId` ON `${TABLE_NAME}` (`abstinenceId`)"
+          },
+          {
+            "name": "index_craving_events_at",
+            "unique": false,
+            "columnNames": [
+              "at"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_craving_events_at` ON `${TABLE_NAME}` (`at`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "abstinences",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "abstinenceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "abstinence_substitutes",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `abstinenceId` INTEGER NOT NULL, `text` TEXT NOT NULL, `position` INTEGER NOT NULL, FOREIGN KEY(`abstinenceId`) REFERENCES `abstinences`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abstinenceId",
+            "columnName": "abstinenceId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "text",
+            "columnName": "text",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_abstinence_substitutes_abstinenceId",
+            "unique": false,
+            "columnNames": [
+              "abstinenceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_abstinence_substitutes_abstinenceId` ON `${TABLE_NAME}` (`abstinenceId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "abstinences",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "abstinenceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '306673c8d6f60c63bf21005c74ce793d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4ab60f0e84e3852aba90df968b300f85')"
     ]
   }
 }

@@ -2,10 +2,18 @@ package dev.ashwake.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
+import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
+import dev.ashwake.data.db.entity.abstinence.AbstinenceMilestoneEntity
+import dev.ashwake.data.db.entity.abstinence.AbstinenceSubstituteEntity
+import dev.ashwake.data.db.entity.abstinence.CravingEventEntity
+import dev.ashwake.data.db.entity.abstinence.CravingTriggerEntity
+import dev.ashwake.data.db.entity.abstinence.RelapseReasonEntity
 import dev.ashwake.data.db.entity.habits.HabitAnchorEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
@@ -42,7 +50,15 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         HabitSkipReasonEntity::class,
         HabitFreezeEntity::class,
         HabitPauseEntity::class,
-        HabitAnchorEntity::class
+        HabitAnchorEntity::class,
+        // отказы
+        AbstinenceEntity::class,
+        AbstinenceAttemptEntity::class,
+        AbstinenceMilestoneEntity::class,
+        RelapseReasonEntity::class,
+        CravingTriggerEntity::class,
+        CravingEventEntity::class,
+        AbstinenceSubstituteEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -52,6 +68,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
     abstract fun tagDao(): TagDao
     abstract fun habitDao(): HabitDao
+    abstract fun abstinenceDao(): AbstinenceDao
 
     companion object {
         const val NAME = "ashwake.db"

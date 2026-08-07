@@ -9,6 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dev.ashwake.BuildConfig
 import dev.ashwake.data.db.AshwakeDatabase
+import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
@@ -34,4 +35,5 @@ object DatabaseModule {
     @Provides fun provideProjectDao(db: AshwakeDatabase): ProjectDao = db.projectDao()
     @Provides fun provideTagDao(db: AshwakeDatabase): TagDao = db.tagDao()
     @Provides fun provideHabitDao(db: AshwakeDatabase): HabitDao = db.habitDao()
+    @Provides fun provideAbstinenceDao(db: AshwakeDatabase): AbstinenceDao = db.abstinenceDao()
 }

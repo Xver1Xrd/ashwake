@@ -23,6 +23,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.ashwake.ui.abstinence.AbstinenceScreen
+import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
@@ -107,7 +109,18 @@ fun AshwakeRoot() {
             ) {
                 HabitEditorScreen(onDone = { navController.popBackStack() })
             }
-            composable(Destination.Abstinence.route) { StageStub("Отказы", 3) }
+            composable(Destination.Abstinence.route) {
+                AbstinenceScreen(
+                    onOpen = { id -> navController.navigate("abstinence/$id") }
+                )
+            }
+
+            composable(
+                route = "abstinence/{abstinenceId}",
+                arguments = listOf(navArgument("abstinenceId") { type = NavType.StringType })
+            ) {
+                AbstinenceDetailScreen(onBack = { navController.popBackStack() })
+            }
             composable(Destination.Character.route) { StageStub("Персонаж", 4) }
             composable(Destination.Stats.route) { StageStub("Статистика", 7) }
             composable(Destination.Settings.route) { StageStub("Настройки", 0) }
@@ -116,7 +129,8 @@ fun AshwakeRoot() {
 }
 
 /** Экраны, на которых нижняя навигация только мешает. */
-private val FULLSCREEN_ROUTE_PREFIXES = listOf("task?", "habit/", "habit-editor?")
+private val FULLSCREEN_ROUTE_PREFIXES =
+    listOf("task?", "habit/", "habit-editor?", "abstinence/")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable
