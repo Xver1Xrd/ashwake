@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Самый тёмный цвет палитры проекта (п. 15.5): чистого #000000 в проекте нет -->
+    <color name="window_background">#0D0B12</color>
+    <color name="ic_launcher_background">#1A1622</color>
+</resources>

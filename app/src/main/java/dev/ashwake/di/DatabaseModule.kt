@@ -1,0 +1,35 @@
+package dev.ashwake.di
+
+import android.content.Context
+import androidx.room.Room
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import dev.ashwake.BuildConfig
+import dev.ashwake.data.db.AshwakeDatabase
+import dev.ashwake.data.db.dao.tasks.ProjectDao
+import dev.ashwake.data.db.dao.tasks.TagDao
+import dev.ashwake.data.db.dao.tasks.TaskDao
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): AshwakeDatabase =
+        Room.databaseBuilder(context, AshwakeDatabase::class.java, AshwakeDatabase.NAME)
+            .apply {
+                // До 1.0 схема ещё двигается: в debug база просто пересоздаётся.
+                // В release этот путь недопустим — там будут явные миграции.
+                if (BuildConfig.DEBUG) fallbackToDestructiveMigration()
+            }
+            .build()
+
+    @Provides fun provideTaskDao(db: AshwakeDatabase): TaskDao = db.taskDao()
+    @Provides fun provideProjectDao(db: AshwakeDatabase): ProjectDao = db.projectDao()
+    @Provides fun provideTagDao(db: AshwakeDatabase): TagDao = db.tagDao()
+}

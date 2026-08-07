@@ -1,0 +1,547 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "6d2d915f2cb9c3d646160c33219feb4a",
+    "entities": [
+      {
+        "tableName": "projects",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `color` INTEGER NOT NULL, `icon` TEXT, `position` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "archived",
+            "columnName": "archived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "tags",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `color` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "color",
+            "columnName": "color",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tags_name",
+            "unique": true,
+            "columnNames": [
+              "name"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_name` ON `${TABLE_NAME}` (`name`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `note` TEXT, `projectId` INTEGER, `parentTaskId` INTEGER, `priority` TEXT NOT NULL, `dueDate` INTEGER, `dueTime` INTEGER, `estimateMinutes` INTEGER, `status` TEXT NOT NULL, `completedAt` INTEGER, `position` INTEGER NOT NULL, `quadrantOverride` TEXT, `recurrenceId` INTEGER, `seriesId` TEXT, `isTemplate` INTEGER NOT NULL, `persistentReminderMinutes` INTEGER, `postponeCount` INTEGER NOT NULL, `lastPostponedAt` INTEGER, `sourceLink` TEXT, `delegatedTo` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`parentTaskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`recurrenceId`) REFERENCES `recurrence_rules`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "projectId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "parentTaskId",
+            "columnName": "parentTaskId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "priority",
+            "columnName": "priority",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dueDate",
+            "columnName": "dueDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dueTime",
+            "columnName": "dueTime",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "estimateMinutes",
+            "columnName": "estimateMinutes",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "quadrantOverride",
+            "columnName": "quadrantOverride",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "recurrenceId",
+            "columnName": "recurrenceId",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "seriesId",
+            "columnName": "seriesId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isTemplate",
+            "columnName": "isTemplate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "persistentReminderMinutes",
+            "columnName": "persistentReminderMinutes",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "postponeCount",
+            "columnName": "postponeCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastPostponedAt",
+            "columnName": "lastPostponedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "sourceLink",
+            "columnName": "sourceLink",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "delegatedTo",
+            "columnName": "delegatedTo",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tasks_projectId",
+            "unique": false,
+            "columnNames": [
+              "projectId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_projectId` ON `${TABLE_NAME}` (`projectId`)"
+          },
+          {
+            "name": "index_tasks_parentTaskId",
+            "unique": false,
+            "columnNames": [
+              "parentTaskId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_parentTaskId` ON `${TABLE_NAME}` (`parentTaskId`)"
+          },
+          {
+            "name": "index_tasks_recurrenceId",
+            "unique": false,
+            "columnNames": [
+              "recurrenceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_recurrenceId` ON `${TABLE_NAME}` (`recurrenceId`)"
+          },
+          {
+            "name": "index_tasks_dueDate",
+            "unique": false,
+            "columnNames": [
+              "dueDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_dueDate` ON `${TABLE_NAME}` (`dueDate`)"
+          },
+          {
+            "name": "index_tasks_status",
+            "unique": false,
+            "columnNames": [
+              "status"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_tasks_seriesId",
+            "unique": false,
+            "columnNames": [
+              "seriesId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_seriesId` ON `${TABLE_NAME}` (`seriesId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "projects",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "projectId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "parentTaskId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "recurrence_rules",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "recurrenceId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "task_tag_cross_ref",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`taskId` INTEGER NOT NULL, `tagId` INTEGER NOT NULL, PRIMARY KEY(`taskId`, `tagId`), FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "taskId",
+            "columnName": "taskId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tagId",
+            "columnName": "tagId",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "taskId",
+            "tagId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_task_tag_cross_ref_tagId",
+            "unique": false,
+            "columnNames": [
+              "tagId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_tag_cross_ref_tagId` ON `${TABLE_NAME}` (`tagId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "taskId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "tags",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tagId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "recurrence_rules",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `type` TEXT NOT NULL, `intervalDays` INTEGER, `weekdaysMask` INTEGER NOT NULL, `dayOfMonth` INTEGER, `startDate` INTEGER NOT NULL, `endDate` INTEGER, `fromCompletion` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "intervalDays",
+            "columnName": "intervalDays",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "weekdaysMask",
+            "columnName": "weekdaysMask",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfMonth",
+            "columnName": "dayOfMonth",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fromCompletion",
+            "columnName": "fromCompletion",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "task_postponements",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `taskId` INTEGER NOT NULL, `fromDate` INTEGER, `toDate` INTEGER, `at` INTEGER NOT NULL, `source` TEXT NOT NULL, FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskId",
+            "columnName": "taskId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromDate",
+            "columnName": "fromDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "toDate",
+            "columnName": "toDate",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "at",
+            "columnName": "at",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_task_postponements_taskId",
+            "unique": false,
+            "columnNames": [
+              "taskId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_postponements_taskId` ON `${TABLE_NAME}` (`taskId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "taskId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6d2d915f2cb9c3d646160c33219feb4a')"
+    ]
+  }
+}
