@@ -13,10 +13,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.EventRepeat
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -59,7 +64,9 @@ fun TaskRow(
     onComplete: () -> Unit,
     onPostpone: () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    expanded: Boolean = false,
+    onExpandToggle: (() -> Unit)? = null
 ) {
     val complete by rememberUpdatedState(onComplete)
     val postpone by rememberUpdatedState(onPostpone)
@@ -79,7 +86,7 @@ fun TaskRow(
         state = dismissState,
         modifier = modifier,
         backgroundContent = { SwipeBackground(dismissState.dismissDirection) },
-        content = { TaskRowContent(task, today, onClick) }
+        content = { TaskRowContent(task, today, onClick, expanded, onExpandToggle) }
     )
 }
 
@@ -108,7 +115,13 @@ private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
 }
 
 @Composable
-private fun TaskRowContent(task: Task, today: LocalDate, onClick: () -> Unit) {
+private fun TaskRowContent(
+    task: Task,
+    today: LocalDate,
+    onClick: () -> Unit,
+    expanded: Boolean,
+    onExpandToggle: (() -> Unit)?
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -176,6 +189,55 @@ private fun TaskRowContent(task: Task, today: LocalDate, onClick: () -> Unit) {
             )
         }
         StaleBadge(task)
+
+        if (task.subtasks.isNotEmpty() && onExpandToggle != null) {
+            IconButton(onClick = onExpandToggle, modifier = Modifier.size(24.dp)) {
+                Icon(
+                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Свернуть подзадачи"
+                    else "Показать подзадачи",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+/** Подзадачи под строкой. Отдельно от [TaskRow], чтобы свайп не задевал их. */
+@Composable
+fun SubtaskList(
+    task: Task,
+    onToggle: (Task) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier.padding(start = 28.dp, top = 2.dp)) {
+        task.subtasks.forEach { subtask ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onToggle(subtask) }
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    if (subtask.isDone) Icons.Filled.CheckCircle
+                    else Icons.Filled.RadioButtonUnchecked,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (subtask.isDone) Moss else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "  ${subtask.title}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textDecoration = if (subtask.isDone) TextDecoration.LineThrough else null,
+                    color = if (subtask.isDone) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
     }
 }
 

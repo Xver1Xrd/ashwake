@@ -17,11 +17,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dev.ashwake.ui.tasks.TasksScreen
+import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 
 @Composable
 fun AshwakeRoot() {
@@ -31,7 +34,9 @@ fun AshwakeRoot() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            // На экране редактора нижняя навигация только мешает — прячем
+            val showBottomBar = currentRoute?.startsWith("task?") != true
+            if (showBottomBar) NavigationBar {
                 Destination.bottomBar.forEach { destination ->
                     NavigationBarItem(
                         selected = currentRoute == destination.route,
@@ -56,7 +61,18 @@ fun AshwakeRoot() {
             startDestination = Destination.Tasks.route,
             modifier = Modifier.padding(padding)
         ) {
-            composable(Destination.Tasks.route) { TasksScreen() }
+            composable(Destination.Tasks.route) {
+                TasksScreen(onOpenTask = { id -> navController.navigate("task?taskId=$id") })
+            }
+
+            composable(
+                route = "task?taskId={taskId}",
+                arguments = listOf(
+                    navArgument("taskId") { type = NavType.StringType; defaultValue = "0" }
+                )
+            ) {
+                TaskEditorScreen(onDone = { navController.popBackStack() })
+            }
 
             // Экраны следующих этапов: заглушки, чтобы навигация была целой с самого начала
             composable(Destination.Home.route) { StageStub("Главный экран", 4) }

@@ -56,6 +56,31 @@ interface TaskDao {
     ): Flow<List<TaskWithRelations>>
 
     @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND dueDate IS NOT NULL
+          AND dueDate BETWEEN :from AND :to
+          AND (:includeDone = 1 OR status = 'ACTIVE')
+        ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
+        """
+    )
+    fun observeTasksInRange(from: Int, to: Int, includeDone: Int): Flow<List<TaskWithRelations>>
+
+    /** Активные задачи с точным временем — их будильники переживают перезагрузку. */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE status = 'ACTIVE' AND isTemplate = 0
+          AND dueDate IS NOT NULL AND dueTime IS NOT NULL
+        """
+    )
+    suspend fun tasksWithReminders(): List<TaskWithRelations>
+
+    @Transaction
     @Query("SELECT * FROM tasks WHERE id = :id")
     fun observeTask(id: Long): Flow<TaskWithRelations?>
 

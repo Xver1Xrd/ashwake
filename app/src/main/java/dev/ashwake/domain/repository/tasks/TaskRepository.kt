@@ -25,6 +25,16 @@ interface TaskRepository {
 
     fun observeTasks(filter: TaskFilter = TaskFilter()): Flow<List<Task>>
 
+    /** Задачи с дедлайном в интервале — календарю и сетке дня. */
+    fun observeTasksInRange(
+        from: LocalDate,
+        to: LocalDate,
+        includeDone: Boolean = true
+    ): Flow<List<Task>>
+
+    /** Активные задачи с датой и временем — для перепланирования будильников после перезагрузки. */
+    suspend fun tasksWithReminders(): List<Task>
+
     fun observeTask(id: Long): Flow<Task?>
 
     suspend fun getTask(id: Long): Task?

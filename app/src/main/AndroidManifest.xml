@@ -43,6 +43,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Срабатывание напоминаний и кнопки «Выполнено» / «На завтра» из шторки -->
+        <receiver
+            android:name=".platform.notification.TaskReminderReceiver"
+            android:exported="false" />
+
+        <!-- Будильники не переживают перезагрузку — расставляем заново -->
+        <receiver
+            android:name=".platform.alarm.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <!-- WorkManager инициализируется через Hilt, а не штатным провайдером -->
         <provider
             android:name="androidx.startup.InitializationProvider"
