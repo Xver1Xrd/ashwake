@@ -13,6 +13,7 @@ import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.routines.FocusDao
+import dev.ashwake.data.db.dao.ritual.RitualDao
 import dev.ashwake.data.db.dao.routines.RoutineDao
 import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
@@ -44,4 +45,5 @@ object DatabaseModule {
     @Provides fun provideRoutineDao(db: AshwakeDatabase): RoutineDao = db.routineDao()
     @Provides fun provideFocusDao(db: AshwakeDatabase): FocusDao = db.focusDao()
     @Provides fun provideTimeboxDao(db: AshwakeDatabase): TimeboxDao = db.timeboxDao()
+    @Provides fun provideRitualDao(db: AshwakeDatabase): RitualDao = db.ritualDao()
 }

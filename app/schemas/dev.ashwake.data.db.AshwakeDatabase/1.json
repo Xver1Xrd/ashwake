@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d49dc71f19e2e38ec5869257974913c4",
+    "identityHash": "5dcd54f26c00e96bf111d80acf683f1e",
     "entities": [
       {
         "tableName": "projects",
@@ -2773,12 +2773,143 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "daily_reviews",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` INTEGER NOT NULL, `dayRating` INTEGER, `mood` INTEGER, `energy` INTEGER, `note` TEXT, `completedAt` INTEGER NOT NULL, `completedAs` TEXT NOT NULL, PRIMARY KEY(`date`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayRating",
+            "columnName": "dayRating",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "mood",
+            "columnName": "mood",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "energy",
+            "columnName": "energy",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "note",
+            "columnName": "note",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAs",
+            "columnName": "completedAs",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "daily_review_top_tasks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`date` INTEGER NOT NULL, `taskId` INTEGER NOT NULL, `position` INTEGER NOT NULL, PRIMARY KEY(`date`, `taskId`))",
+        "fields": [
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskId",
+            "columnName": "taskId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "position",
+            "columnName": "position",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "date",
+            "taskId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_daily_review_top_tasks_taskId",
+            "unique": false,
+            "columnNames": [
+              "taskId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_daily_review_top_tasks_taskId` ON `${TABLE_NAME}` (`taskId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "weekly_reports",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`weekStartDate` INTEGER NOT NULL, `generatedAt` INTEGER NOT NULL, `json` TEXT NOT NULL, PRIMARY KEY(`weekStartDate`))",
+        "fields": [
+          {
+            "fieldPath": "weekStartDate",
+            "columnName": "weekStartDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "generatedAt",
+            "columnName": "generatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "json",
+            "columnName": "json",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "weekStartDate"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd49dc71f19e2e38ec5869257974913c4')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5dcd54f26c00e96bf111d80acf683f1e')"
     ]
   }
 }

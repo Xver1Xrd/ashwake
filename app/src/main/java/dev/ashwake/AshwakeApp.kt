@@ -6,6 +6,8 @@ import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import dev.ashwake.platform.notification.AshwakeNotifications
 import dev.ashwake.platform.work.MilestoneWorker
+import dev.ashwake.platform.work.RitualReminderWorker
+import dev.ashwake.platform.work.WeeklyReportWorker
 import javax.inject.Inject
 
 /**
@@ -21,6 +23,8 @@ class AshwakeApp : Application(), Configuration.Provider {
         super.onCreate()
         AshwakeNotifications.createChannels(this)
         MilestoneWorker.schedule(this)
+        RitualReminderWorker.schedule(this)
+        WeeklyReportWorker.schedule(this)
     }
 
     override val workManagerConfiguration: Configuration

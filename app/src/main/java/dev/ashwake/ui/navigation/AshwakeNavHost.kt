@@ -25,7 +25,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.ashwake.ui.abstinence.AbstinenceScreen
 import dev.ashwake.ui.character.CharacterScreen
+import dev.ashwake.ui.ritual.RitualScreen
 import dev.ashwake.ui.routines.RoutineRunScreen
+import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.timers.TimersScreen
 import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.habits.HabitsScreen
@@ -72,7 +74,11 @@ fun AshwakeRoot() {
             modifier = Modifier.padding(padding)
         ) {
             composable(Destination.Tasks.route) {
-                TasksScreen(onOpenTask = { id -> navController.navigate("task?taskId=$id") })
+                TasksScreen(
+                    onOpenTask = { id -> navController.navigate("task?taskId=$id") },
+                    onOpenRitual = { navController.navigate("ritual") },
+                    onOpenStats = { navController.navigate(Destination.Stats.route) }
+                )
             }
 
             composable(
@@ -132,7 +138,11 @@ fun AshwakeRoot() {
             composable("routine-run") {
                 RoutineRunScreen(onExit = { navController.popBackStack() })
             }
-            composable(Destination.Stats.route) { StageStub("Статистика", 7) }
+            composable(Destination.Stats.route) { StatsScreen() }
+
+            composable("ritual") {
+                RitualScreen(onDone = { navController.popBackStack() })
+            }
             composable(Destination.Settings.route) { StageStub("Настройки", 0) }
         }
     }
@@ -140,7 +150,7 @@ fun AshwakeRoot() {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable

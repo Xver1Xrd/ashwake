@@ -10,7 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.ViewTimeline
@@ -45,6 +47,8 @@ import dev.ashwake.ui.tasks.components.TaskRow
 @Composable
 fun TasksScreen(
     onOpenTask: (Long) -> Unit,
+    onOpenRitual: () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     viewModel: TasksViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -56,6 +60,12 @@ fun TasksScreen(
             TopAppBar(
                 title = { Text("Задачи") },
                 actions = {
+                    IconButton(onClick = onOpenRitual) {
+                        Icon(Icons.Filled.NightsStay, contentDescription = "Вечерний ритуал")
+                    }
+                    IconButton(onClick = onOpenStats) {
+                        Icon(Icons.Filled.BarChart, contentDescription = "Статистика")
+                    }
                     IconButton(onClick = viewModel::toggleStaleFilter) {
                         Icon(
                             Icons.Filled.HourglassBottom,

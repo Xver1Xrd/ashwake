@@ -11,6 +11,7 @@ import dev.ashwake.data.repository.character.CharacterRepositoryImpl
 import dev.ashwake.data.repository.habits.HabitRepositoryImpl
 import dev.ashwake.data.repository.routines.FocusRepositoryImpl
 import dev.ashwake.data.repository.routines.RoutineRepositoryImpl
+import dev.ashwake.data.repository.ritual.RitualRepositoryImpl
 import dev.ashwake.data.repository.tasks.ProjectRepositoryImpl
 import dev.ashwake.data.repository.timebox.TimeboxRepositoryImpl
 import dev.ashwake.data.repository.tasks.TagRepositoryImpl
@@ -20,6 +21,7 @@ import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.routines.FocusRepository
 import dev.ashwake.domain.repository.routines.RoutineRepository
+import dev.ashwake.domain.repository.ritual.RitualRepository
 import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.timebox.TimeboxRepository
 import dev.ashwake.domain.repository.tasks.TagRepository
@@ -63,4 +65,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindTimeboxRepository(impl: TimeboxRepositoryImpl): TimeboxRepository
+
+    @Binds @Singleton
+    abstract fun bindRitualRepository(impl: RitualRepositoryImpl): RitualRepository
 }
