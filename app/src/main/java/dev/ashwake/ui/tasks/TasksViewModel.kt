@@ -38,7 +38,7 @@ import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
-enum class TasksViewMode { LIST, MATRIX, CALENDAR }
+enum class TasksViewMode { LIST, MATRIX, CALENDAR, TIMEBOX }
 
 /** Масштаб календаря: месяц / неделя / день (п. 17, экран «Задачи»). */
 enum class CalendarScale { MONTH, WEEK, DAY }

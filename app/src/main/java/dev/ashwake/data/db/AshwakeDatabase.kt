@@ -7,6 +7,7 @@ import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.routines.FocusDao
 import dev.ashwake.data.db.dao.routines.RoutineDao
+import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
@@ -39,6 +40,8 @@ import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.habits.HabitFreezeEntity
 import dev.ashwake.data.db.entity.habits.HabitPauseEntity
 import dev.ashwake.data.db.entity.habits.HabitSkipReasonEntity
+import dev.ashwake.data.db.entity.timebox.TimeboxBlockEntity
+import dev.ashwake.data.db.entity.timebox.TimeboxDayEntity
 import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
@@ -95,7 +98,10 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         RoutineStepEntity::class,
         RoutineSessionEntity::class,
         RoutineSessionStepEntity::class,
-        FocusSessionEntity::class
+        FocusSessionEntity::class,
+        // таймбоксинг
+        TimeboxDayEntity::class,
+        TimeboxBlockEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -109,6 +115,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun characterDao(): CharacterDao
     abstract fun routineDao(): RoutineDao
     abstract fun focusDao(): FocusDao
+    abstract fun timeboxDao(): TimeboxDao
 
     companion object {
         const val NAME = "ashwake.db"

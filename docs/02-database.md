@@ -13,6 +13,7 @@ Room, `AshwakeDatabase`, версия 1. Схема спроектирована
 > `character_stats`, `stat_events`, `wallet`, `ledger_transactions`,
 > `user_rewards`, `user_reward_redemptions`. Рутины и фокус: `routines`,
 > `routine_steps`, `routine_sessions`, `routine_session_steps`, `focus_sessions`.
+> Таймбоксинг: `timebox_days`, `timebox_blocks`.
 > Экспортированная схема лежит в `app/schemas/` и коммитится — миграции
 > ревьюятся по диффу. Остальные таблицы подключаются на своих этапах;
 > до версии 1.0 база в debug пересоздаётся, миграции пишутся с первого релиза.

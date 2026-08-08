@@ -13,6 +13,7 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.HourglassBottom
+import androidx.compose.material.icons.filled.ViewTimeline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.tasks.calendar.TaskCalendar
+import dev.ashwake.ui.timebox.TimeboxScreen
 import dev.ashwake.ui.tasks.components.ProjectsDialog
 import dev.ashwake.ui.tasks.components.QuickAddBar
 import dev.ashwake.ui.tasks.components.StaleTaskDialog
@@ -67,7 +69,8 @@ fun TasksScreen(
                             when (state.viewMode) {
                                 TasksViewMode.LIST -> Icons.Filled.GridView
                                 TasksViewMode.MATRIX -> Icons.Filled.CalendarMonth
-                                TasksViewMode.CALENDAR -> Icons.AutoMirrored.Filled.List
+                                TasksViewMode.CALENDAR -> Icons.Filled.ViewTimeline
+                                TasksViewMode.TIMEBOX -> Icons.AutoMirrored.Filled.List
                             },
                             contentDescription = "Режим отображения"
                         )
@@ -87,7 +90,7 @@ fun TasksScreen(
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if (state.viewMode != TasksViewMode.CALENDAR) {
+            if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
                     projects = state.projects,
@@ -102,6 +105,8 @@ fun TasksScreen(
 
             Box(Modifier.fillMaxSize()) {
                 when {
+                    state.viewMode == TasksViewMode.TIMEBOX -> TimeboxScreen()
+
                     state.viewMode == TasksViewMode.CALENDAR -> TaskCalendar(
                         state = calendar,
                         today = state.today,
@@ -175,7 +180,8 @@ fun TasksScreen(
 private fun nextMode(mode: TasksViewMode): TasksViewMode = when (mode) {
     TasksViewMode.LIST -> TasksViewMode.MATRIX
     TasksViewMode.MATRIX -> TasksViewMode.CALENDAR
-    TasksViewMode.CALENDAR -> TasksViewMode.LIST
+    TasksViewMode.CALENDAR -> TasksViewMode.TIMEBOX
+    TasksViewMode.TIMEBOX -> TasksViewMode.LIST
 }
 
 @Composable
