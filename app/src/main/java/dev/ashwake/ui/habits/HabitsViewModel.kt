@@ -14,6 +14,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.habits.SkipReason
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
+import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -42,6 +43,7 @@ class HabitsViewModel @Inject constructor(
     private val habits: HabitRepository,
     private val presetLoader: HabitPresetLoader,
     private val reminderScheduler: HabitReminderScheduler,
+    private val markHabit: MarkHabitUseCase,
     private val clock: AppClock
 ) : ViewModel() {
 
@@ -92,28 +94,23 @@ class HabitsViewModel @Inject constructor(
                 habit.type == HabitType.COUNTER -> {
                     val step = counterStep(habit)
                     val next = progress.todayValue + step
-                    habits.mark(
-                        habitId = habit.id,
-                        date = clock.today(),
-                        status = if (next >= habit.targetValue) EntryStatus.DONE
-                        else EntryStatus.MINIMUM.takeIf { habit.hasMinimum && next >= (habit.minimumValue ?: 0f) }
-                            ?: EntryStatus.SKIPPED,
+                    markHabit(
+                        progress = progress,
+                        status = statusForValue(progress, next),
                         value = next
                     )
                 }
 
                 progress.doneToday -> habits.clearMark(habit.id, clock.today())
 
-                else -> habits.mark(habit.id, clock.today(), EntryStatus.DONE)
+                else -> markHabit(progress, EntryStatus.DONE)
             }
         }
     }
 
     /** «Минимум» — вторая кнопка на карточке (п. 5). */
     fun markMinimum(progress: HabitWithProgress) {
-        viewModelScope.launch {
-            habits.mark(progress.habit.id, clock.today(), EntryStatus.MINIMUM)
-        }
+        viewModelScope.launch { markHabit(progress, EntryStatus.MINIMUM) }
     }
 
     fun markSkipped(progress: HabitWithProgress, reasonId: Long?) {
@@ -129,17 +126,20 @@ class HabitsViewModel @Inject constructor(
 
     fun setCounterValue(progress: HabitWithProgress, value: Float) {
         viewModelScope.launch {
-            val habit = progress.habit
-            habits.mark(
-                habitId = habit.id,
-                date = clock.today(),
-                status = when {
-                    value >= habit.targetValue -> EntryStatus.DONE
-                    habit.hasMinimum && value >= (habit.minimumValue ?: 0f) -> EntryStatus.MINIMUM
-                    else -> EntryStatus.SKIPPED
-                },
-                value = value
-            )
+            markHabit(progress, statusForValue(progress, value), value = value)
+        }
+    }
+
+    /**
+     * Статус по набранному значению счётчика: норма закрывает день полностью,
+     * минимальная планка — наполовину, остальное считается пропуском.
+     */
+    private fun statusForValue(progress: HabitWithProgress, value: Float): EntryStatus {
+        val habit = progress.habit
+        return when {
+            value >= habit.targetValue -> EntryStatus.DONE
+            habit.hasMinimum && value >= (habit.minimumValue ?: 0f) -> EntryStatus.MINIMUM
+            else -> EntryStatus.SKIPPED
         }
     }
 

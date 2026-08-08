@@ -21,7 +21,12 @@ import dagger.assisted.AssistedInject
 import dev.ashwake.MainActivity
 import dev.ashwake.R
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.domain.engine.abstinence.AbstinenceCalculator
+import dev.ashwake.domain.engine.character.StatSource
+import dev.ashwake.domain.engine.reward.RewardContext
+import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
+import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.platform.notification.AshwakeNotifications
 import java.util.concurrent.TimeUnit
 
@@ -37,6 +42,7 @@ class MilestoneWorker @AssistedInject constructor(
     @Assisted private val context: Context,
     @Assisted params: WorkerParameters,
     private val abstinences: AbstinenceRepository,
+    private val character: CharacterRepository,
     private val clock: AppClock
 ) : CoroutineWorker(context, params) {
 
@@ -48,6 +54,15 @@ class MilestoneWorker @AssistedInject constructor(
                 title = "${abstinence.name}: ${milestone.title}",
                 // Текст к вехе пишет сам пользователь; своего приложение не добавляет
                 text = milestone.userText ?: "Веха достигнута"
+            )
+            // Монеты за веху начисляются ровно один раз: collectReachedMilestones
+            // помечает её достигнутой в той же транзакции
+            character.grantReward(
+                RewardContext(source = RewardSource.MILESTONE),
+                refId = "${abstinence.id}:${milestone.days}"
+            )
+            character.grantStatPoints(
+                StatSource.ABSTINENCE_DAY, refId = abstinence.id.toString()
             )
         }
         return Result.success()

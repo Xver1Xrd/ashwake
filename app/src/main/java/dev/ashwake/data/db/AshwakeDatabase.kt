@@ -3,6 +3,7 @@ package dev.ashwake.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
@@ -14,6 +15,17 @@ import dev.ashwake.data.db.entity.abstinence.AbstinenceSubstituteEntity
 import dev.ashwake.data.db.entity.abstinence.CravingEventEntity
 import dev.ashwake.data.db.entity.abstinence.CravingTriggerEntity
 import dev.ashwake.data.db.entity.abstinence.RelapseReasonEntity
+import dev.ashwake.data.db.entity.character.AppearancePresetEntity
+import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
+import dev.ashwake.data.db.entity.character.CharacterProfileEntity
+import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.EquippedItemEntity
+import dev.ashwake.data.db.entity.character.LedgerTransactionEntity
+import dev.ashwake.data.db.entity.character.OwnedItemEntity
+import dev.ashwake.data.db.entity.character.StatEventEntity
+import dev.ashwake.data.db.entity.character.UserRewardEntity
+import dev.ashwake.data.db.entity.character.UserRewardRedemptionEntity
+import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitAnchorEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
@@ -58,7 +70,19 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         RelapseReasonEntity::class,
         CravingTriggerEntity::class,
         CravingEventEntity::class,
-        AbstinenceSubstituteEntity::class
+        AbstinenceSubstituteEntity::class,
+        // персонаж и экономика
+        CharacterProfileEntity::class,
+        OwnedItemEntity::class,
+        EquippedItemEntity::class,
+        AppearancePresetEntity::class,
+        AppearancePresetItemEntity::class,
+        CharacterStatEntity::class,
+        StatEventEntity::class,
+        WalletEntity::class,
+        LedgerTransactionEntity::class,
+        UserRewardEntity::class,
+        UserRewardRedemptionEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -69,6 +93,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
     abstract fun habitDao(): HabitDao
     abstract fun abstinenceDao(): AbstinenceDao
+    abstract fun characterDao(): CharacterDao
 
     companion object {
         const val NAME = "ashwake.db"

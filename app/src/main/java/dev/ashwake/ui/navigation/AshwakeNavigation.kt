@@ -19,11 +19,11 @@ enum class Destination(
     val inBottomBar: Boolean = false
 ) {
     Home("home", "Главный", Icons.Filled.Home, inBottomBar = true),
-    Today("today", "Сегодня", Icons.Filled.Today, inBottomBar = true),
+    Today("today", "Сегодня", Icons.Filled.Today),
     Tasks("tasks", "Задачи", Icons.Filled.CheckCircle, inBottomBar = true),
     Habits("habits", "Привычки", Icons.Filled.Repeat, inBottomBar = true),
     Abstinence("abstinence", "Отказы", Icons.Filled.Block, inBottomBar = true),
-    Character("character", "Персонаж", Icons.Filled.Person),
+    Character("character", "Персонаж", Icons.Filled.Person, inBottomBar = true),
     Stats("stats", "Статистика", Icons.Filled.BarChart),
     Settings("settings", "Настройки", Icons.Filled.Settings);
 

@@ -7,7 +7,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.domain.model.abstinence.CravingEvent
 import dev.ashwake.domain.repository.abstinence.AbstinenceDetail
+import dev.ashwake.domain.engine.character.StatSource
+import dev.ashwake.domain.engine.reward.RewardContext
+import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
+import dev.ashwake.domain.repository.character.CharacterRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AbstinenceDetailViewModel @Inject constructor(
     private val abstinences: AbstinenceRepository,
+    private val character: CharacterRepository,
     private val clock: AppClock,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -90,6 +95,17 @@ class AbstinenceDetailViewModel @Inject constructor(
         val eventId = _pendingCravingId.value ?: return
         viewModelScope.launch {
             abstinences.updateCravingOutcome(eventId, resisted, durationSeconds, note)
+            // Награда только за переждённую тягу: платить за срыв бессмысленно
+            if (resisted) {
+                character.grantReward(
+                    RewardContext(
+                        source = RewardSource.CRAVING_RESISTED,
+                        time = clock.now().atZone(clock.zone()).toLocalTime()
+                    ),
+                    refId = id.toString()
+                )
+                character.grantStatPoints(StatSource.CRAVING_RESISTED, refId = id.toString())
+            }
             _pendingCravingId.value = null
         }
     }

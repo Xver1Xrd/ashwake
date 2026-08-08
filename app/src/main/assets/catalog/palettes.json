@@ -1,0 +1,16 @@
+{
+  "palettes": [
+    { "id": "ash",    "title": "пепельный",        "tint": "#6E6A78" },
+    { "id": "navy",   "title": "тёмно-синий",      "tint": "#3A4668" },
+    { "id": "moss",   "title": "мшистый",          "tint": "#5E8C7A" },
+    { "id": "blood",  "title": "багровый",         "tint": "#9E4A4A" },
+    { "id": "bone",   "title": "костяной",         "tint": "#C9BFA8" },
+    { "id": "steel",  "title": "сталь",            "tint": "#8892A8" },
+    { "id": "blued",  "title": "вороненая сталь",  "tint": "#4A5060" },
+    { "id": "bronze", "title": "бронза",           "tint": "#9E7A4A" },
+    { "id": "gold",   "title": "золото",           "tint": "#C9A227" },
+    { "id": "leather","title": "кожа",             "tint": "#7A5A3E" },
+    { "id": "void",   "title": "тьма",             "tint": "#2A2434" },
+    { "id": "ember",  "title": "уголь",            "tint": "#D97A45" }
+  ]
+}

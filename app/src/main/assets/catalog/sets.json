@@ -1,0 +1,52 @@
+{
+  "sets": [
+    {
+      "tag": "HOME", "title": "Домосед", "style": "HOME",
+      "bonus2": [{ "key": "coinMultNight", "value": 10 }],
+      "bonus4": [{ "key": "freezeCap", "value": 1 }],
+      "bonus6": [{ "key": "coinMult", "value": 25 }]
+    },
+    {
+      "tag": "SPORT", "title": "Бегун", "style": "SPORT",
+      "bonus2": [{ "key": "coinMultSphere:SPORT", "value": 10 }],
+      "bonus4": [{ "key": "coinMultMorning", "value": 15 }],
+      "bonus6": [{ "key": "coinMultSphere:SPORT", "value": 20 }]
+    },
+    {
+      "tag": "WORK", "title": "Книжник", "style": "WORK",
+      "bonus2": [{ "key": "focusCoin", "value": 1 }],
+      "bonus4": [{ "key": "focusCoin", "value": 2 }],
+      "bonus6": [{ "key": "coinMultSphere:STUDY", "value": 25 }]
+    },
+    {
+      "tag": "TRAVELER", "title": "Странник", "style": "TRAVELER",
+      "bonus2": [{ "key": "coinMult", "value": 10 }],
+      "bonus4": [{ "key": "streakShield", "value": 1 }],
+      "bonus6": [{ "key": "freezeCap", "value": 1 }, { "key": "scoreDecaySlow", "value": 10 }]
+    },
+    {
+      "tag": "ARMOR", "title": "Рыцарь", "style": "ARMOR",
+      "bonus2": [{ "key": "scoreDecaySlow", "value": 10 }],
+      "bonus4": [{ "key": "streakShield", "value": 1 }],
+      "bonus6": [{ "key": "overdueRelief", "value": 50 }]
+    },
+    {
+      "tag": "ROBE", "title": "Отшельник", "style": "ROBE",
+      "bonus2": [{ "key": "abstinenceCoin", "value": 2 }],
+      "bonus4": [{ "key": "cravingWard", "value": 3 }],
+      "bonus6": [{ "key": "abstinenceCoin", "value": 3 }]
+    },
+    {
+      "tag": "STREET", "title": "Полуночник", "style": "STREET",
+      "bonus2": [{ "key": "coinMultNight", "value": 20 }],
+      "bonus4": [{ "key": "coinMultMorning", "value": -10 }],
+      "bonus6": [{ "key": "coinMultNight", "value": 30 }]
+    },
+    {
+      "tag": "CURSED", "title": "Проклятый", "style": "CURSED",
+      "bonus2": [{ "key": "coinMult", "value": 25 }, { "key": "freezeCap", "value": -1 }],
+      "bonus4": [{ "key": "coinMult", "value": 40 }, { "key": "scoreDecaySlow", "value": -20 }],
+      "bonus6": [{ "key": "coinMult", "value": 100 }]
+    }
+  ]
+}

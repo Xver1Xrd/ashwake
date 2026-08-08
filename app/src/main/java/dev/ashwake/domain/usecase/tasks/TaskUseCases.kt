@@ -1,6 +1,11 @@
 package dev.ashwake.domain.usecase.tasks
 
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.domain.engine.character.StatSource
+import dev.ashwake.domain.engine.reward.RewardContext
+import dev.ashwake.domain.engine.reward.RewardSource
+import dev.ashwake.domain.model.tasks.TaskStatus
+import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
@@ -29,14 +34,46 @@ class SaveTaskUseCase @Inject constructor(
 
 class CompleteTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
-    private val scheduler: TaskReminderScheduler
+    private val scheduler: TaskReminderScheduler,
+    private val character: CharacterRepository,
+    private val clock: AppClock
 ) {
     /** @return id следующего экземпляра серии, если задача повторяющаяся. */
     suspend operator fun invoke(taskId: Long): Long? {
+        val before = tasks.getTask(taskId)
+        // Повторное закрытие уже закрытой задачи не должно приносить монеты второй раз
+        val alreadyDone = before?.status == TaskStatus.DONE
+
         val nextId = tasks.complete(taskId)
         scheduler.cancel(taskId)
         nextId?.let { id -> tasks.getTask(id)?.let(scheduler::schedule) }
+
+        if (before != null && !alreadyDone) {
+            character.grantReward(
+                RewardContext(
+                    source = RewardSource.TASK_DONE,
+                    priority = before.priority,
+                    postponeCount = before.postponeCount,
+                    time = clock.now().atZone(clock.zone()).toLocalTime()
+                ),
+                refId = taskId.toString()
+            )
+            val onTime = before.dueDate == null || before.dueDate >= clock.today()
+            character.grantStatPoints(
+                if (onTime) StatSource.TASK_ON_TIME else StatSource.TASK_DONE,
+                refId = taskId.toString()
+            )
+            if (before.postponeCount >= STALE_TASK_THRESHOLD) {
+                character.grantStatPoints(
+                    StatSource.STALE_TASK_CLOSED, refId = taskId.toString()
+                )
+            }
+        }
         return nextId
+    }
+
+    private companion object {
+        const val STALE_TASK_THRESHOLD = 3
     }
 }
 

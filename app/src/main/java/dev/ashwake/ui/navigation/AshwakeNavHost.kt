@@ -24,6 +24,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.ashwake.ui.abstinence.AbstinenceScreen
+import dev.ashwake.ui.character.CharacterScreen
 import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
@@ -121,7 +122,7 @@ fun AshwakeRoot() {
             ) {
                 AbstinenceDetailScreen(onBack = { navController.popBackStack() })
             }
-            composable(Destination.Character.route) { StageStub("Персонаж", 4) }
+            composable(Destination.Character.route) { CharacterScreen() }
             composable(Destination.Stats.route) { StageStub("Статистика", 7) }
             composable(Destination.Settings.route) { StageStub("Настройки", 0) }
         }

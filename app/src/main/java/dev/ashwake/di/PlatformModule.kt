@@ -2,8 +2,10 @@ package dev.ashwake.di
 
 import dagger.Binds
 import dagger.Module
+import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dev.ashwake.domain.engine.reward.RewardConfig
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
 import dev.ashwake.platform.alarm.AlarmHabitReminderScheduler
@@ -23,4 +25,11 @@ abstract class PlatformModule {
     abstract fun bindHabitReminderScheduler(
         impl: AlarmHabitReminderScheduler
     ): HabitReminderScheduler
+
+    companion object {
+        /** Баланс экономики. Правится в одном файле — RewardConfig (п. 14). */
+        @Provides
+        @Singleton
+        fun provideRewardConfig(): RewardConfig = RewardConfig.DEFAULT
+    }
 }

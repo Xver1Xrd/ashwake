@@ -8,7 +8,10 @@ Room, `AshwakeDatabase`, версия 1. Схема спроектирована
 > `habit_skip_reasons`, `habit_freezes`, `habit_pauses`, `habit_anchors`.
 > Отказы: `abstinences`, `abstinence_attempts`, `abstinence_milestones`,
 > `abstinence_relapse_reasons`, `craving_triggers`, `craving_events`,
-> `abstinence_substitutes`.
+> `abstinence_substitutes`. Персонаж и экономика: `character_profile`,
+> `owned_items`, `equipped_items`, `appearance_presets`, `appearance_preset_items`,
+> `character_stats`, `stat_events`, `wallet`, `ledger_transactions`,
+> `user_rewards`, `user_reward_redemptions`.
 > Экспортированная схема лежит в `app/schemas/` и коммитится — миграции
 > ревьюятся по диффу. Остальные таблицы подключаются на своих этапах;
 > до версии 1.0 база в debug пересоздаётся, миграции пишутся с первого релиза.

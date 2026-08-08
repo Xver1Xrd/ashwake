@@ -1,0 +1,28 @@
+{
+  "prefixes": [
+    { "id": "worn",      "label": "Потёртый",    "budgetMultiplier": 0.8, "priceMultiplier": 0.6 },
+    { "id": "sturdy",    "label": "Крепкий",     "statBonus": { "ENDURANCE": 2 } },
+    { "id": "tempered",  "label": "Закалённый",  "statBonus": { "STRENGTH": 2 } },
+    { "id": "light",     "label": "Лёгкий",      "statBonus": { "AGILITY": 2 } },
+    { "id": "learned",   "label": "Учёный",      "statBonus": { "INTELLECT": 2 } },
+    { "id": "ashen",     "label": "Пепельный",   "effects": [{ "key": "coinMultNight", "value": 10 }] },
+    { "id": "dawnlit",   "label": "Рассветный",  "effects": [{ "key": "coinMultMorning", "value": 10 }] },
+    { "id": "merchant",  "label": "Купеческий",  "effects": [{ "key": "coinMult", "value": 8 }] },
+    { "id": "quiet",     "label": "Тихий",       "effects": [{ "key": "punctualBonus", "value": 10 }] },
+    { "id": "cursed",    "label": "Проклятый",   "effects": [{ "key": "coinMult", "value": 40 }, { "key": "freezeCap", "value": -2 }], "styles": ["CURSED"] },
+    { "id": "defiled",   "label": "Осквернённый","effects": [{ "key": "abstinenceCoin", "value": 3 }, { "key": "taskPriorityBonus", "value": -10 }] },
+    { "id": "ancient",   "label": "Древний",     "statBonus": { "STRENGTH": 1, "AGILITY": 1, "ENDURANCE": 1, "INTELLECT": 1, "WILL": 1, "LUCK": 1 } }
+  ],
+  "suffixes": [
+    { "id": "of_wanderer",  "label": "странника",   "effects": [{ "key": "coinMult", "value": 6 }] },
+    { "id": "of_novice",    "label": "послушника",  "effects": [{ "key": "xpMult", "value": 10 }] },
+    { "id": "of_watchman",  "label": "дозорного",   "effects": [{ "key": "punctualBonus", "value": 12 }] },
+    { "id": "of_hermit",    "label": "отшельника",  "effects": [{ "key": "cravingWard", "value": 2 }] },
+    { "id": "of_smith",     "label": "кузнеца",     "statBonus": { "STRENGTH": 3 } },
+    { "id": "of_runner",    "label": "бегуна",      "effects": [{ "key": "coinMultSphere:SPORT", "value": 12 }] },
+    { "id": "of_scholar",   "label": "книжника",    "effects": [{ "key": "coinMultSphere:STUDY", "value": 12 }] },
+    { "id": "of_sober",     "label": "трезвенника", "effects": [{ "key": "abstinenceCoin", "value": 2 }] },
+    { "id": "of_nightling", "label": "полуночника", "effects": [{ "key": "coinMultNight", "value": 15 }] },
+    { "id": "of_nameless",  "label": "безымянного", "effects": [{ "key": "lootLuck", "value": 5 }] }
+  ]
+}
