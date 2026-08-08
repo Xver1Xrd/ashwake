@@ -10,6 +10,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.ashwake.BuildConfig
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.routines.FocusDao
@@ -46,4 +47,5 @@ object DatabaseModule {
     @Provides fun provideFocusDao(db: AshwakeDatabase): FocusDao = db.focusDao()
     @Provides fun provideTimeboxDao(db: AshwakeDatabase): TimeboxDao = db.timeboxDao()
     @Provides fun provideRitualDao(db: AshwakeDatabase): RitualDao = db.ritualDao()
+    @Provides fun provideBlockingDao(db: AshwakeDatabase): BlockingDao = db.blockingDao()
 }

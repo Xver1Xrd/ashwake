@@ -3,6 +3,7 @@ package dev.ashwake.data.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.routines.FocusDao
@@ -19,6 +20,9 @@ import dev.ashwake.data.db.entity.abstinence.AbstinenceSubstituteEntity
 import dev.ashwake.data.db.entity.abstinence.CravingEventEntity
 import dev.ashwake.data.db.entity.abstinence.CravingTriggerEntity
 import dev.ashwake.data.db.entity.abstinence.RelapseReasonEntity
+import dev.ashwake.data.db.entity.blocking.BlockedAppEntity
+import dev.ashwake.data.db.entity.blocking.BlockingRuleEntity
+import dev.ashwake.data.db.entity.blocking.BypassLogEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
 import dev.ashwake.data.db.entity.character.CharacterProfileEntity
@@ -109,7 +113,11 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         // ритуал и аналитика
         DailyReviewEntity::class,
         DailyReviewTopTaskEntity::class,
-        WeeklyReportEntity::class
+        WeeklyReportEntity::class,
+        // блокировка приложений
+        BlockingRuleEntity::class,
+        BlockedAppEntity::class,
+        BypassLogEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -125,6 +133,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun focusDao(): FocusDao
     abstract fun timeboxDao(): TimeboxDao
     abstract fun ritualDao(): RitualDao
+    abstract fun blockingDao(): BlockingDao
 
     companion object {
         const val NAME = "ashwake.db"

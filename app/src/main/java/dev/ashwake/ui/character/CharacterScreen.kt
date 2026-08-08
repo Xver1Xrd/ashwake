@@ -17,7 +17,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -55,7 +59,10 @@ import dev.ashwake.ui.theme.Steel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CharacterScreen(viewModel: CharacterViewModel = hiltViewModel()) {
+fun CharacterScreen(
+    onOpenSettings: () -> Unit = {},
+    viewModel: CharacterViewModel = hiltViewModel()
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val catalog by viewModel.catalog.collectAsStateWithLifecycle()
     val filter by viewModel.filter.collectAsStateWithLifecycle()
@@ -86,6 +93,9 @@ fun CharacterScreen(viewModel: CharacterViewModel = hiltViewModel()) {
             TopAppBar(
                 title = { Text(state.profile.name) },
                 actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, contentDescription = "Настройки")
+                    }
                     Text(
                         "${state.wallet.coins} ◈",
                         style = MaterialTheme.typography.titleMedium,

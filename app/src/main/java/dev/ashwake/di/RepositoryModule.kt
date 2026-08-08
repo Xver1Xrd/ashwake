@@ -7,6 +7,7 @@ import dagger.hilt.components.SingletonComponent
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.core.time.SystemAppClock
 import dev.ashwake.data.repository.abstinence.AbstinenceRepositoryImpl
+import dev.ashwake.data.repository.blocking.BlockingRepositoryImpl
 import dev.ashwake.data.repository.character.CharacterRepositoryImpl
 import dev.ashwake.data.repository.habits.HabitRepositoryImpl
 import dev.ashwake.data.repository.routines.FocusRepositoryImpl
@@ -17,6 +18,7 @@ import dev.ashwake.data.repository.timebox.TimeboxRepositoryImpl
 import dev.ashwake.data.repository.tasks.TagRepositoryImpl
 import dev.ashwake.data.repository.tasks.TaskRepositoryImpl
 import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
+import dev.ashwake.domain.repository.blocking.BlockingRepository
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.routines.FocusRepository
@@ -68,4 +70,7 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindRitualRepository(impl: RitualRepositoryImpl): RitualRepository
+
+    @Binds @Singleton
+    abstract fun bindBlockingRepository(impl: BlockingRepositoryImpl): BlockingRepository
 }

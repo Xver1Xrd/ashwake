@@ -143,6 +143,16 @@
                 android:value="Таймеры рутин и сессий фокуса" />
         </service>
 
+        <!-- Блокировка приложений: выключена по умолчанию (п. 7) -->
+        <service
+            android:name=".platform.blocking.BlockingService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Блокировка приложений по условиям пользователя" />
+        </service>
+
         <!-- Срабатывание напоминаний и кнопки «Выполнено» / «На завтра» из шторки -->
         <receiver
             android:name=".platform.notification.TaskReminderReceiver"

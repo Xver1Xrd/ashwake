@@ -28,8 +28,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.ashwake.ui.abstinence.AbstinenceScreen
+import dev.ashwake.ui.blocking.BlockingScreen
 import dev.ashwake.ui.character.CharacterScreen
 import dev.ashwake.ui.ritual.RitualScreen
+import dev.ashwake.ui.settings.SettingsScreen
 import dev.ashwake.ui.routines.RoutineRunScreen
 import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.timers.TimersScreen
@@ -144,7 +146,11 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             ) {
                 AbstinenceDetailScreen(onBack = { navController.popBackStack() })
             }
-            composable(Destination.Character.route) { CharacterScreen() }
+            composable(Destination.Character.route) {
+                CharacterScreen(
+                    onOpenSettings = { navController.navigate(Destination.Settings.route) }
+                )
+            }
 
             composable(Destination.Timers.route) {
                 TimersScreen(onRunRoutine = { navController.navigate("routine-run") })
@@ -157,7 +163,16 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             composable("ritual") {
                 RitualScreen(onDone = { navController.popBackStack() })
             }
-            composable(Destination.Settings.route) { StageStub("Настройки", 0) }
+            composable(Destination.Settings.route) {
+                SettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenBlocking = { navController.navigate("blocking") }
+                )
+            }
+
+            composable("blocking") {
+                BlockingScreen(onBack = { navController.popBackStack() })
+            }
         }
     }
 }
@@ -174,7 +189,7 @@ private fun destinationFor(route: String): String = when (route) {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable
