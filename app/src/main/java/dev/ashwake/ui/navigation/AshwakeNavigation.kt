@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -18,12 +19,13 @@ enum class Destination(
     val icon: ImageVector,
     val inBottomBar: Boolean = false
 ) {
-    Home("home", "Главный", Icons.Filled.Home, inBottomBar = true),
+    Home("home", "Главный", Icons.Filled.Home),
     Today("today", "Сегодня", Icons.Filled.Today),
     Tasks("tasks", "Задачи", Icons.Filled.CheckCircle, inBottomBar = true),
     Habits("habits", "Привычки", Icons.Filled.Repeat, inBottomBar = true),
     Abstinence("abstinence", "Отказы", Icons.Filled.Block, inBottomBar = true),
     Character("character", "Персонаж", Icons.Filled.Person, inBottomBar = true),
+    Timers("timers", "Таймеры", Icons.Filled.Timer, inBottomBar = true),
     Stats("stats", "Статистика", Icons.Filled.BarChart),
     Settings("settings", "Настройки", Icons.Filled.Settings);
 

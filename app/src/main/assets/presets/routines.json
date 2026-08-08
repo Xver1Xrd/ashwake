@@ -1,0 +1,49 @@
+{
+  "routines": [
+    {
+      "name": "Утро",
+      "steps": [
+        { "title": "Стакан воды", "seconds": 60 },
+        { "title": "Умыться", "seconds": 180 },
+        { "title": "Зарядка", "seconds": 600 },
+        { "title": "Душ", "seconds": 480 },
+        { "title": "Завтрак", "seconds": 900 },
+        { "title": "План на день", "seconds": 300 }
+      ]
+    },
+    {
+      "name": "Вечер",
+      "steps": [
+        { "title": "Убрать со стола", "seconds": 300 },
+        { "title": "Разобрать задачи на завтра", "seconds": 420 },
+        { "title": "Душ", "seconds": 480 },
+        { "title": "Растяжка", "seconds": 360 },
+        { "title": "Чтение", "seconds": 900 },
+        { "title": "Свет выключен", "seconds": 60 }
+      ]
+    },
+    {
+      "name": "Тренировка",
+      "steps": [
+        { "title": "Разминка", "seconds": 300 },
+        { "title": "Подход 1", "seconds": 180 },
+        { "title": "Отдых", "seconds": 90 },
+        { "title": "Подход 2", "seconds": 180 },
+        { "title": "Отдых", "seconds": 90 },
+        { "title": "Подход 3", "seconds": 180 },
+        { "title": "Заминка", "seconds": 300 }
+      ]
+    },
+    {
+      "name": "Глубокая работа",
+      "steps": [
+        { "title": "Убрать телефон", "seconds": 60 },
+        { "title": "Сформулировать одну цель", "seconds": 180 },
+        { "title": "Блок работы", "seconds": 3000 },
+        { "title": "Перерыв", "seconds": 300 },
+        { "title": "Блок работы", "seconds": 3000 },
+        { "title": "Записать, где остановился", "seconds": 180 }
+      ]
+    }
+  ]
+}

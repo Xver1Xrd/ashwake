@@ -5,6 +5,8 @@ import androidx.room.RoomDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
+import dev.ashwake.data.db.dao.routines.FocusDao
+import dev.ashwake.data.db.dao.routines.RoutineDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
@@ -27,6 +29,11 @@ import dev.ashwake.data.db.entity.character.UserRewardEntity
 import dev.ashwake.data.db.entity.character.UserRewardRedemptionEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitAnchorEntity
+import dev.ashwake.data.db.entity.routines.FocusSessionEntity
+import dev.ashwake.data.db.entity.routines.RoutineEntity
+import dev.ashwake.data.db.entity.routines.RoutineSessionEntity
+import dev.ashwake.data.db.entity.routines.RoutineSessionStepEntity
+import dev.ashwake.data.db.entity.routines.RoutineStepEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.habits.HabitFreezeEntity
@@ -82,7 +89,13 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         WalletEntity::class,
         LedgerTransactionEntity::class,
         UserRewardEntity::class,
-        UserRewardRedemptionEntity::class
+        UserRewardRedemptionEntity::class,
+        // рутины и фокус
+        RoutineEntity::class,
+        RoutineStepEntity::class,
+        RoutineSessionEntity::class,
+        RoutineSessionStepEntity::class,
+        FocusSessionEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -94,6 +107,8 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun habitDao(): HabitDao
     abstract fun abstinenceDao(): AbstinenceDao
     abstract fun characterDao(): CharacterDao
+    abstract fun routineDao(): RoutineDao
+    abstract fun focusDao(): FocusDao
 
     companion object {
         const val NAME = "ashwake.db"

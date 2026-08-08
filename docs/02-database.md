@@ -11,7 +11,8 @@ Room, `AshwakeDatabase`, версия 1. Схема спроектирована
 > `abstinence_substitutes`. Персонаж и экономика: `character_profile`,
 > `owned_items`, `equipped_items`, `appearance_presets`, `appearance_preset_items`,
 > `character_stats`, `stat_events`, `wallet`, `ledger_transactions`,
-> `user_rewards`, `user_reward_redemptions`.
+> `user_rewards`, `user_reward_redemptions`. Рутины и фокус: `routines`,
+> `routine_steps`, `routine_sessions`, `routine_session_steps`, `focus_sessions`.
 > Экспортированная схема лежит в `app/schemas/` и коммитится — миграции
 > ревьюятся по диффу. Остальные таблицы подключаются на своих этапах;
 > до версии 1.0 база в debug пересоздаётся, миграции пишутся с первого релиза.

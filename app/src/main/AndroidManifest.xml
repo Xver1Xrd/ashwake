@@ -43,6 +43,16 @@
             </intent-filter>
         </activity>
 
+        <!-- Таймеры рутины и фокуса: идут при закрытом экране -->
+        <service
+            android:name=".platform.service.SessionForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Таймеры рутин и сессий фокуса" />
+        </service>
+
         <!-- Срабатывание напоминаний и кнопки «Выполнено» / «На завтра» из шторки -->
         <receiver
             android:name=".platform.notification.TaskReminderReceiver"
