@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.ashwake.core.time.DEFAULT_DAY_START_HOUR
@@ -44,6 +45,14 @@ class AppSettings @Inject constructor(
     val useSystemCalendar: Flow<Boolean> =
         context.dataStore.data.map { it[USE_CALENDAR] ?: false }
 
+    /** Папка для авто-бэкапа, выбранная через SAF. null — бэкап выключен. */
+    val backupFolderUri: Flow<String?> =
+        context.dataStore.data.map { it[BACKUP_FOLDER] }
+
+    /** Шифровать ли архив. Незашифрованный разрешён, но с предупреждением (п. 13). */
+    val backupEncrypted: Flow<Boolean> =
+        context.dataStore.data.map { it[BACKUP_ENCRYPTED] ?: true }
+
     /** Начало суток: отметка в 01:00 принадлежит вчерашнему дню. */
     val dayStartHour: Flow<Int> =
         context.dataStore.data.map { it[DAY_START_HOUR] ?: DEFAULT_DAY_START_HOUR }
@@ -72,6 +81,16 @@ class AppSettings @Inject constructor(
         context.dataStore.edit { it[USE_CALENDAR] = enabled }
     }
 
+    suspend fun setBackupFolder(uri: String?) {
+        context.dataStore.edit { prefs ->
+            if (uri == null) prefs.remove(BACKUP_FOLDER) else prefs[BACKUP_FOLDER] = uri
+        }
+    }
+
+    suspend fun setBackupEncrypted(enabled: Boolean) {
+        context.dataStore.edit { it[BACKUP_ENCRYPTED] = enabled }
+    }
+
     suspend fun setDayStartHour(hour: Int) {
         context.dataStore.edit { it[DAY_START_HOUR] = hour.coerceIn(0, 12) }
     }
@@ -85,6 +104,8 @@ class AppSettings @Inject constructor(
         val LUNCH_DURATION = intPreferencesKey("lunch_duration_minutes")
         val USE_CALENDAR = booleanPreferencesKey("use_system_calendar")
         val DAY_START_HOUR = intPreferencesKey("day_start_hour")
+        val BACKUP_FOLDER = stringPreferencesKey("backup_folder_uri")
+        val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
 
         const val DEFAULT_WORK_START = 9 * 60
         const val DEFAULT_WORK_END = 19 * 60

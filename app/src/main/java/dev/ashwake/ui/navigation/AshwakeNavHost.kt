@@ -28,6 +28,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.ashwake.ui.abstinence.AbstinenceScreen
+import dev.ashwake.ui.backup.BackupScreen
 import dev.ashwake.ui.blocking.BlockingScreen
 import dev.ashwake.ui.character.CharacterScreen
 import dev.ashwake.ui.ritual.RitualScreen
@@ -166,12 +167,17 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             composable(Destination.Settings.route) {
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
-                    onOpenBlocking = { navController.navigate("blocking") }
+                    onOpenBlocking = { navController.navigate("blocking") },
+                    onOpenBackup = { navController.navigate("backup") }
                 )
             }
 
             composable("blocking") {
                 BlockingScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable("backup") {
+                BackupScreen(onBack = { navController.popBackStack() })
             }
         }
     }
@@ -189,7 +195,7 @@ private fun destinationFor(route: String): String = when (route) {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable

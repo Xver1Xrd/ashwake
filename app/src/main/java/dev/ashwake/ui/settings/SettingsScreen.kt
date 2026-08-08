@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun SettingsScreen(
     onBack: () -> Unit,
     onOpenBlocking: () -> Unit,
+    onOpenBackup: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val timebox by viewModel.timebox.collectAsStateWithLifecycle()
@@ -138,6 +139,11 @@ fun SettingsScreen(
                 subtitle = if (useCalendar) "События учитываются при раскладке дня"
                 else "События календаря не учитываются",
                 onClick = { viewModel.setUseCalendar(!useCalendar) }
+            )
+            SettingsRow(
+                title = "Данные и бэкапы",
+                subtitle = "Резервные копии, шифрование, импорт из других приложений",
+                onClick = onOpenBackup
             )
             SettingsRow(
                 title = "Блокировка приложений",

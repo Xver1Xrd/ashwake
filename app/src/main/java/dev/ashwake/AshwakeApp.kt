@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import dagger.hilt.android.HiltAndroidApp
 import dev.ashwake.platform.notification.AshwakeNotifications
+import dev.ashwake.platform.work.BackupWorker
 import dev.ashwake.platform.work.MilestoneWorker
 import dev.ashwake.platform.work.RitualReminderWorker
 import dev.ashwake.platform.work.WeeklyReportWorker
@@ -25,6 +26,7 @@ class AshwakeApp : Application(), Configuration.Provider {
         MilestoneWorker.schedule(this)
         RitualReminderWorker.schedule(this)
         WeeklyReportWorker.schedule(this)
+        BackupWorker.schedule(this)
     }
 
     override val workManagerConfiguration: Configuration
