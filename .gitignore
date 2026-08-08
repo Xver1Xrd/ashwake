@@ -3,8 +3,9 @@
 /local.properties
 /.idea/
 .DS_Store
-/build
-/app/build
+# Артефакты сборки на любом уровне: с появлением второго модуля
+# путей /build и /app/build стало недостаточно
+build/
 /captures
 .externalNativeBuild
 .cxx
