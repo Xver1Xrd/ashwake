@@ -23,6 +23,8 @@ import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
+import dev.ashwake.platform.speech.VoiceInput
+import dev.ashwake.platform.speech.VoiceResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -76,7 +78,8 @@ class TasksViewModel @Inject constructor(
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val postponeTask: PostponeTaskUseCase,
-    private val deleteTask: DeleteTaskUseCase
+    private val deleteTask: DeleteTaskUseCase,
+    private val voiceInput: VoiceInput
 ) : ViewModel() {
 
     private data class UiBits(
@@ -191,7 +194,36 @@ class TasksViewModel @Inject constructor(
 
     // --- быстрый ввод ------------------------------------------------------
 
+    private val _voiceState = MutableStateFlow<VoiceResult?>(null)
+    val voiceState: StateFlow<VoiceResult?> = _voiceState
+
     fun onQuickInputChange(text: String) { quickInput.value = text }
+
+    /**
+     * Голосовой ввод (п. 11).
+     *
+     * Промежуточные результаты сразу попадают в поле: человек видит, что его
+     * слышат. Итоговый текст уходит в тот же парсер, что и напечатанный.
+     */
+    fun startVoiceInput() {
+        if (!voiceInput.isAvailable()) {
+            _voiceState.value = VoiceResult.Failed("Распознавание речи недоступно")
+            return
+        }
+        viewModelScope.launch {
+            voiceInput.listen().collect { result ->
+                _voiceState.value = result
+                when (result) {
+                    is VoiceResult.Partial -> quickInput.value = result.text
+                    is VoiceResult.Final -> quickInput.value = result.text
+                    else -> Unit
+                }
+            }
+            _voiceState.value = null
+        }
+    }
+
+    fun consumeVoiceState() { _voiceState.value = null }
 
     fun submitQuickInput() {
         val raw = quickInput.value

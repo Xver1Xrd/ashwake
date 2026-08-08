@@ -11,7 +11,11 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.platform.widget.AppRoutes
+import kotlinx.coroutines.flow.MutableStateFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -37,8 +41,18 @@ import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 
 @Composable
-fun AshwakeRoot() {
+fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)) {
     val navController = rememberNavController()
+    val route by pendingRoute.collectAsStateWithLifecycle()
+
+    // Маршрут из виджета, плитки или шортката: открываем нужный экран
+    // и сбрасываем, чтобы повторная композиция не повторяла переход
+    LaunchedEffect(route) {
+        val target = route ?: return@LaunchedEffect
+        navController.navigate(destinationFor(target)) { launchSingleTop = true }
+        pendingRoute.value = null
+    }
+
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
 
@@ -146,6 +160,16 @@ fun AshwakeRoot() {
             composable(Destination.Settings.route) { StageStub("Настройки", 0) }
         }
     }
+}
+
+/** Маршрут из виджета в экран приложения. */
+private fun destinationFor(route: String): String = when (route) {
+    AppRoutes.NEW_TASK -> "task?taskId=0"
+    AppRoutes.HABITS -> Destination.Habits.route
+    AppRoutes.ABSTINENCE -> Destination.Abstinence.route
+    AppRoutes.TIMERS, AppRoutes.FOCUS_START, AppRoutes.ROUTINE_START -> Destination.Timers.route
+    AppRoutes.RITUAL -> "ritual"
+    else -> Destination.Tasks.route
 }
 
 /** Экраны, на которых нижняя навигация только мешает. */

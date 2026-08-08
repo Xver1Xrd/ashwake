@@ -1,4 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Ashwake</string>
+    <string name="shortcut_new_task">Новая задача</string>
+    <string name="shortcut_today">Сегодня</string>
+    <string name="shortcut_routine">Рутина</string>
+    <string name="shortcut_pomodoro">Помодоро</string>
+    <string name="widget_tasks">Задачи на сегодня</string>
+    <string name="widget_habits">Привычки</string>
+    <string name="widget_heatmap">Календарь привычки</string>
+    <string name="widget_abstinence">Счётчик отказа</string>
+    <string name="widget_quick">Быстрые действия</string>
+    <string name="tile_add_task">Задача</string>
+    <string name="tile_pomodoro">Помодоро</string>
 </resources>

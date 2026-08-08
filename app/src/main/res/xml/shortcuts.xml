@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Долгий тап по иконке приложения (п. 11) -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_task"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_new_task">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="dev.ashwake"
+            android:targetClass="dev.ashwake.MainActivity">
+            <extra android:name="dev.ashwake.extra.ROUTE" android:value="new-task" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="today"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_today">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="dev.ashwake"
+            android:targetClass="dev.ashwake.MainActivity">
+            <extra android:name="dev.ashwake.extra.ROUTE" android:value="tasks" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="routine"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_routine">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="dev.ashwake"
+            android:targetClass="dev.ashwake.MainActivity">
+            <extra android:name="dev.ashwake.extra.ROUTE" android:value="routine-start" />
+        </intent>
+    </shortcut>
+
+    <shortcut
+        android:shortcutId="pomodoro"
+        android:enabled="true"
+        android:shortcutShortLabel="@string/shortcut_pomodoro">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="dev.ashwake"
+            android:targetClass="dev.ashwake.MainActivity">
+            <extra android:name="dev.ashwake.extra.ROUTE" android:value="focus-start" />
+        </intent>
+    </shortcut>
+</shortcuts>

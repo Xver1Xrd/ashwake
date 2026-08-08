@@ -29,12 +29,18 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Ashwake">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- Долгий тап по иконке: новая задача, сегодня, рутина, помодоро (п. 11) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
             <!-- «Поделиться» текстом или ссылкой из любого приложения → новая задача (п. 11) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -42,6 +48,90 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- Виджеты (п. 18) -->
+        <receiver
+            android:name=".platform.widget.TasksWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_tasks">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_tasks" />
+        </receiver>
+
+        <receiver
+            android:name=".platform.widget.HabitsWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_habits">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_habits" />
+        </receiver>
+
+        <receiver
+            android:name=".platform.widget.HabitHeatmapWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_heatmap">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_habit_heatmap" />
+        </receiver>
+
+        <receiver
+            android:name=".platform.widget.AbstinenceWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_abstinence">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_abstinence" />
+        </receiver>
+
+        <receiver
+            android:name=".platform.widget.QuickActionsWidgetReceiver"
+            android:exported="false"
+            android:label="@string/widget_quick">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_actions" />
+        </receiver>
+
+        <!-- Плитки быстрых настроек (п. 11) -->
+        <service
+            android:name=".platform.tile.AddTaskTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_notification"
+            android:label="@string/tile_add_task"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".platform.tile.PomodoroTileService"
+            android:exported="true"
+            android:icon="@drawable/ic_notification"
+            android:label="@string/tile_pomodoro"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
 
         <!-- Таймеры рутины и фокуса: идут при закрытом экране -->
         <service

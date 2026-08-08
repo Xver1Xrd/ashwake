@@ -16,8 +16,10 @@ import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
+import dev.ashwake.platform.widget.AppRoutes
 import dev.ashwake.ui.navigation.AshwakeRoot
 import dev.ashwake.ui.theme.AshwakeTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,6 +30,12 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var parser: QuickInputParser
     @Inject lateinit var clock: AppClock
 
+    /**
+     * Куда открыться при запуске из виджета, плитки или шортката.
+     * Хранится потоком: intent может прийти и в уже запущенное приложение.
+     */
+    private val pendingRoute = MutableStateFlow<String?>(null)
+
     private val notificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -37,17 +45,27 @@ class MainActivity : ComponentActivity() {
 
         requestNotificationPermissionIfNeeded()
         handleShare(intent)
+        handleRoute(intent)
 
         setContent {
             AshwakeTheme {
-                AshwakeRoot()
+                AshwakeRoot(pendingRoute = pendingRoute)
             }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         handleShare(intent)
+        handleRoute(intent)
+    }
+
+    private fun handleRoute(intent: Intent?) {
+        val route = intent?.getStringExtra(AppRoutes.EXTRA_ROUTE) ?: return
+        pendingRoute.value = route
+        // Гасим, чтобы поворот экрана не открывал тот же экран заново
+        intent.removeExtra(AppRoutes.EXTRA_ROUTE)
     }
 
     private fun requestNotificationPermissionIfNeeded() {

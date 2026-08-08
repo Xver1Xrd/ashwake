@@ -44,7 +44,8 @@ fun QuickAddBar(
     onValueChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onVoiceClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    listening: Boolean = false
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -66,7 +67,14 @@ fun QuickAddBar(
                     singleLine = true,
                     trailingIcon = {
                         IconButton(onClick = onVoiceClick) {
-                            Icon(Icons.Filled.Mic, contentDescription = "Голосовой ввод")
+                            Icon(
+                                Icons.Filled.Mic,
+                                contentDescription = "Голосовой ввод",
+                                // Во время записи микрофон подсвечен: иначе непонятно,
+                                // слушает приложение или нет
+                                tint = if (listening) MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     },
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(

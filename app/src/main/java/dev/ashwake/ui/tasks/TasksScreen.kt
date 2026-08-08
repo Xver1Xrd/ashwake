@@ -1,5 +1,9 @@
 package dev.ashwake.ui.tasks
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,7 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import dev.ashwake.platform.speech.VoiceResult
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.tasks.calendar.TaskCalendar
@@ -53,7 +60,15 @@ fun TasksScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
+    val voice by viewModel.voiceState.collectAsStateWithLifecycle()
     var showProjects by remember { mutableStateOf(false) }
+
+    // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
+    // а не при запуске приложения
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) viewModel.startVoiceInput() }
+    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -94,8 +109,14 @@ fun TasksScreen(
                 parsed = state.parsed,
                 onValueChange = viewModel::onQuickInputChange,
                 onSubmit = viewModel::submitQuickInput,
-                // Голосовой ввод подключается на этапе 8 вместе с SpeechRecognizer
-                onVoiceClick = {}
+                listening = voice is VoiceResult.Listening || voice is VoiceResult.Partial,
+                onVoiceClick = {
+                    val granted = ContextCompat.checkSelfPermission(
+                        context, Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (granted) viewModel.startVoiceInput()
+                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }
             )
         }
     ) { padding ->
