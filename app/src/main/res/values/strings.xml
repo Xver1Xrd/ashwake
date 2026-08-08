@@ -9,6 +9,7 @@
     <string name="widget_habits">Привычки</string>
     <string name="widget_heatmap">Календарь привычки</string>
     <string name="widget_abstinence">Счётчик отказа</string>
+    <string name="widget_character">Персонаж</string>
     <string name="widget_quick">Быстрые действия</string>
     <string name="tile_add_task">Задача</string>
     <string name="tile_pomodoro">Помодоро</string>

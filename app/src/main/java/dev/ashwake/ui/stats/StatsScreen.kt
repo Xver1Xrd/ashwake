@@ -16,6 +16,7 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -71,7 +72,17 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
             when (tab) {
                 0 -> weekly?.let { WeeklyBlock(it) } ?: Loading()
                 1 -> CorrelationsBlock(viewModel, correlations)
-                else -> year?.let { YearBlock(it) } ?: Loading()
+                else -> year?.let {
+                    YearBlock(it)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = { viewModel.exportYear(share = false) }) {
+                            Text("Сохранить картинкой")
+                        }
+                        TextButton(onClick = { viewModel.exportYear(share = true) }) {
+                            Text("Поделиться")
+                        }
+                    }
+                } ?: Loading()
             }
         }
     }

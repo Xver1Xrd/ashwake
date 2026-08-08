@@ -29,6 +29,14 @@ android {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
         }
+        // Сборка для Macrobenchmark: близка к релизной, но отлаживаемая
+        create("benchmark") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isDebuggable = false
+            matchingFallbacks += listOf("release")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

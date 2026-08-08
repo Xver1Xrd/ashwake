@@ -4,7 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.data.assets.Catalog
+import android.content.Context
+import android.content.Intent
+import androidx.compose.ui.graphics.Color
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.ashwake.data.assets.CatalogLoader
+import dev.ashwake.data.export.ExportResult
+import dev.ashwake.data.export.ImageExporter
+import dev.ashwake.ui.character.render.CharacterBitmapRenderer
+import dev.ashwake.ui.character.render.CharacterLayer
 import dev.ashwake.domain.engine.character.EquipmentEngine
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
@@ -33,7 +41,10 @@ data class ShopFilter(
 class CharacterViewModel @Inject constructor(
     private val character: CharacterRepository,
     private val catalogLoader: CatalogLoader,
-    private val equipmentEngine: EquipmentEngine
+    private val equipmentEngine: EquipmentEngine,
+    private val bitmapRenderer: CharacterBitmapRenderer,
+    private val imageExporter: ImageExporter,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     val state: StateFlow<CharacterState> = character.observeState()
@@ -166,10 +177,78 @@ class CharacterViewModel @Inject constructor(
 
     fun consumeMessage() { _message.value = null }
 
+    /**
+     * «Сохранить портрет» (п. 15.9): рендер на масштабе x8 с фоном и рамкой.
+     * Восьмикратный масштаб выбран потому, что 128×128 в галерее выглядит
+     * иконкой, а не картинкой.
+     */
+    fun savePortrait() {
+        viewModelScope.launch {
+            val bitmap = bitmapRenderer.render(
+                layers = currentLayers(),
+                scale = PORTRAIT_SCALE,
+                background = PORTRAIT_BACKGROUND,
+                withFloor = true,
+                frame = true
+            )
+            _message.value = when (val result = imageExporter.saveToGallery(bitmap, portraitName())) {
+                is ExportResult.Saved -> "Портрет сохранён в галерею"
+                is ExportResult.Failed -> result.reason
+            }
+        }
+    }
+
+    fun sharePortrait() {
+        viewModelScope.launch {
+            val bitmap = bitmapRenderer.render(
+                layers = currentLayers(),
+                scale = PORTRAIT_SCALE,
+                background = PORTRAIT_BACKGROUND,
+                withFloor = true,
+                frame = true
+            )
+            val intent = imageExporter.shareIntent(bitmap, portraitName())
+            if (intent == null) {
+                _message.value = "Не удалось подготовить картинку"
+                return@launch
+            }
+            context.startActivity(
+                Intent.createChooser(intent, "Поделиться портретом")
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            )
+        }
+    }
+
+    private fun currentLayers(): List<CharacterLayer> {
+        val items = state.value.equipped.values.toList()
+        val hidden = items.flatMap { it.hides }.toSet()
+        val tints = _catalog.value.paletteTints
+
+        return items
+            .filterNot { it.slot in hidden }
+            .sortedBy { it.layer }
+            .map { item ->
+                CharacterLayer(
+                    slot = item.slot,
+                    color = Color(tints[item.paletteId] ?: DEFAULT_TINT),
+                    label = item.slot.title,
+                    frames = item.frames
+                )
+            }
+    }
+
+    private fun portraitName(): String =
+        "ashwake-" + state.value.profile.name.lowercase().replace(' ', '-') +
+            "-" + System.currentTimeMillis()
+
     private companion object {
         const val UPGRADE_COST_SHARE = 0.3f
         const val BASE_UPGRADE_COST = 200
         const val MIN_UPGRADE_COST = 50
+
+        const val PORTRAIT_SCALE = 8
+        const val PORTRAIT_BACKGROUND = 0xFF1A1622.toInt()
+        const val DEFAULT_TINT = 0xFF6E7BA6.toInt()
     }
 }
 

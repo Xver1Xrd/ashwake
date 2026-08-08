@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Ashwake"
 include(":app")
+include(":benchmark")

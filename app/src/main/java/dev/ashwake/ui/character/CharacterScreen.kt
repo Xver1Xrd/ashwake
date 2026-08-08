@@ -145,6 +145,13 @@ fun CharacterScreen(
             item { PresetsRow(viewModel) }
 
             item {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = viewModel::savePortrait) { Text("Сохранить портрет") }
+                    TextButton(onClick = viewModel::sharePortrait) { Text("Поделиться") }
+                }
+            }
+
+            item {
                 HorizontalDivider()
                 Text("Магазин", style = MaterialTheme.typography.titleMedium)
                 ShopFilters(viewModel, filter)
