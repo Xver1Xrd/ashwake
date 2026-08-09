@@ -18,5 +18,12 @@ interface HabitReminderScheduler {
     /** Отложить на час — кнопка «Через час» в уведомлении. */
     fun snooze(habitId: Long, minutes: Int = 60)
 
+    /**
+     * Напоминание по якорю: через [delayMinutes] после того, как сработало
+     * событие-триггер. Отдельно от [schedule], потому что живёт по своему
+     * коду запроса и не должно затирать напоминание по расписанию.
+     */
+    fun scheduleAnchored(habitId: Long, delayMinutes: Int)
+
     suspend fun rescheduleAll()
 }

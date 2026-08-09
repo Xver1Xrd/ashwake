@@ -86,7 +86,9 @@ data class HabitAnchor(
     val refHabitId: Long? = null,
     val refRoutineId: Long? = null,
     val refTagId: Long? = null,
-    val delayMinutes: Int = 0
+    val delayMinutes: Int = 0,
+    /** День последнего срабатывания: повторно за сутки якорь не звонит. */
+    val lastFiredDate: LocalDate? = null
 )
 
 data class HabitFreeze(

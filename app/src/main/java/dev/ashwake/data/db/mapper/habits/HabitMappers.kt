@@ -26,6 +26,7 @@ import dev.ashwake.domain.model.habits.HabitSchedule
 import dev.ashwake.domain.model.habits.HabitScheduleType
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.SkipReason
+import java.time.LocalDate
 
 fun HabitEntity.toDomain(anchors: List<HabitAnchor> = emptyList()): Habit = Habit(
     id = id,
@@ -129,7 +130,8 @@ fun HabitAnchorEntity.toDomain(): HabitAnchor = HabitAnchor(
     refHabitId = refHabitId,
     refRoutineId = refRoutineId,
     refTagId = refTagId,
-    delayMinutes = delayMinutes
+    delayMinutes = delayMinutes,
+    lastFiredDate = lastFiredDate?.let { LocalDate.ofEpochDay(it.toLong()) }
 )
 
 fun HabitAnchor.toEntity(): HabitAnchorEntity = HabitAnchorEntity(
@@ -139,7 +141,8 @@ fun HabitAnchor.toEntity(): HabitAnchorEntity = HabitAnchorEntity(
     refHabitId = refHabitId,
     refRoutineId = refRoutineId,
     refTagId = refTagId,
-    delayMinutes = delayMinutes
+    delayMinutes = delayMinutes,
+    lastFiredDate = lastFiredDate?.toEpochDayInt()
 )
 
 fun HabitSkipReasonEntity.toDomain(): SkipReason = SkipReason(

@@ -14,7 +14,9 @@ import dev.ashwake.domain.engine.habit.HabitScoreCalculator
 import dev.ashwake.domain.engine.habit.StreakCalculator
 import dev.ashwake.domain.model.habits.EntrySource
 import dev.ashwake.domain.model.habits.EntryStatus
+import dev.ashwake.domain.model.habits.AnchorType
 import dev.ashwake.domain.model.habits.Habit
+import dev.ashwake.domain.model.habits.HabitAnchor
 import dev.ashwake.domain.model.habits.HabitEntry
 import dev.ashwake.domain.model.habits.HabitPause
 import dev.ashwake.domain.model.habits.HabitWithProgress
@@ -218,6 +220,42 @@ class HabitRepositoryImpl @Inject constructor(
 
     override suspend fun clearMark(habitId: Long, date: LocalDate) {
         dao.deleteEntry(habitId, date.toEpochDayInt())
+    }
+
+    override suspend fun progressFor(habitId: Long, date: LocalDate): HabitWithProgress? =
+        observeHabitsWithProgress(date).first().firstOrNull { it.habit.id == habitId }
+
+    // --- якоря --------------------------------------------------------------
+
+    override suspend fun anchorsTriggeredByHabit(
+        habitId: Long,
+        today: LocalDate
+    ): List<HabitAnchor> = dao.anchorsToFire(
+        type = AnchorType.HABIT_DONE.name,
+        refId = habitId,
+        today = today.toEpochDayInt()
+    ).map { it.toDomain() }
+
+    override suspend fun anchorsTriggeredByRoutine(
+        routineId: Long,
+        today: LocalDate
+    ): List<HabitAnchor> = dao.anchorsToFireByRoutine(
+        type = AnchorType.ROUTINE_DONE.name,
+        refId = routineId,
+        today = today.toEpochDayInt()
+    ).map { it.toDomain() }
+
+    override suspend fun anchorsTriggeredByTag(
+        tagId: Long,
+        today: LocalDate
+    ): List<HabitAnchor> = dao.anchorsToFireByTag(
+        type = AnchorType.TASK_TAG_DONE.name,
+        refId = tagId,
+        today = today.toEpochDayInt()
+    ).map { it.toDomain() }
+
+    override suspend fun markAnchorFired(anchorId: Long, date: LocalDate) {
+        dao.markAnchorFired(anchorId, date.toEpochDayInt())
     }
 
     override suspend fun freeze(habitId: Long, date: LocalDate): Boolean = db.withTransaction {

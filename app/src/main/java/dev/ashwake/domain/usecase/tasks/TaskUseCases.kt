@@ -9,6 +9,7 @@ import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.domain.usecase.habits.FireAnchorsUseCase
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
 import java.time.LocalDate
 import javax.inject.Inject
@@ -36,6 +37,7 @@ class CompleteTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
     private val scheduler: TaskReminderScheduler,
     private val character: CharacterRepository,
+    private val fireAnchors: FireAnchorsUseCase,
     private val clock: AppClock
 ) {
     /** @return id следующего экземпляра серии, если задача повторяющаяся. */
@@ -49,6 +51,10 @@ class CompleteTaskUseCase @Inject constructor(
         nextId?.let { id -> tasks.getTask(id)?.let(scheduler::schedule) }
 
         if (before != null && !alreadyDone) {
+            // Якорь «после задачи с тегом»: закрыли задачу #работа —
+            // напомнили о привычке, привязанной к концу рабочих дел
+            before.tags.forEach { tag -> fireAnchors.onTaskWithTagDone(tag.id) }
+
             character.grantReward(
                 RewardContext(
                     source = RewardSource.TASK_DONE,

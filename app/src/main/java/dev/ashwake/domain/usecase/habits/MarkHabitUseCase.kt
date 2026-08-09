@@ -23,6 +23,7 @@ import javax.inject.Inject
 class MarkHabitUseCase @Inject constructor(
     private val habits: HabitRepository,
     private val character: CharacterRepository,
+    private val fireAnchors: FireAnchorsUseCase,
     private val clock: AppClock
 ) {
     suspend operator fun invoke(
@@ -39,6 +40,11 @@ class MarkHabitUseCase @Inject constructor(
 
         val nowCounted = status == EntryStatus.DONE || status == EntryStatus.MINIMUM
         if (!nowCounted || wasCounted) return
+
+        // Привычки, привязанные к этой, ждут именно отметки — и ждут её
+        // независимо от того, откуда она пришла: из списка, из шторки
+        // или из виджета. Поэтому будим их здесь, а не в UI
+        fireAnchors.onHabitDone(progress.habit.id)
 
         val habit = progress.habit
         character.grantReward(

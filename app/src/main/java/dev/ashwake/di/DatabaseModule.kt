@@ -30,9 +30,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AshwakeDatabase =
         Room.databaseBuilder(context, AshwakeDatabase::class.java, AshwakeDatabase.NAME)
+            .addMigrations(*AshwakeDatabase.MIGRATIONS)
             .apply {
-                // До 1.0 схема ещё двигается: в debug база просто пересоздаётся.
-                // В release этот путь недопустим — там будут явные миграции.
+                // В debug база пересоздаётся, если миграции не хватило: там
+                // терять нечего. В release этого пути нет — история отметок,
+                // попыток и покупок восстановлению не подлежит.
                 if (BuildConfig.DEBUG) fallbackToDestructiveMigration()
             }
             .build()

@@ -10,6 +10,7 @@ import dev.ashwake.domain.model.routines.Routine
 import dev.ashwake.domain.model.routines.RoutineSessionStep
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.routines.RoutineRepository
+import dev.ashwake.domain.usecase.habits.FireAnchorsUseCase
 import dev.ashwake.platform.tts.StepSpeaker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +55,7 @@ data class RoutineRunState(
 class RoutineRunController @Inject constructor(
     private val routines: RoutineRepository,
     private val character: CharacterRepository,
+    private val fireAnchors: FireAnchorsUseCase,
     private val calculator: RoutineProgressCalculator,
     private val speaker: StepSpeaker,
     private val clock: AppClock
@@ -144,6 +146,10 @@ class RoutineRunController @Inject constructor(
                 routines.finishSession(current.sessionId, completed, clock.now())
 
                 if (completed) {
+                    // Якорь «после рутины»: утренняя рутина закончилась —
+                    // напоминаем о привычке, которая на неё завязана
+                    current.routine?.id?.let { fireAnchors.onRoutineDone(it) }
+
                     val session = routines.getSession(current.sessionId)
                     character.grantReward(
                         RewardContext(

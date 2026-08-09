@@ -2,6 +2,8 @@ package dev.ashwake.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
@@ -60,10 +62,10 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 /**
  * Единая база приложения.
  *
- * Схема спроектирована сразу под всё ТЗ (docs/02-database.md), но сущности
- * подключаются по мере реализации фич. До версии 1.0 версия базы остаётся 1,
- * а изменения схемы разработчику достаются пересозданием базы —
- * миграции пишутся начиная с первого релиза.
+ * Схема спроектирована сразу под всё ТЗ (docs/02-database.md), поэтому
+ * версия менялась ровно один раз и по делу. Миграции ведутся с самого
+ * начала: пересоздание базы допустимо только в debug-сборке, где терять
+ * нечего, а в релизе каждая версия обязана иметь путь вперёд.
  */
 @Database(
     entities = [
@@ -119,7 +121,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -137,5 +139,21 @@ abstract class AshwakeDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "ashwake.db"
+
+        /**
+         * 1 → 2: у якоря появился день последнего срабатывания.
+         *
+         * Первая настоящая миграция. Она же образец для следующих: схема
+         * меняется только вперёд, данные не теряются, и в релизной сборке
+         * никакого fallbackToDestructiveMigration быть не может — там за
+         * строчкой кода стоит стёртая история человека.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habit_anchors ADD COLUMN lastFiredDate INTEGER")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
     }
 }

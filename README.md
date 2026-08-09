@@ -224,3 +224,15 @@ PBKDF2-HMAC-SHA256 + AES-256-GCM со случайными солью и nonce �
 
 Требуется JDK 17+ и Android SDK 35. Путь к SDK — в `local.properties`
 (`sdk.dir=/путь/к/Android/Sdk`), файл не коммитится.
+
+**Локаль сборки должна быть UTF-8.** Имена тестов в проекте русские, а Kotlin
+выносит инлайн-лямбды в отдельные class-файлы, где имя метода попадает в имя
+файла. Если `LANG` не задан (в контейнерах и на CI это обычное дело), JVM
+берёт `sun.jnu.encoding=ANSI_X3.4-1968` и не может создать такой файл —
+`testDebugUnitTest` падает ещё на компиляции с `InvalidPathException`.
+Через `-Dsun.jnu.encoding` это не чинится, значение читается из локали
+процесса, поэтому:
+
+```bash
+LANG=C.UTF-8 ./gradlew :app:testDebugUnitTest
+```

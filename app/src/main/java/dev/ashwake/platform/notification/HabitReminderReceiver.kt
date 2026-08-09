@@ -19,6 +19,7 @@ import dev.ashwake.domain.model.habits.EntrySource
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
+import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +37,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var habits: HabitRepository
     @Inject lateinit var scheduler: HabitReminderScheduler
+    @Inject lateinit var markHabit: MarkHabitUseCase
     @Inject lateinit var clock: AppClock
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -56,10 +58,17 @@ class HabitReminderReceiver : BroadcastReceiver() {
                     }
 
                     ACTION_DONE -> {
-                        habits.mark(
-                            habitId, clock.today(), EntryStatus.DONE,
-                            source = EntrySource.NOTIFICATION
-                        )
+                        // Через use case, а не напрямую в репозиторий: иначе
+                        // отметка из шторки не приносит ни монет, ни очков
+                        // характеристик и не будит связанные привычки
+                        val progress = habits.progressFor(habitId, clock.today())
+                        if (progress != null) {
+                            markHabit(
+                                progress = progress,
+                                status = EntryStatus.DONE,
+                                source = EntrySource.NOTIFICATION
+                            )
+                        }
                         cancelNotification(context, habitId)
                         scheduler.schedule(habit)
                     }

@@ -105,6 +105,48 @@ interface HabitDao {
     @Insert
     suspend fun insertAnchors(anchors: List<HabitAnchorEntity>)
 
+    /**
+     * Якоря, которые должно разбудить это событие. Ещё не сработавшие сегодня
+     * отсекаются прямо в запросе: повторный тап по привычке-триггеру
+     * не должен звонить второй раз.
+     */
+    @Query(
+        """
+        SELECT * FROM habit_anchors
+        WHERE type = :type
+          AND (:refId IS NULL OR refHabitId = :refId)
+          AND (lastFiredDate IS NULL OR lastFiredDate < :today)
+        """
+    )
+    suspend fun anchorsToFire(type: String, refId: Long?, today: Int): List<HabitAnchorEntity>
+
+    @Query(
+        """
+        SELECT * FROM habit_anchors
+        WHERE type = :type
+          AND (:refId IS NULL OR refRoutineId = :refId)
+          AND (lastFiredDate IS NULL OR lastFiredDate < :today)
+        """
+    )
+    suspend fun anchorsToFireByRoutine(
+        type: String,
+        refId: Long?,
+        today: Int
+    ): List<HabitAnchorEntity>
+
+    @Query(
+        """
+        SELECT * FROM habit_anchors
+        WHERE type = :type
+          AND (:refId IS NULL OR refTagId = :refId)
+          AND (lastFiredDate IS NULL OR lastFiredDate < :today)
+        """
+    )
+    suspend fun anchorsToFireByTag(type: String, refId: Long?, today: Int): List<HabitAnchorEntity>
+
+    @Query("UPDATE habit_anchors SET lastFiredDate = :date WHERE id = :anchorId")
+    suspend fun markAnchorFired(anchorId: Long, date: Int)
+
     @Query("SELECT * FROM habit_skip_reasons ORDER BY builtin DESC, id")
     fun observeSkipReasons(): Flow<List<HabitSkipReasonEntity>>
 
