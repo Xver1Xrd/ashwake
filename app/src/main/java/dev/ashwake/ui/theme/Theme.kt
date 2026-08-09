@@ -1,78 +1,142 @@
 package dev.ashwake.ui.theme
 
-import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
+
+/** Режим темы. Тёмная — основная, светлая делается второй (раздел 2). */
+enum class ThemeMode(val title: String) {
+    DARK("Тёмная"),
+    LIGHT("Светлая"),
+    SYSTEM("Как в системе");
+
+    companion object {
+        val DEFAULT = DARK
+    }
+}
+
+val LocalAshColors = staticCompositionLocalOf { darkAshColors() }
+val LocalAshTypography = staticCompositionLocalOf { AshTypography() }
 
 /**
- * Палитра проекта (п. 15.5): холодные серо-синие тени, тёплые акценты только
- * на огне и золоте. Чистых #000000 и #FFFFFF нет — самый тёмный #0D0B12,
- * самый светлый #E8E0D0.
+ * Системная настройка «уменьшить движение». Отключает пружины и параллакс
+ * обложки (раздел 6). Читается один раз на композицию темы, потому что
+ * меняется она из настроек системы, а не в течение сессии.
  */
-val Ash0D = Color(0xFF0D0B12)   // самый тёмный
-val Ash1A = Color(0xFF1A1622)
-val Ash26 = Color(0xFF262130)
-val Ash3A = Color(0xFF3A3346)
-val AshE8 = Color(0xFFE8E0D0)   // самый светлый
-val AshMuted = Color(0xFF9A93A8)
+val LocalReduceMotion = staticCompositionLocalOf { false }
 
-val Gold = Color(0xFFC9A227)
-val Ember = Color(0xFFD97A45)
-val Steel = Color(0xFF6E7BA6)
-val Moss = Color(0xFF5E8C7A)
-val Blood = Color(0xFF9E4A4A)
+/** Короткие обращения к токенам: `AshTheme.colors.warm`, `AshTheme.type.headline`. */
+object AshTheme {
+    val colors: AshColors
+        @Composable get() = LocalAshColors.current
 
-private val DarkScheme = darkColorScheme(
-    primary = Steel,
-    onPrimary = Ash0D,
-    primaryContainer = Ash3A,
-    onPrimaryContainer = AshE8,
-    secondary = Gold,
-    onSecondary = Ash0D,
-    tertiary = Ember,
-    background = Ash0D,
-    onBackground = AshE8,
-    surface = Ash1A,
-    onSurface = AshE8,
-    surfaceVariant = Ash26,
-    onSurfaceVariant = AshMuted,
-    outline = Ash3A,
-    error = Blood
-)
+    val type: AshTypography
+        @Composable get() = LocalAshTypography.current
 
-private val LightScheme = lightColorScheme(
-    primary = Steel,
-    secondary = Gold,
-    tertiary = Ember,
-    error = Blood
-)
-
-/** Цвет метки приоритета. Используется и списком, и матрицей Эйзенхауэра. */
-val PriorityColors = listOf(Blood, Ember, Gold, Moss)
+    val reduceMotion: Boolean
+        @Composable get() = LocalReduceMotion.current
+}
 
 @Composable
 fun AshwakeTheme(
-    darkTheme: Boolean = true,           // тёмная тема по умолчанию, а не по системной
-    dynamicColor: Boolean = true,
+    themeMode: ThemeMode = ThemeMode.DEFAULT,
+    accent: AccentColor = AccentColor.DEFAULT,
     content: @Composable () -> Unit
 ) {
-    val context = LocalContext.current
-    val scheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S ->
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        darkTheme -> DarkScheme
-        else -> LightScheme
+    val systemDark = isSystemInDarkTheme()
+    val isDark = when (themeMode) {
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+        ThemeMode.SYSTEM -> systemDark
     }
-    MaterialTheme(colorScheme = scheme, typography = AshwakeTypography, content = content)
+
+    val colors = remember(isDark, accent) {
+        if (isDark) darkAshColors(accent) else lightAshColors(accent)
+    }
+    val typography = remember { AshTypography() }
+
+    val context = LocalContext.current
+    val inspection = LocalInspectionMode.current
+    val reduceMotion = remember(inspection) {
+        if (inspection) false else systemReduceMotion(context)
+    }
+
+    CompositionLocalProvider(
+        LocalAshColors provides colors,
+        LocalAshTypography provides typography,
+        LocalReduceMotion provides reduceMotion,
+        LocalContentColor provides colors.text
+    ) {
+        MaterialTheme(
+            colorScheme = colors.toMaterialScheme(),
+            typography = materialTypography(typography),
+            content = content
+        )
+    }
 }
 
-/** Оставлено на будущее: настройка «следовать системе» появится в разделе настроек. */
-@Composable
-fun systemPrefersDark(): Boolean = isSystemInDarkTheme()
+/**
+ * Мост в Material: экраны, написанные на `MaterialTheme.colorScheme`,
+ * должны получать ровно те же цвета, что и новые компоненты. Иначе в
+ * приложении окажется две палитры и стык будет виден на каждом экране.
+ *
+ * Динамические цвета намеренно не используются: они берутся из обоев и
+ * ломают и палитру, и контраст, проверенный в разделе 9.
+ */
+private fun AshColors.toMaterialScheme(): ColorScheme {
+    val base = if (isDark) darkColorScheme() else lightColorScheme()
+    return base.copy(
+        primary = accent,
+        onPrimary = if (isDark) Color.Black else Color.White,
+        primaryContainer = surface2,
+        onPrimaryContainer = text,
+        secondary = warm,
+        onSecondary = Color.Black,
+        tertiary = cold,
+        onTertiary = Color.White,
+        background = background,
+        onBackground = text,
+        surface = surface1,
+        onSurface = text,
+        surfaceVariant = surface2,
+        onSurfaceVariant = text2,
+        surfaceContainer = surface1,
+        surfaceContainerHigh = surface2,
+        surfaceContainerHighest = surface3,
+        surfaceContainerLow = surface1,
+        surfaceContainerLowest = background,
+        inverseSurface = text,
+        inverseOnSurface = background,
+        outline = separator,
+        outlineVariant = separator,
+        error = danger,
+        onError = Color.White,
+        errorContainer = surface2,
+        onErrorContainer = danger,
+        scrim = Color.Black.copy(alpha = 0.4f)
+    )
+}
+
+/**
+ * «Уменьшить движение» в Android выражается через масштаб длительности
+ * анимаций: пользователь выставляет его в ноль в настройках разработчика
+ * или в специальных возможностях.
+ */
+private fun systemReduceMotion(context: android.content.Context): Boolean = runCatching {
+    Settings.Global.getFloat(
+        context.contentResolver,
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+        1f
+    ) == 0f
+}.getOrDefault(false)

@@ -78,6 +78,9 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
+    // Размытие фона под навигационной панелью и панелью вкладок (дизайн-система, п. 2)
+    implementation(libs.haze)
+
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     ksp(libs.room.compiler)
