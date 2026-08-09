@@ -110,6 +110,11 @@ dependencies {
     // Room и ресурсы на JVM: инструментальные тесты требуют эмулятора,
     // а проверять схему и восстановление из архива нужно на каждой сборке
     testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
     testImplementation(libs.room.testing)
     testImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.junit)

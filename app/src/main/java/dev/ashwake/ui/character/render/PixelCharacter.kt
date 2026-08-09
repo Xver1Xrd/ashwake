@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.LaunchedEffect
@@ -97,20 +98,51 @@ fun PixelCharacter(
 ) {
     var breathOffset by remember { mutableIntStateOf(0) }
     var glowPhase by remember { mutableFloatStateOf(0f) }
+    var cloakOffset by remember { mutableIntStateOf(0) }
+    var scene by remember { mutableStateOf(CharacterScene.NONE) }
     val measurer = rememberTextMeasurer()
 
+    // «Уменьшить движение» оставляет только дыхание (раздел 6 дизайн-системы),
+    // и это же экономит кадры: при выключенном движении цикл не запускается
+    // вовсе, а не крутится вхолостую, выставляя одни и те же нули
     LaunchedEffect(reduceMotion) {
+        if (reduceMotion) {
+            breathOffset = 0
+            glowPhase = 0f
+            cloakOffset = 0
+            scene = CharacterScene.NONE
+            return@LaunchedEffect
+        }
+
         var start = 0L
+        var nextSceneAt = SCENE_MIN_GAP_MS
         while (true) {
             withFrameNanos { nanos ->
                 if (start == 0L) start = nanos
                 val elapsedMs = (nanos - start) / 1_000_000
+
                 // Дыхание: 4 кадра, цикл 500 мс, смещение ровно на 1 пиксель холста
                 breathOffset = ((elapsedMs / (BREATH_CYCLE_MS / 4)) % 4).toInt().let {
                     if (it == 1 || it == 2) 1 else 0
                 }
-                glowPhase = if (reduceMotion) 0f
-                else sin(elapsedMs / 1000.0 * Math.PI).toFloat()
+                glowPhase = sin(elapsedMs / 1000.0 * Math.PI).toFloat()
+
+                // Плащ живёт своим циклом: если он качается в такт дыханию,
+                // персонаж выглядит одной деталью, а не тканью поверх тела
+                cloakOffset = ((elapsedMs / (CLOAK_CYCLE_MS / 4)) % 4).toInt().let {
+                    if (it == 1) 1 else if (it == 3) -1 else 0
+                }
+
+                // Случайная сценка раз в 12–20 секунд (п. 15.6)
+                if (elapsedMs >= nextSceneAt) {
+                    scene = CharacterScene.entries.random()
+                    nextSceneAt = elapsedMs + SCENE_DURATION_MS +
+                        SCENE_MIN_GAP_MS + (0..SCENE_GAP_JITTER_MS).random()
+                } else if (scene != CharacterScene.NONE &&
+                    elapsedMs > nextSceneAt - SCENE_MIN_GAP_MS - SCENE_GAP_JITTER_MS
+                ) {
+                    scene = CharacterScene.NONE
+                }
             }
         }
     }
@@ -132,9 +164,16 @@ fun PixelCharacter(
                     val rect = SLOT_RECTS[layer.slot] ?: return@forEach
                     // Корпус и голова дышат, ноги не двигаются вообще (п. 15.6)
                     val breathes = layer.slot.breathes
-                    val yShift = if (breathes && !reduceMotion) -breathOffset else 0
+                    val yShift = when {
+                        reduceMotion -> 0
+                        layer.slot.isCloak -> -cloakOffset
+                        scene == CharacterScene.HOP && layer.slot != EquipSlot.BACKGROUND_FX -> -2
+                        breathes -> -breathOffset
+                        else -> 0
+                    }
                     val alpha = when {
                         layer.slot == EquipSlot.FACE && dimFace -> FACE_DIM_ALPHA
+                        layer.slot == EquipSlot.FACE && scene == CharacterScene.BLINK -> 0.55f
                         else -> 1f
                     }
                     drawSlot(
@@ -225,6 +264,16 @@ private fun Color.desaturate(amount: Float): Color {
     )
 }
 
+/**
+ * Короткая сценка, которая оживляет простой. Появляется редко и длится
+ * недолго: постоянное движение на главном экране отвлекает от списка дел.
+ */
+enum class CharacterScene { NONE, BLINK, HOP, CLOAK_GUST }
+
+/** Слои плаща качаются отдельно от дыхания. */
+private val EquipSlot.isCloak: Boolean
+    get() = this == EquipSlot.CLOAK_FRONT || this == EquipSlot.CLOAK_BACK
+
 /** Слоты, которые участвуют в дыхании: ноги и обувь стоят на месте. */
 private val EquipSlot.breathes: Boolean
     get() = this !in setOf(EquipSlot.LEGS, EquipSlot.BOOTS, EquipSlot.BACKGROUND_FX)
@@ -234,6 +283,10 @@ fun rarityOutline(color: Color, phase: Float): Color =
     color.copy(alpha = 0.4f + 0.4f * ((phase + 1f) / 2f))
 
 private const val BREATH_CYCLE_MS = 500L
+private const val CLOAK_CYCLE_MS = 1_700L
+private const val SCENE_DURATION_MS = 700L
+private const val SCENE_MIN_GAP_MS = 12_000L
+private const val SCENE_GAP_JITTER_MS = 8_000
 private const val FACE_DIM_ALPHA = 0.4f
 private const val MAX_DECAY = 0.7f
 private const val MIN_LABEL_WIDTH = 14f
