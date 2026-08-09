@@ -1,6 +1,8 @@
 package dev.ashwake.ui
 
 import android.os.Looper
+import android.provider.Settings
+import androidx.test.core.app.ApplicationProvider
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
@@ -13,6 +15,7 @@ import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.time.Duration
 import java.util.concurrent.CopyOnWriteArrayList
 
 /**
@@ -41,13 +44,28 @@ class LaunchTest {
         val previous = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { _, error -> crashes += error }
 
+        // Персонаж на главном экране дышит бесконечным циклом кадров.
+        // На устройстве это ровно то, что нужно, но под Robolectric очередь
+        // главного потока из-за него никогда не пустеет. Тест запускается
+        // с системной настройкой «уменьшить движение», при которой цикл
+        // не стартует вовсе — это штатный путь приложения, а не подпорка.
+        Settings.Global.putFloat(
+            ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            0f
+        )
+
         try {
             hilt.inject()
             Robolectric.buildActivity(MainActivity::class.java).setup().use { controller ->
                 checkNotNull(controller.get()) { "активность не создалась" }
                 // Стартовый экран подтягивает привычки, задачи и каталог:
-                // без прокрутки очереди эти корутины просто не успеют упасть
-                shadowOf(Looper.getMainLooper()).idle()
+                // без прокрутки очереди эти корутины просто не успеют упасть.
+                //
+                // Прокрутка ограничена по времени, а не idle(): персонаж дышит
+                // бесконечным циклом кадров, очередь главного потока никогда
+                // не пустеет, и idle() крутился бы до нехватки памяти.
+                shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2))
             }
         } finally {
             Thread.setDefaultUncaughtExceptionHandler(previous)

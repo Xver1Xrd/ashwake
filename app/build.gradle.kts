@@ -60,6 +60,11 @@ android {
             // Robolectric поднимает настоящий контекст Android: без ресурсов
             // не создать ни базу, ни строки
             isIncludeAndroidResources = true
+            all {
+                // Robolectric поднимает Android целиком: дефолтной кучи
+                // на композицию с тестовым графом Hilt не хватает
+                it.maxHeapSize = "2g"
+            }
         }
     }
     packaging {

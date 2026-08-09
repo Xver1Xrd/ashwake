@@ -27,7 +27,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Панель вкладок с размытием поверх прокручиваемого содержимого.
+ * Интерфейс собирается: тема со своими шрифтами и формами, компоненты,
+ * панель вкладок с размытием поверх прокручиваемого содержимого.
  *
  * Размытие — единственная часть интерфейса, которая тянет за собой внешнюю
  * библиотеку и работает с графическими слоями, то есть самая вероятная
@@ -76,6 +77,7 @@ class GlassRenderTest {
         rule.waitForIdle()
 
         rule.onNodeWithText("Сегодня").assertExists()
+        rule.onNodeWithText("Задачи").assertExists()
         rule.onNodeWithText("содержимое под панелью").assertExists()
     }
 }
