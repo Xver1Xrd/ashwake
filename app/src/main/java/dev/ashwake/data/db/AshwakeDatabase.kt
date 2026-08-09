@@ -5,6 +5,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
@@ -136,6 +137,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun timeboxDao(): TimeboxDao
     abstract fun ritualDao(): RitualDao
     abstract fun blockingDao(): BlockingDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val NAME = "ashwake.db"

@@ -58,6 +58,12 @@ class BackupViewModel @Inject constructor(
     private val _restorePreview = MutableStateFlow<BackupContents?>(null)
     val restorePreview: StateFlow<BackupContents?> = _restorePreview.asStateFlow()
 
+    private val _restoring = MutableStateFlow(false)
+    val restoring: StateFlow<Boolean> = _restoring.asStateFlow()
+
+    /** Архив, который показан в предпросмотре и ждёт подтверждения. */
+    private var pendingRestore: Pair<Uri, String?>? = null
+
     private val _import = MutableStateFlow(ImportState())
     val import: StateFlow<ImportState> = _import.asStateFlow()
 
@@ -98,19 +104,46 @@ class BackupViewModel @Inject constructor(
 
     fun readBackup(uri: Uri, password: String?) {
         viewModelScope.launch {
-            when (
-                val result = backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
-            ) {
-                is RestoreResult.Preview -> _restorePreview.value = result.contents
-                RestoreResult.NeedsPassword ->
-                    _message.value = "Архив зашифрован — нужен пароль"
-                RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
-                is RestoreResult.Failed -> _message.value = result.reason
-            }
+            pendingRestore = uri to password
+            handleRestoreResult(
+                backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
+            )
         }
     }
 
-    fun dismissRestorePreview() { _restorePreview.value = null }
+    /**
+     * Применение архива. Отдельным шагом после предпросмотра: замена данных
+     * необратима, и подтверждать её человек должен уже увидев, что внутри.
+     */
+    fun applyRestore() {
+        val (uri, password) = pendingRestore ?: return
+        viewModelScope.launch {
+            _restoring.value = true
+            handleRestoreResult(
+                backups.restore(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
+            )
+            _restoring.value = false
+        }
+    }
+
+    private fun handleRestoreResult(result: RestoreResult) {
+        when (result) {
+            is RestoreResult.Preview -> _restorePreview.value = result.contents
+            is RestoreResult.Restored -> {
+                _restorePreview.value = null
+                pendingRestore = null
+                _message.value = "Данные восстановлены: ${result.contents.total} записей"
+            }
+            RestoreResult.NeedsPassword -> _message.value = "Архив зашифрован — нужен пароль"
+            RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
+            is RestoreResult.Failed -> _message.value = result.reason
+        }
+    }
+
+    fun dismissRestorePreview() {
+        _restorePreview.value = null
+        pendingRestore = null
+    }
 
     // --- импорт ------------------------------------------------------------
 

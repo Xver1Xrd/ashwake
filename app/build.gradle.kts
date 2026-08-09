@@ -55,6 +55,13 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            // Robolectric поднимает настоящий контекст Android: без ресурсов
+            // не создать ни базу, ни строки
+            isIncludeAndroidResources = true
+        }
+    }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -100,5 +107,10 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    // Room и ресурсы на JVM: инструментальные тесты требуют эмулятора,
+    // а проверять схему и восстановление из архива нужно на каждой сборке
+    testImplementation(libs.robolectric)
+    testImplementation(libs.room.testing)
+    testImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.junit)
 }

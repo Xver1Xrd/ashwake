@@ -25,6 +25,9 @@ sealed interface RestoreResult {
     data object NeedsPassword : RestoreResult
     data object WrongPassword : RestoreResult
     data class Failed(val reason: String) : RestoreResult
+
+    /** Данные заменены. [contents] — что реально записано в базу. */
+    data class Restored(val contents: BackupContents) : RestoreResult
 }
 
 /**
@@ -87,30 +90,59 @@ class BackupManager @Inject constructor(
      */
     suspend fun readBackup(uri: Uri, password: CharArray? = null): RestoreResult =
         withContext(Dispatchers.IO) {
-            runCatching {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                    ?: return@runCatching RestoreResult.Failed("Файл не читается")
-
-                val json = when {
-                    !crypto.isEncrypted(bytes) -> String(bytes)
-                    password == null -> return@runCatching RestoreResult.NeedsPassword
-                    else -> when (val result = crypto.decrypt(bytes, password)) {
-                        is DecryptResult.Success -> String(result.content)
-                        DecryptResult.WrongPassword ->
-                            return@runCatching RestoreResult.WrongPassword
-                        is DecryptResult.Corrupted ->
-                            return@runCatching RestoreResult.Failed(result.reason)
-                        DecryptResult.NotEncrypted -> String(bytes)
-                    }
-                }
-
+            decodeArchive(uri, password) { json ->
                 val contents = serializer.peek(json)
-                    ?: return@runCatching RestoreResult.Failed("Файл не похож на архив Ashwake")
+                    ?: return@decodeArchive RestoreResult.Failed(
+                        "Файл не похож на архив Ashwake"
+                    )
                 RestoreResult.Preview(contents)
-            }.getOrElse { error ->
-                RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
             }
         }
+
+    /**
+     * Восстановление: полная замена данных содержимым архива.
+     *
+     * Вызывается только после того, как человек увидел предпросмотр и
+     * подтвердил замену. Операция необратима — но именно она делает
+     * резервную копию копией, а не файлом на память.
+     */
+    suspend fun restore(uri: Uri, password: CharArray? = null): RestoreResult =
+        withContext(Dispatchers.IO) {
+            decodeArchive(uri, password) { json ->
+                if (serializer.peek(json) == null) {
+                    return@decodeArchive RestoreResult.Failed("Файл не похож на архив Ashwake")
+                }
+                RestoreResult.Restored(serializer.import(json))
+            }
+        }
+
+    /**
+     * Общая часть чтения и восстановления: прочитать файл, при необходимости
+     * расшифровать и отдать текст архива. Дублировать эти пять веток
+     * в двух методах значило бы чинить ошибки в них по отдельности.
+     */
+    private suspend fun decodeArchive(
+        uri: Uri,
+        password: CharArray?,
+        block: suspend (String) -> RestoreResult
+    ): RestoreResult = runCatching {
+        val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: return@runCatching RestoreResult.Failed("Файл не читается")
+
+        val json = when {
+            !crypto.isEncrypted(bytes) -> String(bytes)
+            password == null -> return@runCatching RestoreResult.NeedsPassword
+            else -> when (val result = crypto.decrypt(bytes, password)) {
+                is DecryptResult.Success -> String(result.content)
+                DecryptResult.WrongPassword -> return@runCatching RestoreResult.WrongPassword
+                is DecryptResult.Corrupted -> return@runCatching RestoreResult.Failed(result.reason)
+                DecryptResult.NotEncrypted -> String(bytes)
+            }
+        }
+        block(json)
+    }.getOrElse { error ->
+        RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
+    }
 
     /** Ротация: держим последние [KEEP_COPIES] копий, остальное удаляем. */
     private fun rotate(folder: DocumentFile) {

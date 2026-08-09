@@ -51,6 +51,7 @@ fun BackupScreen(
     val folder by viewModel.backupFolder.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val restorePreview by viewModel.restorePreview.collectAsStateWithLifecycle()
+    val restoring by viewModel.restoring.collectAsStateWithLifecycle()
     val import by viewModel.import.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
@@ -222,15 +223,27 @@ fun BackupScreen(
                     Text("Записей ритуала: ${contents.reviews}")
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Архив прочитан. Запись в базу появится вместе с полной " +
-                            "заменой данных — она необратима, и делать её вслепую нельзя",
+                        "Восстановление заменит текущие данные целиком: задачи, " +
+                            "привычки с историей отметок, отказы, персонажа и монеты. " +
+                            "Отменить это нельзя",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Закрыть") }
+                TextButton(
+                    onClick = viewModel::applyRestore,
+                    enabled = !restoring
+                ) {
+                    Text(
+                        text = if (restoring) "Восстановление…" else "Заменить данные",
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Отмена") }
             }
         )
     }

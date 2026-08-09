@@ -17,6 +17,7 @@ import dev.ashwake.data.db.dao.routines.FocusDao
 import dev.ashwake.data.db.dao.ritual.RitualDao
 import dev.ashwake.data.db.dao.routines.RoutineDao
 import dev.ashwake.data.db.dao.timebox.TimeboxDao
+import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
@@ -50,4 +51,5 @@ object DatabaseModule {
     @Provides fun provideTimeboxDao(db: AshwakeDatabase): TimeboxDao = db.timeboxDao()
     @Provides fun provideRitualDao(db: AshwakeDatabase): RitualDao = db.ritualDao()
     @Provides fun provideBlockingDao(db: AshwakeDatabase): BlockingDao = db.blockingDao()
+    @Provides fun provideBackupDao(db: AshwakeDatabase): BackupDao = db.backupDao()
 }
