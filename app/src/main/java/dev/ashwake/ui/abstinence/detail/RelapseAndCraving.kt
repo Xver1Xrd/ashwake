@@ -42,6 +42,8 @@ import dev.ashwake.ui.theme.Steel
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Регистрация срыва.
@@ -64,29 +66,28 @@ fun RelapseDialog(
     if (!confirmed) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Отметить срыв?") },
+            title = { Text(stringResource(R.string.detail_otmetit_sryv)) },
             text = {
                 Text(
-                    "Счётчик начнёт новую попытку. История никуда не денется: " +
-                        "рекорд и общее число чистых дней сохранятся.",
+                    "Счётчик начнёт новую попытку. История никуда не денется: рекорд и общее число чистых дней сохранятся.",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmed = true }) { Text("Да") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+            confirmButton = { TextButton(onClick = { confirmed = true }) { Text(stringResource(R.string.detail_da)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
         )
         return
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Что случилось") },
+        title = { Text(stringResource(R.string.detail_chto_sluchilos)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Причина", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_prichina), style = MaterialTheme.typography.labelLarge)
                 ReasonChips(reasons, selectedReason) { selectedReason = it }
 
-                Text("Когда", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_kogda), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 3, 12, 24).forEach { hours ->
                         FilterChip(
@@ -100,7 +101,7 @@ fun RelapseDialog(
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Заметка") },
+                    label = { Text(stringResource(R.string.detail_zametka)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -113,9 +114,9 @@ fun RelapseDialog(
                     note.takeIf { it.isNotBlank() },
                     Instant.now().minus(Duration.ofHours(hoursAgo.toLong()))
                 )
-            }) { Text("Сохранить") }
+            }) { Text(stringResource(R.string.detail_sohranit)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
     )
 }
 
@@ -175,7 +176,7 @@ fun CravingSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Сейчас тяжело", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.detail_seychas_tyazhelo), style = MaterialTheme.typography.titleMedium)
 
             abstinence.motivationText?.let { text ->
                 Text(
@@ -187,7 +188,7 @@ fun CravingSheet(
             }
 
             if (abstinence.substitutes.isNotEmpty()) {
-                Text("Можно сделать вместо", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_mozhno_sdelat_vmesto), style = MaterialTheme.typography.labelLarge)
                 abstinence.substitutes.forEach { substitute ->
                     Text("· ${substitute.text}", style = MaterialTheme.typography.bodyMedium)
                 }
@@ -207,7 +208,7 @@ fun CravingSheet(
             )
 
             HorizontalDivider()
-            Text("Насколько сильно", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_naskolko_silno), style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 (1..5).forEach { level ->
                     FilterChip(
@@ -218,7 +219,7 @@ fun CravingSheet(
                 }
             }
 
-            Text("Что подтолкнуло", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_chto_podtolknulo), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 triggers.forEach { trigger ->
                     FilterChip(
@@ -232,7 +233,7 @@ fun CravingSheet(
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Заметка") },
+                label = { Text(stringResource(R.string.detail_zametka)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -245,7 +246,7 @@ fun CravingSheet(
                         onFinish(true, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text("Переждал") }
+                ) { Text(stringResource(R.string.detail_perezhdal)) }
 
                 OutlinedButton(
                     onClick = {
@@ -253,7 +254,7 @@ fun CravingSheet(
                         onFinish(false, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text("Не помогло") }
+                ) { Text(stringResource(R.string.detail_ne_pomoglo)) }
             }
         }
     }
@@ -326,17 +327,16 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
 fun SubstanceWarningDialog(onAcknowledge: () -> Unit) {
     AlertDialog(
         onDismissRequest = onAcknowledge,
-        title = { Text("Одно замечание") },
+        title = { Text(stringResource(R.string.detail_odno_zamechanie)) },
         text = {
             Text(
                 "Резкий отказ от алкоголя или веществ может быть небезопасен. " +
                     "Имеет смысл обсудить это с врачом.\n\n" +
-                    "Приложение считает дни и ведёт историю. Медицинских рекомендаций " +
-                    "оно не даёт.",
+                    "Приложение считает дни и ведёт историю. Медицинских рекомендаций оно не даёт.",
                 style = MaterialTheme.typography.bodyMedium
             )
         },
-        confirmButton = { TextButton(onClick = onAcknowledge) { Text("Понятно") } }
+        confirmButton = { TextButton(onClick = onAcknowledge) { Text(stringResource(R.string.detail_ponyatno)) } }
     )
 }
 
@@ -344,7 +344,7 @@ fun SubstanceWarningDialog(onAcknowledge: () -> Unit) {
 @Composable
 fun RelapseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     TextButton(onClick = onClick, modifier = modifier) {
-        Text("Отметить срыв", color = Blood.copy(alpha = 0.8f))
+        Text(stringResource(R.string.detail_otmetit_sryv_2), color = Blood.copy(alpha = 0.8f))
     }
 }
 
@@ -352,7 +352,7 @@ fun RelapseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
 @Composable
 fun UndoRelapseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     OutlinedButton(onClick = onClick, modifier = modifier) {
-        Text("Отменить срыв", color = Steel)
+        Text(stringResource(R.string.detail_otmenit_sryv), color = Steel)
     }
 }
 

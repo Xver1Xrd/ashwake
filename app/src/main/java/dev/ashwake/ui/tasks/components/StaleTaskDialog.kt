@@ -18,6 +18,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.tasks.StaleResolution
 import dev.ashwake.domain.model.tasks.Task
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Диалог залежавшейся задачи: открывается на 5-м переносе (п. 1).
@@ -51,7 +53,7 @@ fun StaleTaskDialog(
                     StaleResolution.DELEGATE -> OutlinedTextField(
                         value = payload,
                         onValueChange = { payload = it },
-                        label = { Text("Кому делегировать") },
+                        label = { Text(stringResource(R.string.components_komu_delegirovat)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -59,7 +61,7 @@ fun StaleTaskDialog(
                     StaleResolution.SPLIT -> OutlinedTextField(
                         value = payload,
                         onValueChange = { payload = it },
-                        label = { Text("Подзадачи, по одной в строке") },
+                        label = { Text(stringResource(R.string.components_podzadachi_po_odnoy_v_stroke)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -68,22 +70,22 @@ fun StaleTaskDialog(
                         OutlinedButton(
                             onClick = { onResolve(StaleResolution.DELETE, null) },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Удалить") }
+                        ) { Text(stringResource(R.string.blocking_udalit)) }
 
                         OutlinedButton(
                             onClick = { mode = StaleResolution.DELEGATE },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Делегировать") }
+                        ) { Text(stringResource(R.string.components_delegirovat)) }
 
                         OutlinedButton(
                             onClick = { mode = StaleResolution.SPLIT },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Разбить на подзадачи") }
+                        ) { Text(stringResource(R.string.components_razbit_na_podzadachi)) }
 
                         OutlinedButton(
                             onClick = { onResolve(StaleResolution.SCHEDULE_SLOT, null) },
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Поставить на сегодня") }
+                        ) { Text(stringResource(R.string.components_postavit_na_segodnya)) }
                     }
                 }
             }
@@ -93,7 +95,7 @@ fun StaleTaskDialog(
                 TextButton(
                     onClick = { onResolve(mode!!, payload.takeIf { it.isNotBlank() }) },
                     enabled = payload.isNotBlank()
-                ) { Text("Готово") }
+                ) { Text(stringResource(R.string.editor_gotovo)) }
             }
         },
         dismissButton = {

@@ -47,6 +47,8 @@ import dev.ashwake.platform.service.formatTime
 import dev.ashwake.ui.theme.CounterLarge
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -56,7 +58,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Фокус") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.focus_fokus)) }) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -110,12 +112,12 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     if (run.mode == FocusMode.POMODORO) {
                         OutlinedButton(onClick = viewModel::skipPhase) {
                             Icon(Icons.Filled.SkipNext, contentDescription = null)
-                            Text("  Дальше")
+                            Text(stringResource(R.string.focus_dalshe))
                         }
                     }
                     OutlinedButton(onClick = viewModel::stop) {
                         Icon(Icons.Filled.Stop, contentDescription = null)
-                        Text("  Стоп")
+                        Text(stringResource(R.string.focus_stop))
                     }
                 }
 
@@ -132,13 +134,12 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     style = MaterialTheme.typography.headlineMedium
                 )
                 Text(
-                    "Длинный перерыв ${config.longBreakMinutes} мин каждые " +
-                        "${config.longBreakEvery} помидора",
+                    "Длинный перерыв ${config.longBreakMinutes} мин каждые ${config.longBreakEvery} помидора",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Длительность работы", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.focus_dlitelnost_raboty), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 25, 30, 45, 50, 90).forEach { minutes ->
                         FilterChip(
@@ -150,12 +151,12 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 }
 
                 if (tasks.isNotEmpty()) {
-                    Text("Привязать к задаче", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.focus_privyazat_k_zadache), style = MaterialTheme.typography.labelLarge)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         FilterChip(
                             selected = viewModel.selectedTaskId == null,
                             onClick = { viewModel.selectTask(null) },
-                            label = { Text("без задачи") }
+                            label = { Text(stringResource(R.string.focus_bez_zadachi)) }
                         )
                         tasks.take(8).forEach { task ->
                             FilterChip(
@@ -169,17 +170,17 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Button(onClick = { viewModel.start(FocusMode.POMODORO) }) {
-                        Text("Помодоро")
+                        Text(stringResource(R.string.focus_pomodoro))
                     }
                     OutlinedButton(onClick = { viewModel.start(FocusMode.STOPWATCH) }) {
-                        Text("Секундомер")
+                        Text(stringResource(R.string.focus_sekundomer))
                     }
                 }
             }
 
             HorizontalDivider()
 
-            Text("Статистика за 30 дней", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.focus_statistika_za_30_dney), style = MaterialTheme.typography.titleSmall)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly

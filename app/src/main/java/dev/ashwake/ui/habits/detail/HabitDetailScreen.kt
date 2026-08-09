@@ -30,6 +30,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.domain.model.habits.EntryStatus
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,13 +48,13 @@ fun HabitDetailScreen(
                 title = { Text(detail?.progress?.habit?.name ?: "Привычка") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 },
                 actions = {
                     detail?.let { data ->
                         IconButton(onClick = { onEdit(data.progress.habit.id) }) {
-                            Icon(Icons.Filled.Edit, contentDescription = "Изменить")
+                            Icon(Icons.Filled.Edit, contentDescription = stringResource(R.string.detail_izmenit))
                         }
                     }
                 }
@@ -62,7 +64,7 @@ fun HabitDetailScreen(
         val data = detail
         if (data == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Загрузка…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.detail_zagruzka), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Scaffold
         }
@@ -87,18 +89,17 @@ fun HabitDetailScreen(
 
             HorizontalDivider()
 
-            Text("Рост score", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.detail_rost_score), style = MaterialTheme.typography.titleSmall)
             ScoreChart(series = data.scoreSeries)
             Text(
-                "Пунктир — 80%: значение, к которому приходит идеально выполняемая " +
-                    "привычка примерно за месяц",
+                "Пунктир — 80%: значение, к которому приходит идеально выполняемая привычка примерно за месяц",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             HorizontalDivider()
 
-            Text("История за год", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.detail_istoriya_za_god), style = MaterialTheme.typography.titleSmall)
             HabitHeatmap(
                 entries = data.entries,
                 excludedDays = data.excludedDays,
@@ -140,7 +141,7 @@ private fun Statistics(data: dev.ashwake.domain.repository.habits.HabitDetail) {
     val skipped = entries.count { it.status == EntryStatus.SKIPPED }
     val marked = done + minimum
 
-    Text("За год", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.detail_za_god), style = MaterialTheme.typography.titleSmall)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly

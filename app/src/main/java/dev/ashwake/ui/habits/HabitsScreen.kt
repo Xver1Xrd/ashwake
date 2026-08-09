@@ -38,6 +38,8 @@ import dev.ashwake.ui.habits.components.HabitActionsSheet
 import dev.ashwake.ui.habits.components.HabitCard
 import dev.ashwake.ui.habits.components.HabitCatalogDialog
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +59,12 @@ fun HabitsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Привычки") },
+                title = { Text(stringResource(R.string.habits_privychki)) },
                 actions = {
                     IconButton(onClick = viewModel::toggleVacation) {
                         Icon(
                             Icons.Filled.BeachAccess,
-                            contentDescription = "Режим отпуска",
+                            contentDescription = stringResource(R.string.habits_rezhim_otpuska),
                             tint = if (state.vacationMode) MaterialTheme.colorScheme.secondary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -73,7 +75,7 @@ fun HabitsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCatalog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Добавить привычку")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.habits_dobavit_privychku))
             }
         }
     ) { padding ->
@@ -177,10 +179,9 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Привычек пока нет", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.habits_privychek_poka_net), style = MaterialTheme.typography.titleMedium)
         Text(
-            "Возьмите готовую из каталога или заведите свою. " +
-                "Score растёт постепенно и не обнуляется от пары пропусков",
+            "Возьмите готовую из каталога или заведите свою. Score растёт постепенно и не обнуляется от пары пропусков",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

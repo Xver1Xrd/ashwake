@@ -39,6 +39,8 @@ import dev.ashwake.ui.abstinence.components.formatMoney
 import dev.ashwake.ui.abstinence.editor.CreateAbstinenceDialog
 import dev.ashwake.ui.theme.Gold
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,10 +52,10 @@ fun AbstinenceScreen(
     var showCreate by remember { mutableStateOf(false) }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Отказы") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.abstinence_otkazy)) }) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreate = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Новый отказ")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.abstinence_novyy_otkaz))
             }
         }
     ) { padding ->
@@ -126,10 +128,9 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Счётчиков пока нет", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.abstinence_schetchikov_poka_net), style = MaterialTheme.typography.titleMedium)
         Text(
-            "Отказ отличается от привычки: его не надо делать, надо не делать. " +
-                "Счётчик идёт сам, вмешиваться нужно только при срыве",
+            "Отказ отличается от привычки: его не надо делать, надо не делать. Счётчик идёт сам, вмешиваться нужно только при срыве",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

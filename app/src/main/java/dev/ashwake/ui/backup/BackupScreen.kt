@@ -41,6 +41,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.data.importer.ImportSource
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Moss
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,10 +82,10 @@ fun BackupScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Данные") },
+                title = { Text(stringResource(R.string.backup_dannye)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 }
             )
@@ -98,11 +100,9 @@ fun BackupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Резервные копии", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_rezervnye_kopii), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Копия пишется в выбранную папку раз в сутки. Положите её туда, " +
-                    "где работает ваша синхронизация — приложение само никуда " +
-                    "ничего не отправляет",
+                "Копия пишется в выбранную папку раз в сутки. Положите её туда, где работает ваша синхронизация — приложение само никуда ничего не отправляет",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -118,19 +118,18 @@ fun BackupScreen(
             ) { Text(if (folder == null) "Выбрать папку" else "Сменить папку") }
 
             HorizontalDivider()
-            Text("Пароль архива", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_parol_arhiva), style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Пароль") },
+                label = { Text(stringResource(R.string.backup_parol)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
                 if (password.isBlank()) {
-                    "Без пароля копия сохраняется открытым текстом — её сможет " +
-                        "прочитать всё, что имеет доступ к папке"
+                    "Без пароля копия сохраняется открытым текстом — её сможет прочитать всё, что имеет доступ к папке"
                 } else {
                     "Пароль нигде не хранится. Забытый пароль означает потерянный архив"
                 },
@@ -142,18 +141,17 @@ fun BackupScreen(
                 Button(
                     onClick = { viewModel.backupNow(password) },
                     modifier = Modifier.weight(1f)
-                ) { Text("Сделать копию") }
+                ) { Text(stringResource(R.string.backup_sdelat_kopiyu)) }
                 OutlinedButton(
                     onClick = { pickArchive.launch(arrayOf("*/*")) },
                     modifier = Modifier.weight(1f)
-                ) { Text("Открыть архив") }
+                ) { Text(stringResource(R.string.backup_otkryt_arhiv)) }
             }
 
             HorizontalDivider()
-            Text("Импорт из другого приложения", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_import_iz_drugogo_prilozheniya), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Разбор показывается до применения: ничего не меняется, " +
-                    "пока вы не нажмёте «Применить»",
+                "Разбор показывается до применения: ничего не меняется, пока вы не нажмёте «Применить»",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -173,7 +171,7 @@ fun BackupScreen(
     import.report?.let { report ->
         AlertDialog(
             onDismissRequest = viewModel::cancelImport,
-            title = { Text("Что распозналось") },
+            title = { Text(stringResource(R.string.backup_chto_raspoznalos)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
@@ -181,14 +179,14 @@ fun BackupScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                     if (report.previewTitles.isNotEmpty()) {
-                        Text("Например:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_naprimer), style = MaterialTheme.typography.labelLarge)
                         report.previewTitles.forEach {
                             Text("· $it", style = MaterialTheme.typography.bodySmall)
                         }
                     }
                     if (report.reasons.isNotEmpty()) {
                         HorizontalDivider()
-                        Text("Пропущено:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_propuscheno), style = MaterialTheme.typography.labelLarge)
                         report.reasons.forEach { (reason, count) ->
                             Text(
                                 "$reason — $count",
@@ -203,10 +201,10 @@ fun BackupScreen(
                 Button(
                     onClick = viewModel::applyImport,
                     enabled = !import.busy && report.imported > 0
-                ) { Text("Применить") }
+                ) { Text(stringResource(R.string.backup_primenit)) }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelImport) { Text("Отмена") }
+                TextButton(onClick = viewModel::cancelImport) { Text(stringResource(R.string.detail_otmena)) }
             }
         )
     }
@@ -214,7 +212,7 @@ fun BackupScreen(
     restorePreview?.let { contents ->
         AlertDialog(
             onDismissRequest = viewModel::dismissRestorePreview,
-            title = { Text("Что в архиве") },
+            title = { Text(stringResource(R.string.backup_chto_v_arhive)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Задач: ${contents.tasks}")
@@ -223,9 +221,7 @@ fun BackupScreen(
                     Text("Записей ритуала: ${contents.reviews}")
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Восстановление заменит текущие данные целиком: задачи, " +
-                            "привычки с историей отметок, отказы, персонажа и монеты. " +
-                            "Отменить это нельзя",
+                        "Восстановление заменит текущие данные целиком: задачи, привычки с историей отметок, отказы, персонажа и монеты. Отменить это нельзя",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -243,7 +239,7 @@ fun BackupScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Отмена") }
+                TextButton(onClick = viewModel::dismissRestorePreview) { Text(stringResource(R.string.detail_otmena)) }
             }
         )
     }

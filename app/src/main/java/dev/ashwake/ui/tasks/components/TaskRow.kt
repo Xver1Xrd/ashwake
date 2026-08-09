@@ -46,6 +46,8 @@ import dev.ashwake.ui.theme.PriorityColors
 import dev.ashwake.ui.theme.Steel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -175,7 +177,7 @@ private fun TaskRowContent(
         if (task.recurrence != null) {
             Icon(
                 Icons.Filled.Repeat,
-                contentDescription = "Повторяется",
+                contentDescription = stringResource(R.string.components_povtoryaetsya),
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -183,7 +185,7 @@ private fun TaskRowContent(
         if (task.sourceLink != null) {
             Icon(
                 Icons.Filled.Link,
-                contentDescription = "Есть ссылка",
+                contentDescription = stringResource(R.string.components_est_ssylka),
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -49,6 +49,8 @@ import dev.ashwake.domain.model.habits.HabitType
 import java.time.DayOfWeek
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 private val WEEKDAY_LABELS = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
@@ -71,13 +73,13 @@ fun HabitEditorScreen(
                 title = { Text(if (state.isNew) "Новая привычка" else "Привычка") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = viewModel::delete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Удалить")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.blocking_udalit))
                         }
                     }
                 }
@@ -95,12 +97,12 @@ fun HabitEditorScreen(
             OutlinedTextField(
                 value = state.name,
                 onValueChange = viewModel::setName,
-                label = { Text("Название") },
+                label = { Text(stringResource(R.string.editor_nazvanie)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
-            Text("Тип", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_tip), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 HabitType.entries.forEach { type ->
                     FilterChip(
@@ -123,7 +125,7 @@ fun HabitEditorScreen(
                     OutlinedTextField(
                         value = state.targetValue.toInt().toString(),
                         onValueChange = { it.toFloatOrNull()?.let(viewModel::setTarget) },
-                        label = { Text("Цель") },
+                        label = { Text(stringResource(R.string.editor_cel)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -131,7 +133,7 @@ fun HabitEditorScreen(
                     OutlinedTextField(
                         value = state.unitName,
                         onValueChange = viewModel::setUnit,
-                        label = { Text("Единица") },
+                        label = { Text(stringResource(R.string.editor_edinica)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -146,7 +148,7 @@ fun HabitEditorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Минимальная планка", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.editor_minimalnaya_planka), style = MaterialTheme.typography.titleSmall)
                     Text(
                         "Цель на плохой день. Держит серию и даёт половину вклада в score",
                         style = MaterialTheme.typography.labelSmall,
@@ -162,7 +164,7 @@ fun HabitEditorScreen(
                 OutlinedTextField(
                     value = state.minimumValue.toInt().toString(),
                     onValueChange = { it.toFloatOrNull()?.let(viewModel::setMinimum) },
-                    label = { Text("Минимум") },
+                    label = { Text(stringResource(R.string.editor_minimum)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
@@ -170,7 +172,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text("Расписание", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_raspisanie), style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 HabitScheduleType.entries.forEach { type ->
                     FilterChip(
@@ -211,7 +213,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text("Сфера", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_sfera), style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Sphere.entries.forEach { sphere ->
                     FilterChip(
@@ -229,7 +231,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text("Напоминание", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_napominanie), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = state.reminderTime != null,
@@ -237,11 +239,11 @@ fun HabitEditorScreen(
                     label = { Text(state.reminderTime?.format(TIME_FORMAT) ?: "Время") }
                 )
                 if (state.reminderTime != null) {
-                    TextButton(onClick = { viewModel.setReminder(null) }) { Text("Убрать") }
+                    TextButton(onClick = { viewModel.setReminder(null) }) { Text(stringResource(R.string.editor_ubrat)) }
                 }
             }
 
-            Text("Заморозок в месяц", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_zamorozok_v_mesyac), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(0, 1, 3, 5, 10).forEach { quota ->
                     FilterChip(
@@ -254,7 +256,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text("Якорь", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_yakor), style = MaterialTheme.typography.titleSmall)
             Text(
                 "Привязка к событию вместо часов: цепочка привычек одна за другой",
                 style = MaterialTheme.typography.labelSmall,
@@ -264,7 +266,7 @@ fun HabitEditorScreen(
                 FilterChip(
                     selected = state.anchorType == null,
                     onClick = { viewModel.setAnchorType(null) },
-                    label = { Text("нет") }
+                    label = { Text(stringResource(R.string.editor_net)) }
                 )
                 listOf(AnchorType.HABIT_DONE, AnchorType.FIRST_UNLOCK).forEach { type ->
                     FilterChip(
@@ -290,11 +292,11 @@ fun HabitEditorScreen(
                 onClick = viewModel::save,
                 enabled = state.canSave,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Сохранить") }
+            ) { Text(stringResource(R.string.detail_sohranit)) }
 
             if (!state.isNew) {
                 TextButton(onClick = viewModel::archive, modifier = Modifier.fillMaxWidth()) {
-                    Text("В архив")
+                    Text(stringResource(R.string.editor_v_arhiv))
                 }
             }
         }
@@ -311,10 +313,10 @@ fun HabitEditorScreen(
                 TextButton(onClick = {
                     viewModel.setReminder(LocalTime.of(pickerState.hour, pickerState.minute))
                     showTimePicker = false
-                }) { Text("Готово") }
+                }) { Text(stringResource(R.string.editor_gotovo)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Отмена") }
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.detail_otmena)) }
             }
         ) {
             Column(

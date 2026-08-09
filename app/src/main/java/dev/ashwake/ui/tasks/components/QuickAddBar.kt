@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.engine.nlp.ParsedQuickInput
 import dev.ashwake.ui.theme.PriorityColors
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -63,13 +65,13 @@ fun QuickAddBar(
                     value = value,
                     onValueChange = onValueChange,
                     modifier = Modifier.weight(1f),
-                    placeholder = { Text("купить молоко завтра 18:00 !p2 #дом ~30м") },
+                    placeholder = { Text(stringResource(R.string.components_kupit_moloko_zavtra_18_00_p2_dom_30m)) },
                     singleLine = true,
                     trailingIcon = {
                         IconButton(onClick = onVoiceClick) {
                             Icon(
                                 Icons.Filled.Mic,
-                                contentDescription = "Голосовой ввод",
+                                contentDescription = stringResource(R.string.components_golosovoy_vvod),
                                 // Во время записи микрофон подсвечен: иначе непонятно,
                                 // слушает приложение или нет
                                 tint = if (listening) MaterialTheme.colorScheme.error
@@ -85,7 +87,7 @@ fun QuickAddBar(
                     )
                 )
                 FilledIconButton(onClick = onSubmit, enabled = value.isNotBlank()) {
-                    Icon(Icons.Filled.ArrowUpward, contentDescription = "Добавить")
+                    Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.routines_dobavit))
                 }
             }
         }

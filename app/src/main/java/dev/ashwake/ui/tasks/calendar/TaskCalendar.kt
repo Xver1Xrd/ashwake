@@ -50,6 +50,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy")
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE")
@@ -108,7 +110,7 @@ private fun CalendarHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { onShift(false) }) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = "Назад")
+            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.detail_nazad))
         }
         Text(
             text = when (state.scale) {
@@ -121,9 +123,9 @@ private fun CalendarHeader(
             overflow = TextOverflow.Ellipsis
         )
         IconButton(onClick = { onShift(true) }) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Вперёд")
+            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
         }
-        TextButton(onClick = onToday) { Text("Сегодня") }
+        TextButton(onClick = onToday) { Text(stringResource(R.string.calendar_segodnya)) }
     }
 
     SingleChoiceSegmentedButtonRow(

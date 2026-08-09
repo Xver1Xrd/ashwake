@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.platform.service.formatTime
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,10 +58,10 @@ fun RoutinesScreen(
     LaunchedEffect(run.active) { if (run.active) onRun() }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Рутины") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.routines_rutiny)) }) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showPresets = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Добавить рутину")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.routines_dobavit_rutinu))
             }
         }
     ) { padding ->
@@ -69,10 +71,9 @@ fun RoutinesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Рутин пока нет", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.routines_rutin_poka_net), style = MaterialTheme.typography.titleMedium)
                 Text(
-                    "Рутина — это список шагов с таймером: запустил и не думаешь, " +
-                        "что дальше",
+                    "Рутина — это список шагов с таймером: запустил и не думаешь, что дальше",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -104,7 +105,7 @@ fun RoutinesScreen(
                             )
                         }
                         IconButton(onClick = { viewModel.start(routine) }) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Запустить")
+                            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.routines_zapustit))
                         }
                     }
                 }
@@ -114,7 +115,7 @@ fun RoutinesScreen(
         if (showPresets) {
             AlertDialog(
                 onDismissRequest = { showPresets = false },
-                title = { Text("Шаблоны рутин") },
+                title = { Text(stringResource(R.string.routines_shablony_rutin)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         presets.forEach { preset ->
@@ -138,7 +139,7 @@ fun RoutinesScreen(
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showPresets = false }) { Text("Закрыть") }
+                    TextButton(onClick = { showPresets = false }) { Text(stringResource(R.string.components_zakryt)) }
                 }
             )
         }

@@ -23,6 +23,8 @@ import dev.ashwake.data.assets.HabitPresetCategory
 import dev.ashwake.domain.model.habits.Habit
 import dev.ashwake.domain.model.habits.HabitScheduleType
 import dev.ashwake.domain.model.habits.HabitType
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /** Каталог готовых привычек по категориям (п. 3). */
 @Composable
@@ -34,7 +36,7 @@ fun HabitCatalogDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Добавить привычку") },
+        title = { Text(stringResource(R.string.habits_dobavit_privychku)) },
         text = {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 460.dp),
@@ -49,7 +51,7 @@ fun HabitCatalogDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
-                        Text("  Своя привычка", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.components_svoya_privychka), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
 
@@ -81,7 +83,7 @@ fun HabitCatalogDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.components_zakryt)) } }
     )
 }
 

@@ -22,6 +22,8 @@ import dev.ashwake.ui.components.ListRow
 import dev.ashwake.ui.components.ScreenPadding
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.theme.AshTheme
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * «Ещё» — четвёртая вкладка.
@@ -51,13 +53,13 @@ fun MoreScreen(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
-            text = "Ещё",
+            text = stringResource(R.string.more_esche),
             style = AshTheme.type.largeTitle,
             color = colors.text,
             modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp)
         )
 
-        ListGroup(header = "Разделы") {
+        ListGroup(header = stringResource(R.string.more_razdely)) {
             MoreRow("Отказы", AshIcons.Prohibit, onOpenAbstinence)
             ListDivider(52.dp)
             MoreRow("Персонаж", AshIcons.Person, onOpenCharacter)
@@ -67,14 +69,13 @@ fun MoreScreen(
             MoreRow("Статистика", AshIcons.BarChart, onOpenStats)
         }
 
-        ListGroup(header = "Вечер") {
+        ListGroup(header = stringResource(R.string.more_vecher)) {
             MoreRow("Вечерний ритуал", AshIcons.Moon, onOpenRitual)
         }
 
         ListGroup(
-            header = "Приложение",
-            footer = "Приложение работает офлайн: ни одного сетевого вызова, " +
-                "ни аналитики, ни сторонних SDK."
+            header = stringResource(R.string.more_prilozhenie),
+            footer = stringResource(R.string.more_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo)
         ) {
             MoreRow("Настройки", AshIcons.Settings, onOpenSettings)
         }

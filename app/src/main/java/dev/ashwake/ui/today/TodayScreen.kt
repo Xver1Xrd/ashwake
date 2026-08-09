@@ -47,6 +47,8 @@ import dev.ashwake.ui.components.glass
 import dev.ashwake.ui.components.hazeSource
 import dev.ashwake.ui.components.rememberHazeState
 import dev.ashwake.ui.theme.AshTheme
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Главный экран — подпись приложения (раздел 1 дизайн-системы).
@@ -124,14 +126,14 @@ fun TodayScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Сегодня",
+                        text = stringResource(R.string.calendar_segodnya),
                         style = AshTheme.type.largeTitle,
                         color = colors.text,
                         modifier = Modifier.weight(1f)
                     )
                     IconAction(
                         icon = AshIcons.Add,
-                        contentDescription = "Новая задача",
+                        contentDescription = stringResource(R.string.today_novaya_zadacha),
                         onClick = onCreateTask
                     )
                 }
@@ -141,9 +143,9 @@ fun TodayScreen(
                 item {
                     EmptyState(
                         icon = AshIcons.Sun,
-                        title = "На сегодня пусто",
-                        description = "Заведите привычку или задачу — они появятся здесь.",
-                        actionText = "Создать задачу",
+                        title = stringResource(R.string.today_na_segodnya_pusto),
+                        description = stringResource(R.string.today_zavedite_privychku_ili_zadachu_oni_poyavyats),
+                        actionText = stringResource(R.string.today_sozdat_zadachu),
                         onAction = onCreateTask
                     )
                 }
@@ -169,7 +171,7 @@ fun TodayScreen(
                 item {
                     ListGroup(
                         items = state.tasks,
-                        header = "Задачи",
+                        header = stringResource(R.string.tasks_zadachi),
                         dividerInset = 52.dp
                     ) { task ->
                         TaskTodayRow(
@@ -272,7 +274,7 @@ private fun Cover(
                 ) {
                     Spacer(Modifier.size(AvatarSize))
                     Text(
-                        text = "Сегодня",
+                        text = stringResource(R.string.calendar_segodnya),
                         style = AshTheme.type.headline,
                         color = colors.text,
                         modifier = Modifier.weight(1f),

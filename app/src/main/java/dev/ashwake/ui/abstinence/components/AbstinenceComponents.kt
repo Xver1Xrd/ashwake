@@ -35,6 +35,8 @@ import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
 import java.time.Duration
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Живой счётчик: дни самым крупным кеглем, остальное мельче (п. 4).
@@ -141,7 +143,7 @@ private fun StatCell(value: String, label: String) {
 @Composable
 fun SavingsBlock(savings: Savings, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("Сэкономлено", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_sekonomleno), style = MaterialTheme.typography.titleSmall)
         Text(
             "не ${savings.units.roundToInt()} ${savings.unitName}",
             style = MaterialTheme.typography.bodyMedium,
@@ -173,7 +175,7 @@ fun AttemptsChart(
     val maxDays = durations.maxOf { it.toDays() }.coerceAtLeast(1)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Попытки", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_popytki), style = MaterialTheme.typography.titleSmall)
         attempts.forEachIndexed { index, attempt ->
             val days = durations[index].toDays()
             Row(verticalAlignment = Alignment.CenterVertically) {

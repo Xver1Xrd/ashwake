@@ -55,6 +55,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM yyyy")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -85,13 +87,13 @@ fun TaskEditorScreen(
                 title = { Text(if (state.isNew) "Новая задача" else "Задача") },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 },
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = viewModel::delete) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Удалить")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.blocking_udalit))
                         }
                     }
                 }
@@ -109,7 +111,7 @@ fun TaskEditorScreen(
             OutlinedTextField(
                 value = state.title,
                 onValueChange = viewModel::setTitle,
-                label = { Text("Название") },
+                label = { Text(stringResource(R.string.editor_nazvanie)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -117,7 +119,7 @@ fun TaskEditorScreen(
             OutlinedTextField(
                 value = state.note,
                 onValueChange = viewModel::setNote,
-                label = { Text("Заметка") },
+                label = { Text(stringResource(R.string.detail_zametka)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
@@ -150,7 +152,7 @@ fun TaskEditorScreen(
                         viewModel.setDate(null)
                         viewModel.setTime(null)
                     }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Убрать срок")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.editor_ubrat_srok))
                     }
                 }
             }
@@ -185,8 +187,8 @@ fun TaskEditorScreen(
             OutlinedTextField(
                 value = state.tagsInput,
                 onValueChange = viewModel::setTagsInput,
-                label = { Text("Теги") },
-                placeholder = { Text("#дом #срочное") },
+                label = { Text(stringResource(R.string.editor_tegi)) },
+                placeholder = { Text(stringResource(R.string.editor_dom_srochnoe)) },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
@@ -202,7 +204,7 @@ fun TaskEditorScreen(
                     )
                     Text(subtask.title, modifier = Modifier.weight(1f))
                     IconButton(onClick = { viewModel.removeSubtask(index) }) {
-                        Icon(Icons.Filled.Close, contentDescription = "Убрать подзадачу")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.editor_ubrat_podzadachu))
                     }
                 }
             }
@@ -210,7 +212,7 @@ fun TaskEditorScreen(
                 OutlinedTextField(
                     value = newSubtask,
                     onValueChange = { newSubtask = it },
-                    label = { Text("Новая подзадача") },
+                    label = { Text(stringResource(R.string.editor_novaya_podzadacha)) },
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -221,7 +223,7 @@ fun TaskEditorScreen(
                     },
                     enabled = newSubtask.isNotBlank()
                 ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Добавить подзадачу")
+                    Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_dobavit_podzadachu))
                 }
             }
 
@@ -241,7 +243,7 @@ fun TaskEditorScreen(
                 FilterChip(
                     selected = state.persistentReminderMinutes == null,
                     onClick = { viewModel.setPersistentReminder(null) },
-                    label = { Text("Выкл") }
+                    label = { Text(stringResource(R.string.editor_vykl)) }
                 )
                 REMINDER_PRESETS.forEach { minutes ->
                     FilterChip(
@@ -264,7 +266,7 @@ fun TaskEditorScreen(
                     onClick = viewModel::save,
                     enabled = state.canSave,
                     modifier = Modifier.weight(1f)
-                ) { Text("Сохранить") }
+                ) { Text(stringResource(R.string.detail_sohranit)) }
 
                 if (!state.isNew) {
                     TextButton(onClick = viewModel::toggleDone) {
@@ -291,10 +293,10 @@ fun TaskEditorScreen(
                         )
                     }
                     showDatePicker = false
-                }) { Text("Готово") }
+                }) { Text(stringResource(R.string.editor_gotovo)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Отмена") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.detail_otmena)) }
             }
         ) { DatePicker(state = pickerState) }
     }
@@ -310,10 +312,10 @@ fun TaskEditorScreen(
                 TextButton(onClick = {
                     viewModel.setTime(LocalTime.of(pickerState.hour, pickerState.minute))
                     showTimePicker = false
-                }) { Text("Готово") }
+                }) { Text(stringResource(R.string.editor_gotovo)) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Отмена") }
+                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.detail_otmena)) }
             }
         ) {
             Column(
@@ -331,7 +333,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Повторять", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.editor_povtoryat), style = MaterialTheme.typography.titleSmall)
         Switch(
             checked = state.recurrenceEnabled,
             onCheckedChange = viewModel::setRecurrenceEnabled
@@ -353,7 +355,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
         RecurrenceType.EVERY_N_DAYS -> OutlinedTextField(
             value = state.recurrenceInterval.toString(),
             onValueChange = { it.toIntOrNull()?.let(viewModel::setRecurrenceInterval) },
-            label = { Text("Каждые N дней") },
+            label = { Text(stringResource(R.string.editor_kazhdye_n_dney)) },
             singleLine = true,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = KeyboardType.Number
@@ -373,7 +375,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
         RecurrenceType.DAY_OF_MONTH -> OutlinedTextField(
             value = state.recurrenceDayOfMonth.toString(),
             onValueChange = { it.toIntOrNull()?.let(viewModel::setRecurrenceDayOfMonth) },
-            label = { Text("Число месяца") },
+            label = { Text(stringResource(R.string.editor_chislo_mesyaca)) },
             singleLine = true,
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                 keyboardType = KeyboardType.Number
@@ -410,7 +412,7 @@ private fun ProjectDropdown(
             value = selectedName,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Проект") },
+            label = { Text(stringResource(R.string.editor_proekt)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -418,7 +420,7 @@ private fun ProjectDropdown(
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             DropdownMenuItem(
-                text = { Text("Без проекта") },
+                text = { Text(stringResource(R.string.editor_bez_proekta)) },
                 onClick = { onSelect(null); expanded = false }
             )
             projects.forEach { (id, name) ->

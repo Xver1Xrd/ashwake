@@ -49,6 +49,8 @@ import dev.ashwake.ui.tasks.components.StaleTaskDialog
 import dev.ashwake.ui.tasks.components.SubtaskList
 import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,18 +75,18 @@ fun TasksScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Задачи") },
+                title = { Text(stringResource(R.string.tasks_zadachi)) },
                 actions = {
                     IconButton(onClick = onOpenRitual) {
-                        Icon(Icons.Filled.NightsStay, contentDescription = "Вечерний ритуал")
+                        Icon(Icons.Filled.NightsStay, contentDescription = stringResource(R.string.ritual_vecherniy_ritual))
                     }
                     IconButton(onClick = onOpenStats) {
-                        Icon(Icons.Filled.BarChart, contentDescription = "Статистика")
+                        Icon(Icons.Filled.BarChart, contentDescription = stringResource(R.string.stats_statistika))
                     }
                     IconButton(onClick = viewModel::toggleStaleFilter) {
                         Icon(
                             Icons.Filled.HourglassBottom,
-                            contentDescription = "Залежавшиеся",
+                            contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
                             tint = if (state.filter.onlyStale) MaterialTheme.colorScheme.secondary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -97,7 +99,7 @@ fun TasksScreen(
                                 TasksViewMode.CALENDAR -> Icons.Filled.ViewTimeline
                                 TasksViewMode.TIMEBOX -> Icons.AutoMirrored.Filled.List
                             },
-                            contentDescription = "Режим отображения"
+                            contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya)
                         )
                     }
                 }

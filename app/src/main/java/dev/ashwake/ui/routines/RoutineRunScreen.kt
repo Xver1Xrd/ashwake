@@ -51,6 +51,8 @@ import dev.ashwake.ui.theme.CounterLarge
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Полноэкранный режим выполнения рутины (п. 6).
@@ -105,7 +107,7 @@ fun RoutineRunScreen(
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { viewModel.finish() }) {
-                Icon(Icons.Filled.Close, contentDescription = "Закончить")
+                Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.routines_zakonchit))
             }
         }
 
@@ -149,11 +151,11 @@ fun RoutineRunScreen(
             }
             OutlinedButton(onClick = { viewModel.skip() }) {
                 Icon(Icons.Filled.SkipNext, contentDescription = null)
-                Text("  Пропустить")
+                Text(stringResource(R.string.routines_propustit))
             }
         }
 
-        TextButton(onClick = { showAddStep = true }) { Text("Добавить шаг") }
+        TextButton(onClick = { showAddStep = true }) { Text(stringResource(R.string.routines_dobavit_shag)) }
 
         HorizontalDivider()
 
@@ -226,19 +228,19 @@ private fun AddStepDialog(onAdd: (String, Int) -> Unit, onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый шаг") },
+        title = { Text(stringResource(R.string.routines_novyy_shag)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Название") },
+                    label = { Text(stringResource(R.string.editor_nazvanie)) },
                     singleLine = true
                 )
                 OutlinedTextField(
                     value = minutes,
                     onValueChange = { minutes = it },
-                    label = { Text("Минут") },
+                    label = { Text(stringResource(R.string.routines_minut)) },
                     singleLine = true
                 )
             }
@@ -247,9 +249,9 @@ private fun AddStepDialog(onAdd: (String, Int) -> Unit, onDismiss: () -> Unit) {
             TextButton(
                 enabled = title.isNotBlank(),
                 onClick = { onAdd(title, minutes.toIntOrNull() ?: 5) }
-            ) { Text("Добавить") }
+            ) { Text(stringResource(R.string.routines_dobavit)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
     )
 }
 
@@ -258,15 +260,14 @@ private fun AddStepDialog(onAdd: (String, Int) -> Unit, onDismiss: () -> Unit) {
 private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Рутина закончена") },
+        title = { Text(stringResource(R.string.routines_rutina_zakonchena)) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "План ${formatTime(summary.plannedSeconds)} · " +
-                        "факт ${formatTime(summary.actualSeconds)}",
+                    "План ${formatTime(summary.plannedSeconds)} · факт ${formatTime(summary.actualSeconds)}",
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
@@ -292,11 +293,10 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
 
                 if (summary.notableSteps.isNotEmpty()) {
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    Text("Заметные отклонения", style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.routines_zametnye_otkloneniya), style = MaterialTheme.typography.labelLarge)
                     summary.notableSteps.forEach { step ->
                         Text(
-                            "${step.title}: план ${formatTime(step.plannedSeconds)}, " +
-                                "факт ${formatTime(step.actualSeconds)}",
+                            "${step.title}: план ${formatTime(step.plannedSeconds)}, факт ${formatTime(step.actualSeconds)}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -304,6 +304,6 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { Button(onClick = onDismiss) { Text("Готово") } }
+        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(R.string.editor_gotovo)) } }
     )
 }

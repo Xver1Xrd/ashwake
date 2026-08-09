@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.repository.tasks.TaskFilter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Строка фильтров над списком: выполненные, проекты, теги.
@@ -58,7 +60,7 @@ fun TaskFilterRow(
             FilterChip(
                 selected = filter.includeDone,
                 onClick = onToggleDone,
-                label = { Text("Выполненные") }
+                label = { Text(stringResource(R.string.components_vypolnennye)) }
             )
         }
         items(projects, key = { "p${it.id}" }) { project ->
@@ -80,7 +82,7 @@ fun TaskFilterRow(
         item {
             AssistChip(
                 onClick = onManageProjects,
-                label = { Text("Проекты") },
+                label = { Text(stringResource(R.string.components_proekty)) },
                 leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
             )
         }
@@ -98,7 +100,7 @@ fun ProjectsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Проекты") },
+        title = { Text(stringResource(R.string.components_proekty)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (projects.isEmpty()) {
@@ -112,7 +114,7 @@ fun ProjectsDialog(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(project.name, modifier = Modifier.weight(1f))
                         IconButton(onClick = { onArchive(project) }) {
-                            Icon(Icons.Filled.Archive, contentDescription = "В архив")
+                            Icon(Icons.Filled.Archive, contentDescription = stringResource(R.string.editor_v_arhiv))
                         }
                     }
                 }
@@ -121,7 +123,7 @@ fun ProjectsDialog(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-                        label = { Text("Новый проект") },
+                        label = { Text(stringResource(R.string.components_novyy_proekt)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -129,11 +131,11 @@ fun ProjectsDialog(
                         onClick = { onCreate(newName); newName = "" },
                         enabled = newName.isNotBlank()
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = "Создать")
+                        Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.editor_sozdat))
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Готово") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.editor_gotovo)) } }
     )
 }

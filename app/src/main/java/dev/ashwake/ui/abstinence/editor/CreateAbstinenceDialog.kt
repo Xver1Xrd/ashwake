@@ -30,6 +30,8 @@ import dev.ashwake.domain.model.abstinence.AbstinenceMode
 import dev.ashwake.domain.model.abstinence.Baseline
 import java.time.Duration
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Создание отказа.
@@ -61,7 +63,7 @@ fun CreateAbstinenceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый отказ") },
+        title = { Text(stringResource(R.string.abstinence_novyy_otkaz)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
@@ -70,13 +72,13 @@ fun CreateAbstinenceDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Название") },
-                    placeholder = { Text("Не курю") },
+                    label = { Text(stringResource(R.string.editor_nazvanie)) },
+                    placeholder = { Text(stringResource(R.string.editor_ne_kuryu)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Режим", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.editor_rezhim), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AbstinenceMode.entries.forEach { option ->
                         FilterChip(
@@ -94,7 +96,7 @@ fun CreateAbstinenceDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
-                Text("Начало", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.editor_nachalo), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 1, 3, 7, 30).forEach { days ->
                         FilterChip(
@@ -108,8 +110,8 @@ fun CreateAbstinenceDialog(
                 OutlinedTextField(
                     value = motivation,
                     onValueChange = { motivation = it },
-                    label = { Text("Зачем я это бросил") },
-                    placeholder = { Text("Покажется, когда станет тяжело") },
+                    label = { Text(stringResource(R.string.editor_zachem_ya_eto_brosil)) },
+                    placeholder = { Text(stringResource(R.string.editor_pokazhetsya_kogda_stanet_tyazhelo)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -117,7 +119,7 @@ fun CreateAbstinenceDialog(
                 OutlinedTextField(
                     value = substitutes,
                     onValueChange = { substitutes = it },
-                    label = { Text("Чем заняться вместо, по строке") },
+                    label = { Text(stringResource(R.string.editor_chem_zanyatsya_vmesto_po_stroke)) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -129,7 +131,7 @@ fun CreateAbstinenceDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Считать сэкономленное", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.editor_schitat_sekonomlennoe), style = MaterialTheme.typography.labelLarge)
                         Text(
                             "Без этих цифр блок экономии просто не показывается",
                             style = MaterialTheme.typography.labelSmall,
@@ -143,8 +145,8 @@ fun CreateAbstinenceDialog(
                     OutlinedTextField(
                         value = unitName,
                         onValueChange = { unitName = it },
-                        label = { Text("Чего именно") },
-                        placeholder = { Text("сигарет") },
+                        label = { Text(stringResource(R.string.editor_chego_imenno)) },
+                        placeholder = { Text(stringResource(R.string.editor_sigaret)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -152,7 +154,7 @@ fun CreateAbstinenceDialog(
                         OutlinedTextField(
                             value = unitsPerDay,
                             onValueChange = { unitsPerDay = it },
-                            label = { Text("В день") },
+                            label = { Text(stringResource(R.string.editor_v_den)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -160,7 +162,7 @@ fun CreateAbstinenceDialog(
                         OutlinedTextField(
                             value = costPerUnit,
                             onValueChange = { costPerUnit = it },
-                            label = { Text("Цена за штуку") },
+                            label = { Text(stringResource(R.string.editor_cena_za_shtuku)) },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -191,8 +193,8 @@ fun CreateAbstinenceDialog(
                         substitutes.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
                     )
                 }
-            ) { Text("Создать") }
+            ) { Text(stringResource(R.string.editor_sozdat)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
     )
 }

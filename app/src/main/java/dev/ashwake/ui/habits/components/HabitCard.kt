@@ -38,6 +38,8 @@ import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Карточка привычки: score и стрик рядом, а не вместо друг друга (п. 3).
@@ -95,7 +97,7 @@ fun HabitCard(
             if (progress.paused) {
                 Icon(
                     Icons.Filled.PauseCircle,
-                    contentDescription = "На паузе",
+                    contentDescription = stringResource(R.string.components_na_pauze),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             } else {
@@ -127,11 +129,11 @@ private fun PrimaryButton(progress: HabitWithProgress, onClick: () -> Unit) {
             }
 
             progress.doneToday -> {
-                Icon(Icons.Filled.Check, contentDescription = "Снять отметку",
+                Icon(Icons.Filled.Check, contentDescription = stringResource(R.string.components_snyat_otmetku),
                     modifier = Modifier.size(18.dp))
             }
 
-            else -> Text("Отметить", style = MaterialTheme.typography.labelMedium)
+            else -> Text(stringResource(R.string.components_otmetit), style = MaterialTheme.typography.labelMedium)
         }
     }
 }

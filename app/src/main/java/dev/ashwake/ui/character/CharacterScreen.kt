@@ -56,6 +56,8 @@ import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -94,7 +96,7 @@ fun CharacterScreen(
                 title = { Text(state.profile.name) },
                 actions = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Настройки")
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.character_nastroyki))
                     }
                     Text(
                         "${state.wallet.coins} ◈",
@@ -146,14 +148,14 @@ fun CharacterScreen(
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = viewModel::savePortrait) { Text("Сохранить портрет") }
-                    TextButton(onClick = viewModel::sharePortrait) { Text("Поделиться") }
+                    TextButton(onClick = viewModel::savePortrait) { Text(stringResource(R.string.character_sohranit_portret)) }
+                    TextButton(onClick = viewModel::sharePortrait) { Text(stringResource(R.string.character_podelitsya)) }
                 }
             }
 
             item {
                 HorizontalDivider()
-                Text("Магазин", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.character_magazin), style = MaterialTheme.typography.titleMedium)
                 ShopFilters(viewModel, filter)
             }
 
@@ -211,7 +213,7 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
 @Composable
 private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterState) {
     Column(Modifier.fillMaxWidth()) {
-        Text("Характеристики", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_harakteristiki), style = MaterialTheme.typography.titleSmall)
         Text(
             "Растут от поведения, а не за монеты",
             style = MaterialTheme.typography.labelSmall,
@@ -243,11 +245,10 @@ private fun ActiveEffectsBlock(state: dev.ashwake.domain.repository.character.Ch
     if (equipment.effects.isEmpty() && equipment.activeSets.isEmpty()) return
 
     Column(Modifier.fillMaxWidth()) {
-        Text("Активные бонусы", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_aktivnye_bonusy), style = MaterialTheme.typography.titleSmall)
         equipment.activeSets.forEach { active ->
             Text(
-                "Сет «${active.set.title}» — ${active.pieces} " +
-                    "част${if (active.pieces == 1) "ь" else "и"}: " +
+                "Сет «${active.set.title}» — ${active.pieces} част${if (active.pieces == 1) "ь" else "и"}: " +
                     active.tiers.joinToString("/") { "$it" },
                 style = MaterialTheme.typography.labelMedium,
                 color = Moss
@@ -278,15 +279,15 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Образы", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.character_obrazy), style = MaterialTheme.typography.labelLarge)
         (0..2).forEach { index ->
             AssistChip(
                 onClick = { viewModel.applyPreset(index) },
                 label = { Text("${index + 1}") }
             )
-            TextButton(onClick = { viewModel.savePreset(index) }) { Text("сохр") }
+            TextButton(onClick = { viewModel.savePreset(index) }) { Text(stringResource(R.string.character_sohr)) }
         }
-        TextButton(onClick = viewModel::unequipAll) { Text("Снять всё") }
+        TextButton(onClick = viewModel::unequipAll) { Text(stringResource(R.string.character_snyat_vse)) }
     }
 }
 
@@ -297,7 +298,7 @@ private fun ShopFilters(viewModel: CharacterViewModel, filter: ShopFilter) {
         FilterChip(
             selected = filter.slot == null,
             onClick = { viewModel.setSlotFilter(null) },
-            label = { Text("все слоты") }
+            label = { Text(stringResource(R.string.character_vse_sloty)) }
         )
         EquipSlot.entries.filter { it.isUserFacing }.forEach { slot ->
             FilterChip(
@@ -320,12 +321,12 @@ private fun ShopFilters(viewModel: CharacterViewModel, filter: ShopFilter) {
         FilterChip(
             selected = filter.onlyOwned,
             onClick = viewModel::toggleOwnedOnly,
-            label = { Text("только мои") }
+            label = { Text(stringResource(R.string.character_tolko_moi)) }
         )
         FilterChip(
             selected = filter.onlyAffordable,
             onClick = viewModel::toggleAffordable,
-            label = { Text("по карману") }
+            label = { Text(stringResource(R.string.character_po_karmanu)) }
         )
     }
 }
@@ -379,7 +380,7 @@ private fun ShopRow(
                     style = MaterialTheme.typography.labelMedium,
                     color = Moss
                 )
-                owned -> TextButton(onClick = onEquip) { Text("Надеть") }
+                owned -> TextButton(onClick = onEquip) { Text(stringResource(R.string.character_nadet)) }
                 item.price == null -> Text(
                     "за достижение",
                     style = MaterialTheme.typography.labelSmall,

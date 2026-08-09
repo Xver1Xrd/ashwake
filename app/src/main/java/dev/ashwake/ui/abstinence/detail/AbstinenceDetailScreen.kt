@@ -42,6 +42,8 @@ import dev.ashwake.ui.abstinence.components.StatsRow
 import dev.ashwake.ui.abstinence.components.MilestoneRing
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,7 +64,7 @@ fun AbstinenceDetailScreen(
                 title = { Text(detail?.abstinence?.name ?: "Отказ") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 }
             )
@@ -72,7 +74,7 @@ fun AbstinenceDetailScreen(
         val data = detail
         if (data == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Загрузка…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.detail_zagruzka), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             return@Scaffold
         }
@@ -106,7 +108,7 @@ fun AbstinenceDetailScreen(
             Button(
                 onClick = { showCraving = true },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Тяжело") }
+            ) { Text(stringResource(R.string.detail_tyazhelo)) }
 
             data.stats.savings?.let { savings ->
                 HorizontalDivider()
@@ -190,7 +192,7 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("Тяга", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.detail_tyaga), style = MaterialTheme.typography.titleSmall)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -217,7 +219,7 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
         CravingHeatmap(analytics.heatmap, modifier = Modifier.fillMaxWidth())
 
         if (analytics.topTriggers.isNotEmpty()) {
-            Text("Топ триггеров", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_top_triggerov), style = MaterialTheme.typography.labelLarge)
             analytics.topTriggers.take(3).forEach { entry ->
                 Text(
                     "${entry.trigger?.label ?: "без триггера"} — ${entry.count}",

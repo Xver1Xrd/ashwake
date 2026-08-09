@@ -28,6 +28,8 @@ import androidx.compose.ui.window.Dialog
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.HapticKind
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Листы и диалоги, раздел 5 дизайн-системы.
@@ -136,7 +138,7 @@ fun ActionSheet(
                 haptic = if (destructive) HapticKind.WARNING else HapticKind.LIGHT,
                 onClick = onConfirm
             )
-            SecondaryButton(text = "Отмена", onClick = onDismiss)
+            SecondaryButton(text = stringResource(R.string.detail_otmena), onClick = onDismiss)
         }
     }
 }

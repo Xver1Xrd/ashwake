@@ -63,6 +63,8 @@ import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE")
 private val HOUR_HEIGHT = 64.dp
@@ -85,13 +87,13 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Шкала дня") },
+                title = { Text(stringResource(R.string.timebox_shkala_dnya)) },
                 actions = {
                     IconButton(onClick = { viewModel.shiftDate(-1) }) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Назад")
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.detail_nazad))
                     }
                     IconButton(onClick = { viewModel.shiftDate(1) }) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = "Вперёд")
+                        Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
                     }
                 }
             )
@@ -121,8 +123,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "${settings.workStartMinute / 60}:00–${settings.workEndMinute / 60}:00 · " +
-                        "буфер ${settings.bufferMinutes} мин",
+                    "${settings.workStartMinute / 60}:00–${settings.workEndMinute / 60}:00 · буфер ${settings.bufferMinutes} мин",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -142,14 +143,13 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 FilterChip(
                     selected = useCalendar,
                     onClick = { viewModel.setUseCalendar(!useCalendar) },
-                    label = { Text("календарь") }
+                    label = { Text(stringResource(R.string.timebox_kalendar)) }
                 )
             }
 
             if (useCalendar && !viewModel.calendarPermissionGranted()) {
                 Text(
-                    "Нет доступа к календарю — события учитываться не будут. " +
-                        "Разрешение запрашивается в настройках системы",
+                    "Нет доступа к календарю — события учитываться не будут. Разрешение запрашивается в настройках системы",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -158,8 +158,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
 
             if (day.deficitMinutes > 0) {
                 Text(
-                    "Не влезло ${formatDuration(day.deficitMinutes)} — " +
-                        "часть задач придётся вынести на завтра",
+                    "Не влезло ${formatDuration(day.deficitMinutes)} — часть задач придётся вынести на завтра",
                     style = MaterialTheme.typography.labelMedium,
                     color = Ember,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -179,7 +178,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             TextButton(
                 onClick = viewModel::clearDay,
                 modifier = Modifier.padding(16.dp)
-            ) { Text("Очистить день") }
+            ) { Text(stringResource(R.string.timebox_ochistit_den)) }
         }
     }
 
@@ -195,12 +194,12 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = Ember
                         )
-                        Text("На завтра стоит вынести:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.timebox_na_zavtra_stoit_vynesti), style = MaterialTheme.typography.labelLarge)
                         data.deferredTitles.take(6).forEach {
                             Text("· $it", style = MaterialTheme.typography.bodySmall)
                         }
                     } else {
-                        Text("Всё поместилось", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.timebox_vse_pomestilos), style = MaterialTheme.typography.bodyMedium)
                     }
 
                     if (data.withoutEstimateTitles.isNotEmpty()) {
@@ -219,7 +218,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = viewModel::dismissOutcome) { Text("Понятно") } }
+            confirmButton = { TextButton(onClick = viewModel::dismissOutcome) { Text(stringResource(R.string.detail_ponyatno)) } }
         )
     }
 
@@ -336,7 +335,7 @@ private fun DayGrid(
                     if (block.pinned) {
                         Icon(
                             Icons.Filled.PushPin,
-                            contentDescription = "Закреплён",
+                            contentDescription = stringResource(R.string.timebox_zakreplen),
                             modifier = Modifier.width(14.dp),
                             tint = colorOf(block.kind)
                         )
@@ -374,7 +373,7 @@ private fun BlockActionsDialog(
                 TextButton(onClick = onPin) {
                     Text(if (block.pinned) "Открепить" else "Закрепить: не двигать")
                 }
-                Text("Затянулось на", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.timebox_zatyanulos_na), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 30, 60).forEach { minutes ->
                         TextButton(onClick = { onOverran(minutes) }) { Text("+$minutes") }
@@ -382,8 +381,8 @@ private fun BlockActionsDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
-        dismissButton = { TextButton(onClick = onDelete) { Text("Убрать блок") } }
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.components_zakryt)) } },
+        dismissButton = { TextButton(onClick = onDelete) { Text(stringResource(R.string.timebox_ubrat_blok)) } }
     )
 }
 

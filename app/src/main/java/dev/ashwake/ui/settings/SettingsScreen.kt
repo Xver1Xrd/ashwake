@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -46,10 +48,10 @@ fun SettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Настройки") },
+                title = { Text(stringResource(R.string.character_nastroyki)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 }
             )
@@ -63,10 +65,9 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Начало суток", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_nachalo_sutok), style = MaterialTheme.typography.titleSmall)
             Text(
-                "Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, " +
-                    "счётчики отказов и статистику",
+                "Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, счётчики отказов и статистику",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -81,7 +82,7 @@ fun SettingsScreen(
             }
 
             HorizontalDivider()
-            Text("Рабочие часы", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_rabochie_chasy), style = MaterialTheme.typography.titleSmall)
             Text(
                 "В этом окне раскладывается день",
                 style = MaterialTheme.typography.labelSmall,
@@ -106,7 +107,7 @@ fun SettingsScreen(
                 }
             }
 
-            Text("Буфер между блоками", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_bufer_mezhdu_blokami), style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(0, 5, 10, 15).forEach { minutes ->
                     FilterChip(
@@ -117,12 +118,12 @@ fun SettingsScreen(
                 }
             }
 
-            Text("Обед", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.settings_obed), style = MaterialTheme.typography.titleSmall)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(
                     selected = timebox.lunchStartMinute == null,
                     onClick = { viewModel.setLunch(false) },
-                    label = { Text("без обеда") }
+                    label = { Text(stringResource(R.string.settings_bez_obeda)) }
                 )
                 listOf(12, 13, 14).forEach { hour ->
                     FilterChip(
@@ -135,26 +136,25 @@ fun SettingsScreen(
 
             HorizontalDivider()
             SettingsRow(
-                title = "Системный календарь",
+                title = stringResource(R.string.settings_sistemnyy_kalendar),
                 subtitle = if (useCalendar) "События учитываются при раскладке дня"
                 else "События календаря не учитываются",
                 onClick = { viewModel.setUseCalendar(!useCalendar) }
             )
             SettingsRow(
-                title = "Данные и бэкапы",
-                subtitle = "Резервные копии, шифрование, импорт из других приложений",
+                title = stringResource(R.string.settings_dannye_i_bekapy),
+                subtitle = stringResource(R.string.settings_rezervnye_kopii_shifrovanie_import_iz_drugih),
                 onClick = onOpenBackup
             )
             SettingsRow(
-                title = "Блокировка приложений",
-                subtitle = "Выключена по умолчанию. Требует двух разрешений",
+                title = stringResource(R.string.blocking_blokirovka_prilozheniy),
+                subtitle = stringResource(R.string.settings_vyklyuchena_po_umolchaniyu_trebuet_dvuh_razr),
                 onClick = onOpenBlocking
             )
 
             HorizontalDivider()
             Text(
-                "Приложение работает офлайн: ни одного сетевого вызова, " +
-                    "ни аналитики, ни сторонних SDK",
+                "Приложение работает офлайн: ни одного сетевого вызова, ни аналитики, ни сторонних SDK",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

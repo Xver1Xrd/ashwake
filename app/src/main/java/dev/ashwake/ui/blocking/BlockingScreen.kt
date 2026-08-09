@@ -56,6 +56,8 @@ import dev.ashwake.ui.theme.Moss
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM HH:mm")
 
@@ -83,17 +85,17 @@ fun BlockingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Блокировка приложений") },
+                title = { Text(stringResource(R.string.blocking_blokirovka_prilozheniy)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 }
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreate = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Новое правило")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.blocking_novoe_pravilo))
             }
         }
     ) { padding ->
@@ -108,12 +110,11 @@ fun BlockingScreen(
             PermissionsBlock(permissions, viewModel)
 
             HorizontalDivider()
-            Text("Правила", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.blocking_pravila), style = MaterialTheme.typography.titleSmall)
 
             if (rules.isEmpty()) {
                 Text(
-                    "Правил нет. Правило описывает, какие приложения закрыты " +
-                        "и что нужно сделать, чтобы они открылись",
+                    "Правил нет. Правило описывает, какие приложения закрыты и что нужно сделать, чтобы они открылись",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -148,7 +149,7 @@ fun BlockingScreen(
                             onCheckedChange = { viewModel.setEnabled(rule, it) }
                         )
                         IconButton(onClick = { viewModel.delete(rule) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Удалить")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.blocking_udalit))
                         }
                     }
                 }
@@ -156,11 +157,9 @@ fun BlockingScreen(
 
             if (bypasses.isNotEmpty()) {
                 HorizontalDivider()
-                Text("Экстренные обходы", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.blocking_ekstrennye_obhody), style = MaterialTheme.typography.titleSmall)
                 Text(
-                    "Обход всегда возможен — запирать себя в собственном телефоне " +
-                        "нельзя. Но он остаётся в логе, и по нему видно, работает " +
-                        "правило или стало формальностью",
+                    "Обход всегда возможен — запирать себя в собственном телефоне нельзя. Но он остаётся в логе, и по нему видно, работает правило или стало формальностью",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -188,19 +187,17 @@ fun BlockingScreen(
  */
 @Composable
 private fun PermissionsBlock(state: PermissionState, viewModel: BlockingViewModel) {
-    Text("Разрешения", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.blocking_razresheniya), style = MaterialTheme.typography.titleSmall)
 
     PermissionRow(
         granted = state.usageAccess,
-        title = "Доступ к статистике использования",
-        explanation = "Нужен, чтобы понять, какое приложение открыто прямо сейчас. " +
-            "Ashwake читает только имя приложения на переднем плане и никуда " +
-            "его не отправляет",
+        title = stringResource(R.string.blocking_dostup_k_statistike_ispolzovaniya),
+        explanation = "Нужен, чтобы понять, какое приложение открыто прямо сейчас. Ashwake читает только имя приложения на переднем плане и никуда его не отправляет",
         onOpen = viewModel::openUsageAccessSettings
     )
     PermissionRow(
         granted = state.overlay,
-        title = "Поверх других приложений",
+        title = stringResource(R.string.blocking_poverh_drugih_prilozheniy),
         explanation = "Нужен, чтобы показать экран с напоминанием, что осталось сделать",
         onOpen = viewModel::openOverlaySettings
     )
@@ -229,7 +226,7 @@ private fun PermissionRow(
                 color = if (granted) Moss else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
-            if (!granted) TextButton(onClick = onOpen) { Text("Выдать") }
+            if (!granted) TextButton(onClick = onOpen) { Text(stringResource(R.string.blocking_vydat)) }
         }
         Text(
             explanation,
@@ -254,7 +251,7 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новое правило") },
+        title = { Text(stringResource(R.string.blocking_novoe_pravilo)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 460.dp),
@@ -263,13 +260,13 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Название") },
-                    placeholder = { Text("Утро без соцсетей") },
+                    label = { Text(stringResource(R.string.editor_nazvanie)) },
+                    placeholder = { Text(stringResource(R.string.blocking_utro_bez_socsetey)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Открыть, когда", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.blocking_otkryt_kogda), style = MaterialTheme.typography.labelLarge)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     UnlockCondition.entries.forEach { option ->
                         FilterChip(
@@ -312,7 +309,7 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text("Поиск приложения") },
+                    label = { Text(stringResource(R.string.blocking_poisk_prilozheniya)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -359,9 +356,9 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                     )
                     onDismiss()
                 }
-            ) { Text("Создать") }
+            ) { Text(stringResource(R.string.editor_sozdat)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
     )
 }
 

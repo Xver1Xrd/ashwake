@@ -38,6 +38,8 @@ import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 
@@ -49,7 +51,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
     val year by viewModel.year.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text("Статистика") }) }) { padding ->
+    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.stats_statistika)) }) }) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -76,10 +78,10 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
                     YearBlock(it)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         TextButton(onClick = { viewModel.exportYear(share = false) }) {
-                            Text("Сохранить картинкой")
+                            Text(stringResource(R.string.stats_sohranit_kartinkoy))
                         }
                         TextButton(onClick = { viewModel.exportYear(share = true) }) {
-                            Text("Поделиться")
+                            Text(stringResource(R.string.character_podelitsya))
                         }
                     }
                 } ?: Loading()
@@ -90,7 +92,7 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
 
 @Composable
 private fun Loading() {
-    Text("Считаю…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(stringResource(R.string.stats_schitayu), color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
@@ -108,7 +110,7 @@ private fun WeeklyBlock(report: WeeklyReport) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text("Выполнение привычек", style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.stats_vypolnenie_privychek), style = MaterialTheme.typography.bodyMedium)
         Text(
             "${(report.habitCompletionRate * 100).roundToInt()}%",
             style = MaterialTheme.typography.bodyMedium,
@@ -132,7 +134,7 @@ private fun WeeklyBlock(report: WeeklyReport) {
 
     if (report.abstinenceDays.isNotEmpty()) {
         HorizontalDivider()
-        Text("Счётчики отказов", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.stats_schetchiki_otkazov), style = MaterialTheme.typography.labelLarge)
         report.abstinenceDays.forEach { (name, days) ->
             Text("$name — $days дн.", style = MaterialTheme.typography.bodySmall)
         }
@@ -174,15 +176,14 @@ private fun CorrelationsBlock(
     if (!report.hasEnoughData) {
         // Меньше двух недель — выводов не делаем вовсе
         Text(
-            "Пока мало данных: связи считаются от 14 дней с заполненным ритуалом. " +
-                "Сейчас ${report.sampleDays}",
+            "Пока мало данных: связи считаются от 14 дней с заполненным ритуалом. Сейчас ${report.sampleDays}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         return
     }
 
-    Text("Что связано с настроением и энергией", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.stats_chto_svyazano_s_nastroeniem_i_energiey), style = MaterialTheme.typography.titleSmall)
     Text(
         viewModel.disclaimer,
         style = MaterialTheme.typography.labelSmall,
@@ -194,12 +195,12 @@ private fun CorrelationsBlock(
 
     if (positive.isNotEmpty()) {
         HorizontalDivider()
-        Text("Связано положительно", style = MaterialTheme.typography.labelLarge, color = Moss)
+        Text(stringResource(R.string.stats_svyazano_polozhitelno), style = MaterialTheme.typography.labelLarge, color = Moss)
         positive.forEach { PairRow(viewModel, it) }
     }
     if (negative.isNotEmpty()) {
         HorizontalDivider()
-        Text("Связано отрицательно", style = MaterialTheme.typography.labelLarge, color = Ember)
+        Text(stringResource(R.string.stats_svyazano_otricatelno), style = MaterialTheme.typography.labelLarge, color = Ember)
         negative.forEach { PairRow(viewModel, it) }
     }
     if (positive.isEmpty() && negative.isEmpty()) {
@@ -272,7 +273,7 @@ private fun YearBlock(summary: YearSummary) {
 
     if (summary.relapseReasons.isNotEmpty()) {
         HorizontalDivider()
-        Text("Причины срывов", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.stats_prichiny_sryvov), style = MaterialTheme.typography.labelLarge)
         summary.relapseReasons.forEach { (reason, count) ->
             Text("$reason — $count", style = MaterialTheme.typography.bodySmall)
         }

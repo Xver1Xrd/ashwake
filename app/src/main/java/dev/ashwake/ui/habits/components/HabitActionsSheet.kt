@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.habits.SkipReason
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Лист действий по долгому тапу: счётчик, заметка, пропуск с причиной,
@@ -72,8 +74,7 @@ fun HabitActionsSheet(
         ) {
             Text(habit.name, style = MaterialTheme.typography.titleMedium)
             Text(
-                "score ${(progress.score * 100).toInt()}% · серия ${progress.currentStreak} · " +
-                    "рекорд ${progress.recordStreak}",
+                "score ${(progress.score * 100).toInt()}% · серия ${progress.currentStreak} · рекорд ${progress.recordStreak}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -97,18 +98,18 @@ fun HabitActionsSheet(
             OutlinedTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Заметка к отметке") },
+                label = { Text(stringResource(R.string.components_zametka_k_otmetke)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
                 trailingIcon = {
                     TextButton(onClick = { onNote(note.takeIf { it.isNotBlank() }) }) {
-                        Text("Ок")
+                        Text(stringResource(R.string.components_ok))
                     }
                 }
             )
 
             HorizontalDivider()
-            Text("Пропустить и указать причину", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.components_propustit_i_ukazat_prichinu), style = MaterialTheme.typography.labelLarge)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 skipReasons.forEach { reason ->
                     AssistChip(
@@ -116,7 +117,7 @@ fun HabitActionsSheet(
                         label = { Text(reason.label) }
                     )
                 }
-                AssistChip(onClick = { onSkip(null) }, label = { Text("Без причины") })
+                AssistChip(onClick = { onSkip(null) }, label = { Text(stringResource(R.string.components_bez_prichiny)) })
             }
 
             HorizontalDivider()
@@ -137,17 +138,17 @@ fun HabitActionsSheet(
             }
 
             if (progress.todayEntry != null) {
-                TextButton(onClick = onClear) { Text("Снять отметку за сегодня") }
+                TextButton(onClick = onClear) { Text(stringResource(R.string.components_snyat_otmetku_za_segodnya)) }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(onClick = onEdit) {
                     Icon(Icons.Filled.Edit, contentDescription = null)
-                    Text("  Изменить")
+                    Text(stringResource(R.string.components_izmenit))
                 }
                 OutlinedButton(onClick = onArchive) {
                     Icon(Icons.Filled.Archive, contentDescription = null)
-                    Text("  В архив")
+                    Text(stringResource(R.string.components_v_arhiv))
                 }
             }
         }

@@ -44,6 +44,8 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.theme.Moss
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM")
 
@@ -79,7 +81,7 @@ fun RitualScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Вечерний ритуал")
+                        Text(stringResource(R.string.ritual_vecherniy_ritual))
                         Text(
                             if (state.isCatchUp) "за ${date.format(DATE_FORMAT)}"
                             else date.format(DATE_FORMAT),
@@ -90,7 +92,7 @@ fun RitualScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (stepIndex == 0) onDone() else viewModel.back() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 }
             )
@@ -127,7 +129,7 @@ fun RitualScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (stepIndex > 0) {
-                    OutlinedButton(onClick = viewModel::back) { Text("Назад") }
+                    OutlinedButton(onClick = viewModel::back) { Text(stringResource(R.string.detail_nazad)) }
                 }
                 Button(onClick = viewModel::next, modifier = Modifier.weight(1f)) {
                     Text(if (step == RitualStep.NOTE) "Закончить" else "Дальше")
@@ -139,7 +141,7 @@ fun RitualScreen(
 
 @Composable
 private fun ScalesStep(form: RitualForm, viewModel: RitualViewModel) {
-    Text("Как прошёл день", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.ritual_kak_proshel_den), style = MaterialTheme.typography.titleMedium)
     ScaleRow("Оценка дня", form.dayRating, viewModel::setDayRating)
 
     HorizontalDivider()
@@ -170,7 +172,7 @@ private fun ScaleRow(label: String, value: Int?, onSelect: (Int) -> Unit) {
 
 @Composable
 private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
-    Text("Незакрытые задачи", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.ritual_nezakrytye_zadachi), style = MaterialTheme.typography.titleMedium)
 
     if (tasks.isEmpty()) {
         EmptyHint("Всё закрыто")
@@ -178,7 +180,7 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
     }
 
     TextButton(onClick = { viewModel.postponeAll(tasks) }) {
-        Text("Перенести все на завтра")
+        Text(stringResource(R.string.ritual_perenesti_vse_na_zavtra))
     }
 
     tasks.take(12).forEach { task ->
@@ -197,15 +199,15 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium
             )
-            TextButton(onClick = { viewModel.postponeToTomorrow(task) }) { Text("завтра") }
-            TextButton(onClick = { viewModel.drop(task) }) { Text("удалить") }
+            TextButton(onClick = { viewModel.postponeToTomorrow(task) }) { Text(stringResource(R.string.ritual_zavtra)) }
+            TextButton(onClick = { viewModel.drop(task) }) { Text(stringResource(R.string.ritual_udalit)) }
         }
     }
 }
 
 @Composable
 private fun HabitsStep(habits: List<HabitWithProgress>, viewModel: RitualViewModel) {
-    Text("Непроставленные привычки", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.ritual_neprostavlennye_privychki), style = MaterialTheme.typography.titleMedium)
 
     if (habits.isEmpty()) {
         EmptyHint("Все привычки отмечены")
@@ -226,8 +228,8 @@ private fun HabitsStep(habits: List<HabitWithProgress>, viewModel: RitualViewMod
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium
             )
-            TextButton(onClick = { viewModel.markDone(progress) }) { Text("сделал") }
-            TextButton(onClick = { viewModel.markSkipped(progress) }) { Text("пропустил") }
+            TextButton(onClick = { viewModel.markDone(progress) }) { Text(stringResource(R.string.ritual_sdelal)) }
+            TextButton(onClick = { viewModel.markSkipped(progress) }) { Text(stringResource(R.string.ritual_propustil)) }
         }
     }
 }
@@ -238,7 +240,7 @@ private fun TomorrowStep(
     form: RitualForm,
     viewModel: RitualViewModel
 ) {
-    Text("Три главные задачи на завтра", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.ritual_tri_glavnye_zadachi_na_zavtra), style = MaterialTheme.typography.titleMedium)
     Text(
         "Выбрано ${form.topTaskIds.size} из 3",
         style = MaterialTheme.typography.labelSmall,
@@ -274,7 +276,7 @@ private fun TomorrowStep(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Разложить завтрашний день", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.ritual_razlozhit_zavtrashniy_den), style = MaterialTheme.typography.bodyMedium)
             Text(
                 "Сразу после ритуала расставит задачи по слотам",
                 style = MaterialTheme.typography.labelSmall,
@@ -287,12 +289,12 @@ private fun TomorrowStep(
 
 @Composable
 private fun NoteStep(form: RitualForm, viewModel: RitualViewModel) {
-    Text("Заметка дня", style = MaterialTheme.typography.titleMedium)
+    Text(stringResource(R.string.ritual_zametka_dnya), style = MaterialTheme.typography.titleMedium)
     OutlinedTextField(
         value = form.note,
         onValueChange = viewModel::setNote,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Что запомнилось") },
+        placeholder = { Text(stringResource(R.string.ritual_chto_zapomnilos)) },
         minLines = 4
     )
 }
