@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Числительные в правильной форме: 1 день, 2 дня, 5 дней (раздел 8
+  дизайн-системы). Русские правила склонения выражаются категориями
+  one/few/many, поэтому это ресурсы plurals, а не склейка строк в коде:
+  собственная реализация неизбежно ошибётся на 11–14 и на 21.
+-->
+<resources>
+
+    <plurals name="days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+
+    <plurals name="days_clean">
+        <item quantity="one">%d чистый день</item>
+        <item quantity="few">%d чистых дня</item>
+        <item quantity="many">%d чистых дней</item>
+        <item quantity="other">%d чистых дня</item>
+    </plurals>
+
+    <plurals name="tasks">
+        <item quantity="one">%d задача</item>
+        <item quantity="few">%d задачи</item>
+        <item quantity="many">%d задач</item>
+        <item quantity="other">%d задачи</item>
+    </plurals>
+
+    <plurals name="habits">
+        <item quantity="one">%d привычка</item>
+        <item quantity="few">%d привычки</item>
+        <item quantity="many">%d привычек</item>
+        <item quantity="other">%d привычки</item>
+    </plurals>
+
+    <plurals name="attempts">
+        <item quantity="one">%d попытка</item>
+        <item quantity="few">%d попытки</item>
+        <item quantity="many">%d попыток</item>
+        <item quantity="other">%d попытки</item>
+    </plurals>
+
+    <plurals name="minutes">
+        <item quantity="one">%d минута</item>
+        <item quantity="few">%d минуты</item>
+        <item quantity="many">%d минут</item>
+        <item quantity="other">%d минуты</item>
+    </plurals>
+
+    <plurals name="hours">
+        <item quantity="one">%d час</item>
+        <item quantity="few">%d часа</item>
+        <item quantity="many">%d часов</item>
+        <item quantity="other">%d часа</item>
+    </plurals>
+
+    <plurals name="freezes">
+        <item quantity="one">%d заморозка</item>
+        <item quantity="few">%d заморозки</item>
+        <item quantity="many">%d заморозок</item>
+        <item quantity="other">%d заморозки</item>
+    </plurals>
+
+    <plurals name="streak_days">
+        <item quantity="one">серия %d день</item>
+        <item quantity="few">серия %d дня</item>
+        <item quantity="many">серия %d дней</item>
+        <item quantity="other">серия %d дня</item>
+    </plurals>
+
+</resources>

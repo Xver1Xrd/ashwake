@@ -1,6 +1,39 @@
 package dev.ashwake.ui.character.render
 
+import androidx.compose.ui.graphics.Color
+import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
+
+/** Цвет слоя, если у палитры предмета нет оттенка в каталоге. */
+private const val DEFAULT_TINT = 0xFF6E7BA6
+
+/**
+ * Сборка слоёв персонажа из надетых предметов.
+ *
+ * Здесь применяется `hides`: закрытый шлем прячет волосы и лицо, роба —
+ * ноги и сапоги. Порядок задаёт z-таблица слотов.
+ *
+ * Функция общая для экрана персонажа, главного экрана, виджета и рендера
+ * в Bitmap: раньше эта логика была скопирована в четыре места и разъехалась
+ * бы на первой правке z-порядка.
+ */
+fun buildCharacterLayers(
+    items: Collection<EquipItem>,
+    tints: Map<String, Int>
+): List<CharacterLayer> {
+    val hidden = items.flatMap { it.hides }.toSet()
+    return items
+        .filterNot { it.slot in hidden }
+        .sortedBy { it.layer }
+        .map { item ->
+            CharacterLayer(
+                slot = item.slot,
+                color = Color(tints[item.paletteId] ?: DEFAULT_TINT.toInt()),
+                label = item.slot.title,
+                frames = item.frames
+            )
+        }
+}
 
 /**
  * Геометрия персонажа на холсте 128×128 (п. 15.1).

@@ -1,33 +1,32 @@
 package dev.ashwake.ui.navigation
 
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Block
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Today
 import androidx.compose.ui.graphics.vector.ImageVector
+import dev.ashwake.ui.components.AshIcons
 
-/** Маршруты приложения. Экраны из п. 17 ТЗ. */
+/**
+ * Маршруты приложения. Экраны из п. 17 ТЗ.
+ *
+ * В панели вкладок ровно четыре пункта, как требует раздел 5 дизайн-системы.
+ * Разделы, которые туда не поместились, живут на вкладке «Ещё» обычным
+ * сгруппированным списком: семь иконок в панели — это уже не навигация,
+ * а полка, по которой каждый раз ищешь глазами.
+ */
 enum class Destination(
     val route: String,
     val title: String,
     val icon: ImageVector,
     val inBottomBar: Boolean = false
 ) {
-    Home("home", "Главный", Icons.Filled.Home),
-    Today("today", "Сегодня", Icons.Filled.Today),
-    Tasks("tasks", "Задачи", Icons.Filled.CheckCircle, inBottomBar = true),
-    Habits("habits", "Привычки", Icons.Filled.Repeat, inBottomBar = true),
-    Abstinence("abstinence", "Отказы", Icons.Filled.Block, inBottomBar = true),
-    Character("character", "Персонаж", Icons.Filled.Person, inBottomBar = true),
-    Timers("timers", "Таймеры", Icons.Filled.Timer, inBottomBar = true),
-    Stats("stats", "Статистика", Icons.Filled.BarChart),
-    Settings("settings", "Настройки", Icons.Filled.Settings);
+    Today("today", "Сегодня", AshIcons.Sun, inBottomBar = true),
+    Tasks("tasks", "Задачи", AshIcons.CheckCircle, inBottomBar = true),
+    Habits("habits", "Привычки", AshIcons.Repeat, inBottomBar = true),
+    More("more", "Ещё", AshIcons.DotsThree, inBottomBar = true),
+
+    Abstinence("abstinence", "Отказы", AshIcons.Prohibit),
+    Character("character", "Персонаж", AshIcons.Person),
+    Timers("timers", "Таймеры", AshIcons.Timer),
+    Stats("stats", "Статистика", AshIcons.BarChart),
+    Settings("settings", "Настройки", AshIcons.Settings);
 
     companion object {
         val bottomBar: List<Destination> = entries.filter { it.inBottomBar }

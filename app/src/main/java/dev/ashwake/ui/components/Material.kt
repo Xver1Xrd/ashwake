@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -37,6 +38,23 @@ private val blurSupported: Boolean
 
 @Composable
 fun rememberHazeState(): HazeState = remember { HazeState() }
+
+/**
+ * Общий на всё приложение источник размытия.
+ *
+ * Панель вкладок живёт в Scaffold, а размывать ей нужно содержимое экрана
+ * внутри NavHost. Передавать состояние через параметры пришлось бы сквозь
+ * каждый экран, поэтому оно кладётся в CompositionLocal: экран помечает
+ * свой прокручиваемый контент [hazeSource], панель забирает то же состояние.
+ */
+val LocalHazeState = staticCompositionLocalOf<HazeState?> { null }
+
+/** Контент экрана, который должен просвечивать сквозь панель вкладок. */
+@Composable
+fun Modifier.appHazeSource(): Modifier {
+    val state = LocalHazeState.current ?: return this
+    return hazeSource(state)
+}
 
 /**
  * Помечает контент, который должен просвечивать сквозь панели.
