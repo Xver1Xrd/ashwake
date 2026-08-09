@@ -55,7 +55,24 @@ interface TaskRepository {
 
     suspend fun setQuadrant(id: Long, quadrant: EisenhowerQuadrant, priority: Priority?)
 
+    /**
+     * Удаление в корзину: задача переходит в DROPPED и пропадает из списков,
+     * но остаётся восстановимой. Промах по свайпу — обычное дело, и терять
+     * из-за него задачу нельзя.
+     */
     suspend fun delete(id: Long)
+
+    fun observeTrash(): Flow<List<Task>>
+
+    suspend fun restoreFromTrash(id: Long)
+
+    /** Окончательное удаление одной задачи. */
+    suspend fun purge(id: Long)
+
+    suspend fun emptyTrash()
+
+    /** @return сколько задач вычищено. Вызывается при старте приложения. */
+    suspend fun purgeTrashOlderThan(days: Long): Int
 
     suspend fun setDelegate(id: Long, delegateTo: String?)
 

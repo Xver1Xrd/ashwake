@@ -32,6 +32,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
+import android.content.Intent
+import android.os.Build
+import android.os.PowerManager
+import android.provider.Settings
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -153,6 +159,9 @@ fun SettingsScreen(
             )
 
             HorizontalDivider()
+            BatteryOptimizationSection()
+
+            HorizontalDivider()
             Text(
                 "Приложение работает офлайн: ни одного сетевого вызова, ни аналитики, ни сторонних SDK",
                 style = MaterialTheme.typography.labelSmall,
@@ -180,5 +189,54 @@ private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
             )
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    }
+}
+
+/**
+ * Оптимизация батареи (п. 16 приёмки).
+ *
+ * Если система усыпляет приложение, будильники привычек, рутин и настойчивые
+ * напоминания приходят с опозданием или не приходят вовсе — а это ровно то,
+ * ради чего приложение и заводят. Поэтому здесь не молчаливый запрос
+ * разрешения, а объяснение и ссылка в системные настройки: решение остаётся
+ * за человеком, но он знает, чем платит.
+ *
+ * Открывается общий список, а не прямой запрос исключения: прямой запрос
+ * требует разрешения, за которое Play снимает приложения с публикации.
+ */
+@Composable
+private fun BatteryOptimizationSection() {
+    val context = LocalContext.current
+    val ignoring = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            context.getSystemService(PowerManager::class.java)
+                ?.isIgnoringBatteryOptimizations(context.packageName) == true
+        } else true
+    }
+
+    Text(
+        stringResource(R.string.settings_battery_title),
+        style = MaterialTheme.typography.titleSmall
+    )
+    Text(
+        if (ignoring) stringResource(R.string.settings_battery_ok)
+        else stringResource(R.string.settings_battery_warning),
+        style = MaterialTheme.typography.labelSmall,
+        color = if (ignoring) MaterialTheme.colorScheme.onSurfaceVariant
+        else MaterialTheme.colorScheme.error
+    )
+    if (!ignoring) {
+        SettingsRow(
+            title = stringResource(R.string.settings_battery_action),
+            subtitle = stringResource(R.string.settings_battery_action_hint),
+            onClick = {
+                runCatching {
+                    context.startActivity(
+                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    )
+                }
+            }
+        )
     }
 }

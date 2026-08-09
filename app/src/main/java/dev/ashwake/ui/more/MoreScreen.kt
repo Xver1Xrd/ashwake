@@ -39,7 +39,8 @@ fun MoreScreen(
     onOpenTimers: () -> Unit,
     onOpenStats: () -> Unit,
     onOpenRitual: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onOpenTrash: () -> Unit
 ) {
     val colors = AshTheme.colors
 
@@ -67,6 +68,10 @@ fun MoreScreen(
             MoreRow("Таймеры и рутины", AshIcons.Timer, onOpenTimers)
             ListDivider(52.dp)
             MoreRow("Статистика", AshIcons.BarChart, onOpenStats)
+        }
+
+        ListGroup(header = stringResource(R.string.more_zadachi_group)) {
+            MoreRow(stringResource(R.string.more_trash), AshIcons.Trash, onOpenTrash)
         }
 
         ListGroup(header = stringResource(R.string.more_vecher)) {

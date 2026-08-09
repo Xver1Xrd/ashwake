@@ -34,6 +34,7 @@ interface TaskDao {
         SELECT * FROM tasks
         WHERE isTemplate = 0
           AND parentTaskId IS NULL
+          AND status != 'DROPPED'
           AND (:includeDone = 1 OR status = 'ACTIVE')
           AND (:projectId IS NULL OR projectId = :projectId)
           AND (:priority IS NULL OR priority = :priority)
@@ -63,6 +64,7 @@ interface TaskDao {
           AND parentTaskId IS NULL
           AND dueDate IS NOT NULL
           AND dueDate BETWEEN :from AND :to
+          AND status != 'DROPPED'
           AND (:includeDone = 1 OR status = 'ACTIVE')
         ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
         """
@@ -99,6 +101,34 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    // --- корзина ------------------------------------------------------------
+    //
+    // Удаление задачи — не DELETE, а перевод в DROPPED. Промах по свайпу
+    // случается регулярно, и восстановление должно быть возможно; окончательно
+    // задачи вычищаются по времени.
+
+    @Query("UPDATE tasks SET status = 'DROPPED', updatedAt = :at WHERE id = :id")
+    suspend fun moveToTrash(id: Long, at: Long)
+
+    @Query("UPDATE tasks SET status = 'ACTIVE', updatedAt = :at WHERE id = :id")
+    suspend fun restoreFromTrash(id: Long, at: Long)
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE status = 'DROPPED' AND isTemplate = 0
+        ORDER BY updatedAt DESC
+        """
+    )
+    fun observeTrash(): Flow<List<TaskWithRelations>>
+
+    @Query("DELETE FROM tasks WHERE status = 'DROPPED' AND updatedAt < :before")
+    suspend fun purgeTrashOlderThan(before: Long): Int
+
+    @Query("DELETE FROM tasks WHERE status = 'DROPPED'")
+    suspend fun emptyTrash()
 
     @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now WHERE id = :id")
     suspend fun setStatus(id: Long, status: String, completedAt: Long?, now: Long)

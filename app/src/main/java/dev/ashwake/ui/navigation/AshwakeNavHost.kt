@@ -39,6 +39,7 @@ import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
+import dev.ashwake.ui.tasks.trash.TrashScreen
 
 @Composable
 fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)) {
@@ -121,7 +122,8 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                     onOpenTimers = { navController.navigate(Destination.Timers.route) },
                     onOpenStats = { navController.navigate(Destination.Stats.route) },
                     onOpenRitual = { navController.navigate("ritual") },
-                    onOpenSettings = { navController.navigate(Destination.Settings.route) }
+                    onOpenSettings = { navController.navigate(Destination.Settings.route) },
+                    onOpenTrash = { navController.navigate("trash") }
                 )
             }
 
@@ -191,6 +193,10 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                 BlockingScreen(onBack = { navController.popBackStack() })
             }
 
+                composable("trash") {
+                    TrashScreen(onBack = { navController.popBackStack() })
+                }
+
                 composable("backup") {
                     BackupScreen(onBack = { navController.popBackStack() })
                 }
@@ -216,4 +222,4 @@ private fun destinationFor(route: String): String = when (route) {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup", "trash")

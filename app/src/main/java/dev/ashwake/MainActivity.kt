@@ -15,6 +15,7 @@ import dev.ashwake.core.time.AppClock
 import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.widget.AppRoutes
 import dev.ashwake.ui.navigation.AshwakeRoot
@@ -29,6 +30,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var saveTask: SaveTaskUseCase
     @Inject lateinit var parser: QuickInputParser
     @Inject lateinit var clock: AppClock
+    @Inject lateinit var tasks: TaskRepository
 
     /**
      * Куда открыться при запуске из виджета, плитки или шортката.
@@ -44,6 +46,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermissionIfNeeded()
+        purgeOldTrash()
         handleShare(intent)
         handleRoute(intent)
 
@@ -59,6 +62,15 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         handleShare(intent)
         handleRoute(intent)
+    }
+
+    /**
+     * Корзина не должна превращаться во вторую базу: задачи старше месяца
+     * вычищаются при запуске. Запрос идёт по индексу и стоит копейки,
+     * поэтому отдельного воркера ради него заводить незачем.
+     */
+    private fun purgeOldTrash() {
+        lifecycleScope.launch { tasks.purgeTrashOlderThan(TRASH_KEEP_DAYS) }
     }
 
     private fun handleRoute(intent: Intent?) {
@@ -109,5 +121,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         val LINK_REGEX = Regex("https?://\\S+")
+
+        /** Сколько дней задача лежит в корзине до окончательного удаления. */
+        const val TRASH_KEEP_DAYS = 30L
     }
 }

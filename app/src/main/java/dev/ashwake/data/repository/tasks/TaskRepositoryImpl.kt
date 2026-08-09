@@ -167,7 +167,25 @@ class TaskRepositoryImpl @Inject constructor(
         dao.setQuadrant(id, quadrant.name, priority?.name, clock.now().toEpochMilli())
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    override suspend fun delete(id: Long) {
+        dao.moveToTrash(id, clock.now().toEpochMilli())
+    }
+
+    override fun observeTrash(): Flow<List<Task>> =
+        dao.observeTrash().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun restoreFromTrash(id: Long) {
+        dao.restoreFromTrash(id, clock.now().toEpochMilli())
+    }
+
+    override suspend fun purge(id: Long) = dao.deleteById(id)
+
+    override suspend fun emptyTrash() = dao.emptyTrash()
+
+    override suspend fun purgeTrashOlderThan(days: Long): Int {
+        val before = clock.now().minus(java.time.Duration.ofDays(days)).toEpochMilli()
+        return dao.purgeTrashOlderThan(before)
+    }
 
     override suspend fun setDelegate(id: Long, delegateTo: String?) {
         dao.setDelegate(id, delegateTo, clock.now().toEpochMilli())

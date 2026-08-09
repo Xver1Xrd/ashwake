@@ -227,4 +227,26 @@
     <string name="today_na_segodnya_pusto">На сегодня пусто</string>
     <string name="today_zavedite_privychku_ili_zadachu_oni_poyavyats">Заведите привычку или задачу — они появятся здесь.</string>
     <string name="today_sozdat_zadachu">Создать задачу</string>
+
+    <!-- Корзина задач -->
+    <string name="trash_title">Корзина</string>
+    <string name="trash_back">Назад</string>
+    <string name="trash_restore">Вернуть</string>
+    <string name="trash_purge">Удалить</string>
+    <string name="trash_empty_action">Очистить</string>
+    <string name="trash_empty_title">Корзина пуста</string>
+    <string name="trash_empty_description">Удалённые задачи попадают сюда и хранятся месяц.</string>
+    <string name="trash_footer">Задачи удаляются окончательно через 30 дней после попадания в корзину.</string>
+    <string name="trash_confirm_title">Удалить все задачи из корзины</string>
+    <string name="trash_confirm_message">Вернуть их будет нельзя.</string>
+    <string name="trash_confirm_action">Очистить корзину</string>
+    <string name="more_trash">Корзина</string>
+    <string name="more_zadachi_group">Задачи</string>
+
+    <!-- Оптимизация батареи -->
+    <string name="settings_battery_title">Работа в фоне</string>
+    <string name="settings_battery_ok">Система не усыпляет приложение — напоминания приходят вовремя.</string>
+    <string name="settings_battery_warning">Система экономит батарею за счёт приложения. Напоминания о привычках, будильники рутин и настойчивые напоминания могут прийти с опозданием или не прийти совсем.</string>
+    <string name="settings_battery_action">Исключить из экономии батареи</string>
+    <string name="settings_battery_action_hint">Откроется системный список. Найдите Ashwake и выберите «Без ограничений»</string>
 </resources>
