@@ -23,6 +23,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.IconButtonSlot
+import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -94,13 +96,36 @@ fun HabitEditorScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(
-                value = state.name,
-                onValueChange = viewModel::setName,
-                label = { Text(stringResource(R.string.editor_nazvanie)) },
+            var showIconPicker by remember { mutableStateOf(false) }
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButtonSlot(
+                    emoji = state.icon,
+                    iconPath = state.iconPath,
+                    expanded = showIconPicker,
+                    onClick = { showIconPicker = !showIconPicker }
+                )
+                OutlinedTextField(
+                    value = state.name,
+                    onValueChange = viewModel::setName,
+                    label = { Text(stringResource(R.string.editor_nazvanie)) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+            }
+
+            if (showIconPicker) {
+                IconPicker(
+                    emoji = state.icon,
+                    iconPath = state.iconPath,
+                    onEmoji = viewModel::setIcon,
+                    onIcon = viewModel::setIconPath
+                )
+            }
 
             Text(stringResource(R.string.editor_tip), style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

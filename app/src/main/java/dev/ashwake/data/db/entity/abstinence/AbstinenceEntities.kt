@@ -12,6 +12,7 @@ data class AbstinenceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val icon: String? = null,
+    val iconPath: String? = null,
     val paletteId: String = "default",
     val mode: String,
     val gentlePenaltyDays: Int = 7,

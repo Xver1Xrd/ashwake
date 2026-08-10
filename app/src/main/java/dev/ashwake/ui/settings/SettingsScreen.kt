@@ -39,11 +39,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import dev.ashwake.R
-import dev.ashwake.data.settings.Appearance
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.theme.AccentColor
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.ThemeMode
+import dev.ashwake.ui.theme.ThemeSettings
 import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
@@ -57,12 +57,13 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenBlocking: () -> Unit,
     onOpenBackup: () -> Unit = {},
+    onOpenThemeEditor: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val timebox by viewModel.timebox.collectAsStateWithLifecycle()
     val dayStart by viewModel.dayStartHour.collectAsStateWithLifecycle()
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
-    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    val theme by viewModel.theme.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -85,9 +86,10 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AppearanceSection(
-                appearance = appearance,
+                theme = theme,
                 onThemeMode = viewModel::setThemeMode,
-                onAccent = viewModel::setAccent
+                onAccent = viewModel::setAccent,
+                onOpenEditor = onOpenThemeEditor
             )
 
             HorizontalDivider()
@@ -192,19 +194,18 @@ fun SettingsScreen(
 }
 
 /**
- * Оформление: тема и акцент.
- *
- * Акценты показаны кружками, а не названиями: выбирают всё равно глазами,
- * а подпись под каждым цветом превратила бы ряд в список из восьми строк.
- * Выбранный отмечен галочкой — не только обводкой, иначе на монохромном
- * экране выбор не читается.
+ * Оформление: быстрый выбор темы и акцента прямо в настройках, всё
+ * остальное — в редакторе. Два самых частых переключения не должны
+ * требовать захода на отдельный экран, а двадцать редких не должны
+ * растягивать настройки на три экрана прокрутки.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AppearanceSection(
-    appearance: Appearance,
+    theme: ThemeSettings,
     onThemeMode: (ThemeMode) -> Unit,
-    onAccent: (AccentColor) -> Unit
+    onAccent: (AccentColor) -> Unit,
+    onOpenEditor: () -> Unit
 ) {
     val colors = AshTheme.colors
 
@@ -212,25 +213,19 @@ private fun AppearanceSection(
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         ThemeMode.entries.forEach { mode ->
             FilterChip(
-                selected = appearance.themeMode == mode,
+                selected = theme.mode == mode,
                 onClick = { onThemeMode(mode) },
                 label = { Text(mode.title) }
             )
         }
     }
 
-    Text(
-        "Акцент",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 4.dp)
-    )
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         AccentColor.entries.forEach { accent ->
-            val selected = appearance.accent == accent
+            val selected = theme.customAccent == null && theme.accent == accent
             Box(
                 Modifier
                     .size(40.dp)
@@ -262,6 +257,12 @@ private fun AppearanceSection(
             }
         }
     }
+
+    SettingsRow(
+        title = "Редактор темы",
+        subtitle = "Свой цвет, форма углов, скругление, плотность, эффекты",
+        onClick = onOpenEditor
+    )
 }
 
 @Composable

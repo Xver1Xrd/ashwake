@@ -5,26 +5,26 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.MutablePreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.ashwake.core.time.DEFAULT_DAY_START_HOUR
 import dev.ashwake.domain.model.tasks.TimeboxSettings
 import dev.ashwake.ui.theme.AccentColor
+import dev.ashwake.ui.theme.BackgroundStyle
+import dev.ashwake.ui.theme.CornerStyle
 import dev.ashwake.ui.theme.ThemeMode
+import dev.ashwake.ui.theme.ThemeSettings
+import dev.ashwake.ui.theme.UiDensity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ashwake")
-
-/** Оформление приложения: то, что выбирается в настройках и применяется к теме. */
-data class Appearance(
-    val themeMode: ThemeMode = ThemeMode.DEFAULT,
-    val accent: AccentColor = AccentColor.DEFAULT
-)
 
 /**
  * Настройки приложения.
@@ -104,18 +104,48 @@ class AppSettings @Inject constructor(
     }
 
     /**
-     * Оформление: режим темы и акцент.
+     * Оформление целиком.
      *
-     * Хранятся именами enum, а не индексами: при добавлении нового акцента
-     * индексы разъехались бы и у людей поменялся бы цвет приложения.
-     * Разбор неизвестного имени даёт значение по умолчанию.
+     * Enum-поля хранятся именами, а не индексами: при добавлении нового
+     * акцента или стиля индексы разъехались бы и у людей поменялось бы
+     * оформление само собой. Неизвестное имя разбирается в значение по
+     * умолчанию — настройки старых сборок не должны ронять запуск.
      */
-    val appearance: Flow<Appearance> = context.dataStore.data.map { prefs ->
-        Appearance(
-            themeMode = ThemeMode.entries.firstOrNull { it.name == prefs[THEME_MODE] }
-                ?: ThemeMode.DEFAULT,
-            accent = AccentColor.of(prefs[ACCENT])
+    val theme: Flow<ThemeSettings> = context.dataStore.data.map { prefs ->
+        val fallback = ThemeSettings()
+        ThemeSettings(
+            mode = prefs[THEME_MODE].toEnum(ThemeMode.entries, fallback.mode),
+            accent = AccentColor.of(prefs[ACCENT]),
+            customAccent = prefs[CUSTOM_ACCENT],
+            gradient = prefs[GRADIENT] ?: fallback.gradient,
+            background = prefs[BACKGROUND].toEnum(BackgroundStyle.entries, fallback.background),
+            corner = prefs[CORNER_STYLE].toEnum(CornerStyle.entries, fallback.corner),
+            cornerScale = prefs[CORNER_SCALE] ?: fallback.cornerScale,
+            density = prefs[DENSITY].toEnum(UiDensity.entries, fallback.density),
+            blur = prefs[BLUR] ?: fallback.blur,
+            warm = prefs[COLOR_WARM],
+            cold = prefs[COLOR_COLD],
+            danger = prefs[COLOR_DANGER],
+            success = prefs[COLOR_SUCCESS]
         )
+    }
+
+    suspend fun setTheme(theme: ThemeSettings) {
+        context.dataStore.edit { prefs ->
+            prefs[THEME_MODE] = theme.mode.name
+            prefs[ACCENT] = theme.accent.name
+            prefs[GRADIENT] = theme.gradient
+            prefs[BACKGROUND] = theme.background.name
+            prefs[CORNER_STYLE] = theme.corner.name
+            prefs[CORNER_SCALE] = theme.cornerScale
+            prefs[DENSITY] = theme.density.name
+            prefs[BLUR] = theme.blur
+            prefs.putOrRemove(CUSTOM_ACCENT, theme.customAccent)
+            prefs.putOrRemove(COLOR_WARM, theme.warm)
+            prefs.putOrRemove(COLOR_COLD, theme.cold)
+            prefs.putOrRemove(COLOR_DANGER, theme.danger)
+            prefs.putOrRemove(COLOR_SUCCESS, theme.success)
+        }
     }
 
     suspend fun setThemeMode(mode: ThemeMode) {
@@ -123,7 +153,12 @@ class AppSettings @Inject constructor(
     }
 
     suspend fun setAccent(accent: AccentColor) {
-        context.dataStore.edit { it[ACCENT] = accent.name }
+        context.dataStore.edit { prefs ->
+            prefs[ACCENT] = accent.name
+            // Выбор пресета снимает свой цвет: иначе пресет не применился бы,
+            // а человек продолжал бы тыкать в кружки без всякого эффекта
+            prefs.remove(CUSTOM_ACCENT)
+        }
     }
 
     private companion object {
@@ -139,6 +174,17 @@ class AppSettings @Inject constructor(
         val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent_color")
+        val CUSTOM_ACCENT = intPreferencesKey("accent_custom")
+        val GRADIENT = booleanPreferencesKey("theme_gradient")
+        val BACKGROUND = stringPreferencesKey("theme_background")
+        val CORNER_STYLE = stringPreferencesKey("theme_corner_style")
+        val CORNER_SCALE = floatPreferencesKey("theme_corner_scale")
+        val DENSITY = stringPreferencesKey("theme_density")
+        val BLUR = booleanPreferencesKey("theme_blur")
+        val COLOR_WARM = intPreferencesKey("theme_color_warm")
+        val COLOR_COLD = intPreferencesKey("theme_color_cold")
+        val COLOR_DANGER = intPreferencesKey("theme_color_danger")
+        val COLOR_SUCCESS = intPreferencesKey("theme_color_success")
 
         const val DEFAULT_WORK_START = 9 * 60
         const val DEFAULT_WORK_END = 19 * 60
@@ -146,4 +192,13 @@ class AppSettings @Inject constructor(
         const val DEFAULT_LUNCH_START = 13 * 60
         const val DEFAULT_LUNCH_DURATION = 60
     }
+}
+
+/** Имя из хранилища в enum. Неизвестное значение — не повод падать. */
+private inline fun <reified T : Enum<T>> String?.toEnum(entries: List<T>, fallback: T): T =
+    entries.firstOrNull { it.name == this } ?: fallback
+
+/** Null убирает ключ: «не задано» и «задано нулём» это разные вещи. */
+private fun <T> MutablePreferences.putOrRemove(key: Preferences.Key<T>, value: T?) {
+    if (value == null) remove(key) else set(key, value)
 }

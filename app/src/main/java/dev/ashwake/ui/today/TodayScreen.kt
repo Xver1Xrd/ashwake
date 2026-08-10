@@ -139,6 +139,7 @@ fun TodayScreen(
                         task = task,
                         today = state.today,
                         onToggle = { viewModel.toggleTask(task) },
+                        onPostpone = { viewModel.postponeTask(task) },
                         onOpen = { onOpenTask(task.id) }
                     )
                 }
@@ -156,6 +157,7 @@ fun TodayScreen(
                         task = task,
                         today = state.today,
                         onToggle = { viewModel.toggleTask(task) },
+                        onPostpone = { viewModel.postponeTask(task) },
                         onOpen = { onOpenTask(task.id) }
                     )
                 }

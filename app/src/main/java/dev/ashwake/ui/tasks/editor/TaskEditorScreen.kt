@@ -54,7 +54,8 @@ import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.components.AshTextField
 import dev.ashwake.ui.components.ChipButton
-import dev.ashwake.ui.components.EmojiPicker
+import dev.ashwake.ui.components.IconButtonSlot
+import dev.ashwake.ui.components.IconPicker
 import dev.ashwake.ui.components.FieldLabel
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.PrimaryButton
@@ -143,8 +144,9 @@ fun TaskEditorScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                EmojiButton(
+                IconButtonSlot(
                     emoji = state.emoji,
+                    iconPath = state.iconPath,
                     expanded = showEmojiPicker,
                     onClick = { showEmojiPicker = !showEmojiPicker }
                 )
@@ -162,9 +164,11 @@ fun TaskEditorScreen(
                 enter = fadeIn() + expandVertically(),
                 exit = fadeOut() + shrinkVertically()
             ) {
-                EmojiPicker(
-                    selected = state.emoji,
-                    onSelect = { viewModel.setEmoji(it) }
+                IconPicker(
+                    emoji = state.emoji,
+                    iconPath = state.iconPath,
+                    onEmoji = { viewModel.setEmoji(it) },
+                    onIcon = { viewModel.setIconPath(it) }
                 )
             }
 
@@ -380,41 +384,6 @@ private fun ChipRow(content: @Composable () -> Unit) {
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) { content() }
-}
-
-/**
- * Кнопка значка. Пустая — это пунктирный контур с плюсом: так видно, что
- * место под значок есть, но он необязателен.
- */
-@Composable
-private fun EmojiButton(emoji: String?, expanded: Boolean, onClick: () -> Unit) {
-    val colors = AshTheme.colors
-    Box(
-        Modifier
-            .size(52.dp)
-            .background(
-                if (expanded) colors.accent.copy(alpha = 0.16f) else colors.surface2,
-                AshShapes.group
-            )
-            .border(
-                width = if (expanded) 1.5.dp else 0.dp,
-                color = if (expanded) colors.accent else Color.Transparent,
-                shape = AshShapes.group
-            )
-            .tappable(onClick = onClick),
-        contentAlignment = Alignment.Center
-    ) {
-        if (emoji != null) {
-            Text(text = emoji, fontSize = 26.sp)
-        } else {
-            Icon(
-                AshIcons.AutoAwesome,
-                contentDescription = "Выбрать значок",
-                tint = colors.text3,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-    }
 }
 
 /**

@@ -41,9 +41,16 @@ val ScreenPadding = 16.dp
 /** Отступ разделителя слева по умолчанию: до начала текста в обычной строке. */
 private val DefaultDividerInset = 16.dp
 
-/** Минимальные высоты строк из раздела 4. */
-val ListRowMinHeight = 44.dp
-val ListRowWithSubtitleHeight = 60.dp
+/**
+ * Минимальные высоты строк. Берутся из плотности, выбранной в редакторе
+ * темы: «плотно» и «просторно» отличаются именно высотой строки, а не
+ * размером шрифта — шрифтом заведует система.
+ */
+val ListRowMinHeight: Dp
+    @Composable get() = AshTheme.density.minRowHeight
+
+val ListRowWithSubtitleHeight: Dp
+    @Composable get() = AshTheme.density.minRowHeight + 12.dp
 
 @Composable
 fun ListGroupHeader(text: String, modifier: Modifier = Modifier) {
@@ -156,8 +163,10 @@ fun ListRow(
         modifier = modifier
             .fillMaxWidth()
             .then(clickable)
-            .defaultMinSize(minHeight = if (subtitle == null) ListRowMinHeight else ListRowWithSubtitleHeight)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
+            .defaultMinSize(
+                minHeight = if (subtitle == null) ListRowMinHeight else ListRowWithSubtitleHeight
+            )
+            .padding(horizontal = 16.dp, vertical = AshTheme.density.rowVerticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {

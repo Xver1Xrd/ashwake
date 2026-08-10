@@ -17,6 +17,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -29,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -37,6 +40,9 @@ import dev.ashwake.domain.engine.abstinence.describeCravingPeak
 import dev.ashwake.ui.abstinence.components.AttemptsChart
 import dev.ashwake.ui.abstinence.components.CravingHeatmap
 import dev.ashwake.ui.abstinence.components.LiveCounter
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AshShapes
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.abstinence.components.SavingsBlock
 import dev.ashwake.ui.abstinence.components.StatsRow
 import dev.ashwake.ui.abstinence.components.MilestoneRing
@@ -105,10 +111,38 @@ fun AbstinenceDetailScreen(
 
             StatsRow(data.stats)
 
-            Button(
-                onClick = { showCraving = true },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(stringResource(R.string.detail_tyazhelo)) }
+            // Два действия рядом и на виду.
+            //
+            // Раньше «тяжело» стояло под счётчиком, а «срыв» — текстовой
+            // ссылкой в самом низу, под графиками: до неё не доскроллить,
+            // и «тяжело» принимали за отметку срыва. Это ровно те две вещи,
+            // ради которых экран открывают, и они обязаны быть рядом.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                ActionButton(
+                    text = "Тяжело",
+                    color = AshTheme.colors.cold,
+                    filled = true,
+                    onClick = { showCraving = true },
+                    modifier = Modifier.weight(1f)
+                )
+                ActionButton(
+                    text = "Срыв",
+                    color = AshTheme.colors.danger,
+                    filled = false,
+                    onClick = { showRelapse = true },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Text(
+                "«Тяжело» — отметка о том, что накрыло, но вы удержались: " +
+                    "счётчик продолжает идти. Сбрасывает его только «Срыв»",
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
+                textAlign = TextAlign.Center
+            )
 
             data.stats.savings?.let { savings ->
                 HorizontalDivider()
@@ -143,7 +177,6 @@ fun AbstinenceDetailScreen(
                         }
                     })
                 }
-                RelapseButton(onClick = { showRelapse = true })
             }
         }
 
@@ -170,6 +203,14 @@ fun AbstinenceDetailScreen(
                 onFinish = { resisted, duration, note ->
                     viewModel.finishCraving(resisted, duration, note)
                     showCraving = false
+                },
+                onRelapse = { duration, note ->
+                    // Тяга закрывается как непреодолённая, а сам срыв
+                    // отмечается отдельно и с подтверждением: одно нажатие
+                    // не должно обнулять три месяца
+                    viewModel.finishCraving(false, duration, note)
+                    showCraving = false
+                    showRelapse = true
                 },
                 onDismiss = {
                     viewModel.cancelCraving()
@@ -257,3 +298,40 @@ private val SUBSTANCE_KEYWORDS = listOf(
     "алког", "пью", "пить", "выпив", "спирт", "пиво", "вино", "водк",
     "вещест", "нарко", "транквил", "бензо"
 )
+
+/**
+ * Кнопка действия отказа. Залитая — то, что делают чаще и без последствий;
+ * контурная — то, что меняет историю и требует секунды на подумать.
+ */
+@Composable
+private fun ActionButton(
+    text: String,
+    color: androidx.compose.ui.graphics.Color,
+    filled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = AshTheme.colors
+    Box(
+        modifier = modifier
+            .height(48.dp)
+            .background(
+                if (filled) color else color.copy(alpha = 0.12f),
+                AshShapes.pill
+            )
+            .tappable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            style = AshTheme.type.body.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+            ),
+            color = when {
+                !filled -> color
+                colors.isDark -> androidx.compose.ui.graphics.Color.Black
+                else -> androidx.compose.ui.graphics.Color.White
+            }
+        )
+    }
+}

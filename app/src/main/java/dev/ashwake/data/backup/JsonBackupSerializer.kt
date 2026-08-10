@@ -318,6 +318,7 @@ class JsonBackupSerializer @Inject constructor(
         id = optLong("id"),
         title = optString("title"),
         emoji = optStringOrNull("emoji"),
+        iconPath = optStringOrNull("iconPath"),
         note = optStringOrNull("note"),
         priority = optString("priority", "P4"),
         dueDate = optIntOrNull("dueDate"),
@@ -408,6 +409,7 @@ class JsonBackupSerializer @Inject constructor(
         put("id", id)
         put("title", title)
         put("emoji", emoji)
+        put("iconPath", iconPath)
         put("note", note)
         put("priority", priority)
         put("dueDate", dueDate)

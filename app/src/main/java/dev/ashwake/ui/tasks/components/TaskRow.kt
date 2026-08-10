@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.tasks.StaleLevel
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.components.AshIcons
-import dev.ashwake.ui.components.EmojiBadge
+import dev.ashwake.ui.components.EntityIcon
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -132,9 +132,10 @@ private fun TaskRowContent(
         // Значок задачи, а если его нет — цветной кружок приоритета. Место
         // под ведущий элемент занято всегда, иначе названия в списке
         // разъезжаются по левому краю в зависимости от того, у кого есть эмодзи
-        if (task.emoji != null) {
-            EmojiBadge(
+        if (task.emoji != null || task.iconPath != null) {
+            EntityIcon(
                 emoji = task.emoji,
+                iconPath = task.iconPath,
                 size = 38.dp,
                 background = if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
                 else colors.surface2

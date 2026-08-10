@@ -13,7 +13,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,7 +35,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
 import dev.ashwake.ui.components.AshIcons
-import dev.ashwake.ui.components.EmojiBadge
+import dev.ashwake.ui.components.EntityIcon
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -91,6 +96,12 @@ fun HabitTodayRow(
                 share = fill,
                 negative = habit.type == HabitType.NEGATIVE,
                 onClick = onToggle
+            )
+
+            EntityIcon(
+                emoji = habit.icon,
+                iconPath = habit.iconPath,
+                size = 30.dp
             )
 
             androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
@@ -206,39 +217,111 @@ private fun HabitMark(
  * Приоритет дублируется словом («срочно», «важно») — ни одно состояние
  * не передаётся только цветом.
  */
+/**
+ * Строка задачи со свайпами: вправо — выполнено, влево — на завтра.
+ *
+ * Свайпы здесь те же, что на экране задач, и по той же причине: главный
+ * экран это и есть список дня, и разбирать его чекбоксом по одной задаче
+ * медленнее, чем провести пальцем. Строка отыгрывает свайп и возвращается
+ * на место — задача из списка дня никуда не делась.
+ */
 @Composable
 fun TaskTodayRow(
     task: Task,
     today: java.time.LocalDate,
     onToggle: () -> Unit,
+    onPostpone: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
+) {
+    val complete by rememberUpdatedState(onToggle)
+    val postpone by rememberUpdatedState(onPostpone)
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> complete()
+                SwipeToDismissBoxValue.EndToStart -> postpone()
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+            false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        modifier = modifier,
+        backgroundContent = { SwipeHint(dismissState.dismissDirection) },
+        content = { TaskTodayRowContent(task, today, onToggle, onOpen) }
+    )
+}
+
+/** Подложка под уезжающей строкой: цвет и значок того, что произойдёт. */
+@Composable
+private fun SwipeHint(direction: SwipeToDismissBoxValue) {
+    val colors = AshTheme.colors
+    val (color, icon, alignment) = when (direction) {
+        SwipeToDismissBoxValue.StartToEnd ->
+            Triple(colors.success, AshIcons.Check, Alignment.CenterStart)
+
+        SwipeToDismissBoxValue.EndToStart ->
+            Triple(colors.cold, AshIcons.EventRepeat, Alignment.CenterEnd)
+
+        SwipeToDismissBoxValue.Settled ->
+            Triple(Color.Transparent, AshIcons.Check, Alignment.Center)
+    }
+
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .background(color)
+            .padding(horizontal = 24.dp),
+        contentAlignment = alignment
+    ) {
+        if (direction != SwipeToDismissBoxValue.Settled) {
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (colors.isDark) Color.Black else Color.White,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaskTodayRowContent(
+    task: Task,
+    today: java.time.LocalDate,
+    onToggle: () -> Unit,
+    onOpen: () -> Unit
 ) {
     val colors = AshTheme.colors
     val overdue = task.isOverdue(today)
 
     Row(
-        modifier
+        Modifier
             .fillMaxWidth()
+            .background(colors.surface1)
             .tappable(onClick = onOpen)
             .defaultMinSize(minHeight = 56.dp)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = AshTheme.density.rowVerticalPadding),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TaskCheckbox(done = task.isDone, onClick = onToggle)
 
-        task.emoji?.let { emoji ->
-            EmojiBadge(
-                emoji = emoji,
-                size = 30.dp,
-                background = if (task.priority.hasMark) {
-                    colors.priorityColor(task.priority).copy(alpha = 0.16f)
-                } else {
-                    colors.surface2
-                }
-            )
-        }
+        EntityIcon(
+            emoji = task.emoji,
+            iconPath = task.iconPath,
+            size = 30.dp,
+            background = if (task.priority.hasMark) {
+                colors.priorityColor(task.priority).copy(alpha = 0.16f)
+            } else {
+                colors.surface2
+            }
+        )
 
         androidx.compose.foundation.layout.Column(
             Modifier.weight(1f),
@@ -249,7 +332,7 @@ fun TaskTodayRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 // Точка приоритета не нужна, когда цвет уже несёт подложка значка
-                if (task.priority.hasMark && task.emoji == null) {
+                if (task.priority.hasMark && task.emoji == null && task.iconPath == null) {
                     Box(
                         Modifier
                             .size(7.dp)
@@ -317,19 +400,27 @@ fun AbstinenceTodayRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            Modifier
-                .size(34.dp)
-                .background(colors.cold.copy(alpha = 0.16f), AshShapes.squircle(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = AshIcons.Prohibit,
-                contentDescription = null,
-                tint = colors.cold,
-                modifier = Modifier.size(18.dp)
-            )
-        }
+        EntityIcon(
+            emoji = item.abstinence.icon,
+            iconPath = item.abstinence.iconPath,
+            size = 34.dp,
+            background = colors.cold.copy(alpha = 0.16f),
+            fallback = {
+                Box(
+                    Modifier
+                        .size(34.dp)
+                        .background(colors.cold.copy(alpha = 0.16f), AshShapes.squircle(12.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = AshIcons.Prohibit,
+                        contentDescription = null,
+                        tint = colors.cold,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+        )
 
         androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
             Text(

@@ -13,6 +13,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.IconButtonSlot
+import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +45,8 @@ import dev.ashwake.R
 fun CreateAbstinenceDialog(
     onCreate: (
         name: String,
+        icon: String?,
+        iconPath: String?,
         mode: AbstinenceMode,
         startedAt: Instant,
         motivation: String?,
@@ -52,6 +56,9 @@ fun CreateAbstinenceDialog(
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var icon by remember { mutableStateOf<String?>(null) }
+    var iconPath by remember { mutableStateOf<String?>(null) }
+    var showIconPicker by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(AbstinenceMode.GENTLE) }
     var daysAgo by remember { mutableIntStateOf(0) }
     var motivation by remember { mutableStateOf("") }
@@ -69,14 +76,35 @@ fun CreateAbstinenceDialog(
                 modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.editor_nazvanie)) },
-                    placeholder = { Text(stringResource(R.string.editor_ne_kuryu)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    IconButtonSlot(
+                        emoji = icon,
+                        iconPath = iconPath,
+                        expanded = showIconPicker,
+                        onClick = { showIconPicker = !showIconPicker }
+                    )
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.editor_nazvanie)) },
+                        placeholder = { Text(stringResource(R.string.editor_ne_kuryu)) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (showIconPicker) {
+                    IconPicker(
+                        emoji = icon,
+                        iconPath = iconPath,
+                        onEmoji = { picked -> icon = if (icon == picked) null else picked },
+                        onIcon = { iconPath = it }
+                    )
+                }
 
                 Text(stringResource(R.string.editor_rezhim), style = MaterialTheme.typography.labelLarge)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -186,6 +214,8 @@ fun CreateAbstinenceDialog(
 
                     onCreate(
                         name,
+                        icon,
+                        iconPath,
                         mode,
                         Instant.now().minus(Duration.ofDays(daysAgo.toLong())),
                         motivation.takeIf { it.isNotBlank() },

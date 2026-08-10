@@ -14,14 +14,16 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.data.settings.Appearance
+import dev.ashwake.data.icons.IconStore
 import dev.ashwake.data.settings.AppSettings
+import dev.ashwake.ui.theme.ThemeSettings
 import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.widget.AppRoutes
+import dev.ashwake.ui.components.LocalIconStore
 import dev.ashwake.ui.navigation.AshwakeRoot
 import dev.ashwake.ui.theme.AshwakeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var clock: AppClock
     @Inject lateinit var tasks: TaskRepository
     @Inject lateinit var settings: AppSettings
+    @Inject lateinit var iconStore: IconStore
 
     /**
      * Куда открыться при запуске из виджета, плитки или шортката.
@@ -58,11 +61,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             // Тема читается из настроек прямо здесь: она нужна раньше любого
             // экрана, и прокидывать её через навигацию было бы дороже
-            val appearance by settings.appearance
-                .collectAsStateWithLifecycle(initialValue = Appearance())
+            val theme by settings.theme
+                .collectAsStateWithLifecycle(initialValue = ThemeSettings())
 
-            AshwakeTheme(themeMode = appearance.themeMode, accent = appearance.accent) {
-                AshwakeRoot(pendingRoute = pendingRoute)
+            AshwakeTheme(settings = theme) {
+                // Значки читают файлы из хранилища прямо в строке списка,
+                // а зависимости туда не прокинуть: кладём одно на приложение
+                androidx.compose.runtime.CompositionLocalProvider(
+                    LocalIconStore provides iconStore
+                ) {
+                    AshwakeRoot(pendingRoute = pendingRoute)
+                }
             }
         }
     }

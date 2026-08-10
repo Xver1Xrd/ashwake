@@ -152,6 +152,7 @@ fun CravingSheet(
     triggers: List<CravingTrigger>,
     onStart: (intensity: Int, triggerId: Long?) -> Unit,
     onFinish: (resisted: Boolean, durationSeconds: Int?, note: String?) -> Unit,
+    onRelapse: (durationSeconds: Int?, note: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var intensity by remember { mutableIntStateOf(3) }
@@ -239,6 +240,10 @@ fun CravingSheet(
             )
 
             HorizontalDivider()
+
+            // Три исхода вместо двух. «Не помогло» раньше означало только
+            // «тяга не прошла», но читалось как отметка срыва — теперь срыв
+            // это отдельный, названный своим словом выход
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = {
@@ -246,7 +251,7 @@ fun CravingSheet(
                         onFinish(true, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.detail_perezhdal)) }
+                ) { Text("Справился") }
 
                 OutlinedButton(
                     onClick = {
@@ -254,8 +259,27 @@ fun CravingSheet(
                         onFinish(false, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
                     },
                     modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.detail_ne_pomoglo)) }
+                ) { Text("Отпустило само") }
             }
+
+            TextButton(
+                onClick = {
+                    if (!started) onStart(intensity, triggerId)
+                    onRelapse(
+                        breathingSeconds.takeIf { it > 0 },
+                        note.takeIf { it.isNotBlank() }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Не справился — отметить срыв", color = Blood)
+            }
+
+            Text(
+                "Пока вы не отметили срыв, счётчик идёт дальше",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

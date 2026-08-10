@@ -1,6 +1,7 @@
 package dev.ashwake.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
@@ -107,46 +108,83 @@ private fun Path.corner(
 }
 
 /**
- * Радиусы приложения. Больше никаких не появляется: если понадобился новый —
- * это признак, что компонент придуман мимо системы.
+ * Набор форм приложения.
  *
- * Шкала намеренно крупная. Прямой угол в интерфейсе выглядит как «форма по
- * умолчанию, которую никто не выбирал»; чем крупнее блок, тем больше у него
- * радиус, и тогда группа, карточка и лист читаются как один язык форм.
+ * Радиусы больше не константы: их масштаб и стиль угла выбираются в
+ * редакторе темы, поэтому набор собирается из настроек и раздаётся через
+ * тему. Шкала внутри набора остаётся пропорциональной — чем крупнее блок,
+ * тем больше радиус, и группа, карточка и лист читаются как один язык форм.
  */
-object AshShapes {
+@androidx.compose.runtime.Immutable
+data class AshShapeScheme(
+    val smoothing: Float = SquircleShape.DEFAULT_SMOOTHING,
+    /** Непрерывное скругление или обычная дуга окружности. */
+    val continuous: Boolean = true,
+    val smallRadius: Dp = 12.dp,
+    val groupRadius: Dp = 18.dp,
+    val cardRadius: Dp = 24.dp,
+    val sheetRadius: Dp = 30.dp,
+    val alertRadius: Dp = 26.dp,
+    val pillPercent: Int = 50
+) {
     /** Мелкое: значки, метки, вложенные плашки. */
-    val small = SquircleShape(12.dp)
+    val small: Shape get() = shape(smallRadius)
     /** Группы сгруппированных списков и поля ввода. */
-    val group = SquircleShape(18.dp)
+    val group: Shape get() = shape(groupRadius)
     /** Карточки и плитки. */
-    val card = SquircleShape(24.dp)
+    val card: Shape get() = shape(cardRadius)
     /** Обложка, герой-блок, модальные листы. */
-    val sheet = SquircleShape(30.dp)
-    /** Alert: круговое скругление, потому что блок маленький и почти квадратный. */
-    val alert = RoundedCornerShape(26.dp)
+    val sheet: Shape get() = shape(sheetRadius)
+    /** Alert: всегда обычное скругление, блок маленький и почти квадратный. */
+    val alert: Shape get() = RoundedCornerShape(alertRadius)
     /** Кнопки-таблетки, чипы, аватары, панель вкладок. */
-    val pill = RoundedCornerShape(percent = 50)
+    val pill: Shape get() = RoundedCornerShape(percent = pillPercent)
 
     /** Верхние углы модального листа: низ прижат к краю экрана. */
-    val sheetTop = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
+    val sheetTop: Shape
+        get() = RoundedCornerShape(topStart = sheetRadius, topEnd = sheetRadius)
 
-    /** Скругление под конкретный размер: обложка при схлопывании, аватар задачи. */
-    fun squircle(radius: Dp) = SquircleShape(radius)
+    /** Скругление под конкретный размер: аватар задачи, значок в строке. */
+    fun shape(radius: Dp): Shape = when {
+        radius <= 0.dp -> RoundedCornerShape(0.dp)
+        continuous -> SquircleShape(radius, smoothing)
+        else -> RoundedCornerShape(radius)
+    }
+
+    /** Форма под размер с поправкой на масштаб радиусов из настроек. */
+    fun scaled(radius: Dp): Shape = shape(radius * (cardRadius / 24.dp))
+}
+
+val LocalAshShapes = androidx.compose.runtime.staticCompositionLocalOf { AshShapeScheme() }
+
+/**
+ * Короткое обращение к формам: `AshShapes.card`.
+ *
+ * Свойства читают текущую тему, поэтому вызываются только из композиции —
+ * ровно там, где формы и нужны.
+ */
+object AshShapes {
+    val small: Shape @Composable get() = LocalAshShapes.current.small
+    val group: Shape @Composable get() = LocalAshShapes.current.group
+    val card: Shape @Composable get() = LocalAshShapes.current.card
+    val sheet: Shape @Composable get() = LocalAshShapes.current.sheet
+    val alert: Shape @Composable get() = LocalAshShapes.current.alert
+    val pill: Shape @Composable get() = LocalAshShapes.current.pill
+    val sheetTop: Shape @Composable get() = LocalAshShapes.current.sheetTop
+
+    @Composable
+    fun squircle(radius: Dp): Shape = LocalAshShapes.current.scaled(radius)
 }
 
 /**
- * Те же радиусы для Material-компонентов.
- *
- * Пока не все экраны переписаны на компоненты дизайн-системы, чипы, диалоги
- * и поля на них берут форму отсюда. Без этого моста половина приложения
- * осталась бы с материаловскими 4–12dp, и разница бросалась бы в глаза
- * на каждом переходе.
+ * Формы для Material-компонентов на ещё не переписанных экранах.
+ * Собираются из того же набора, чтобы чипы и диалоги не жили своей формой.
  */
-val AshMaterialShapes: androidx.compose.material3.Shapes = androidx.compose.material3.Shapes(
-    extraSmall = RoundedCornerShape(10.dp),
-    small = RoundedCornerShape(14.dp),
-    medium = RoundedCornerShape(18.dp),
-    large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(30.dp)
-)
+fun AshShapeScheme.toMaterialShapes(): androidx.compose.material3.Shapes =
+    androidx.compose.material3.Shapes(
+        extraSmall = RoundedCornerShape(smallRadius * 0.8f),
+        small = RoundedCornerShape(smallRadius),
+        medium = RoundedCornerShape(groupRadius),
+        large = RoundedCornerShape(cardRadius),
+        extraLarge = RoundedCornerShape(sheetRadius)
+    )

@@ -75,7 +75,9 @@ fun Modifier.glass(
     shape: Shape = RectangleShape
 ): Modifier {
     val colors = AshTheme.colors
-    return if (blurSupported) {
+    // Размытие можно выключить в редакторе темы: на слабых устройствах
+    // оно стоит заметных кадров, а читаемость от заливки не страдает
+    return if (blurSupported && AshTheme.blurEnabled) {
         hazeChild(
             state = state,
             shape = shape,

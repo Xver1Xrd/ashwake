@@ -19,6 +19,7 @@ data class HabitEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val icon: String? = null,
+    val iconPath: String? = null,
     val color: Int = 0,
     val type: String,
     val sphere: String,

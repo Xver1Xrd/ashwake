@@ -55,6 +55,8 @@ data class Task(
      * значок и стоит в начале строки вместо ещё одной подписи.
      */
     val emoji: String? = null,
+    /** Имя файла картинки-значка в хранилище приложения. Перекрывает эмодзи. */
+    val iconPath: String? = null,
     val note: String? = null,
     val projectId: Long? = null,
     val parentTaskId: Long? = null,

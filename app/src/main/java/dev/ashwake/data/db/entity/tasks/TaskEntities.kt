@@ -76,6 +76,8 @@ data class TaskEntity(
     val title: String,
     /** Значок задачи: одна эмодзи или null. */
     val emoji: String? = null,
+    /** Имя файла картинки-значка. Перекрывает эмодзи. */
+    val iconPath: String? = null,
     val note: String? = null,
     val projectId: Long? = null,
     val parentTaskId: Long? = null,

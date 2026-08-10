@@ -30,6 +30,8 @@ import javax.inject.Inject
 data class HabitEditorState(
     val habitId: Long = 0,
     val name: String = "",
+    val icon: String? = null,
+    val iconPath: String? = null,
     val type: HabitType = HabitType.CHECK,
     val sphere: Sphere = Sphere.HEALTH,
     val targetValue: Float = 1f,
@@ -85,6 +87,8 @@ class HabitEditorViewModel @Inject constructor(
         _state.value = HabitEditorState(
             habitId = habit.id,
             name = habit.name,
+            icon = habit.icon,
+            iconPath = habit.iconPath,
             type = habit.type,
             sphere = habit.sphere,
             targetValue = habit.targetValue,
@@ -104,6 +108,13 @@ class HabitEditorViewModel @Inject constructor(
     }
 
     fun setName(value: String) = _state.update { it.copy(name = value) }
+
+    /** Повторный выбор той же эмодзи снимает её. */
+    fun setIcon(value: String?) = _state.update {
+        it.copy(icon = if (it.icon == value) null else value)
+    }
+
+    fun setIconPath(value: String?) = _state.update { it.copy(iconPath = value) }
     fun setType(value: HabitType) = _state.update { it.copy(type = value) }
     fun setSphere(value: Sphere) = _state.update { it.copy(sphere = value) }
     fun setTarget(value: Float) = _state.update { it.copy(targetValue = value.coerceAtLeast(1f)) }
@@ -129,6 +140,8 @@ class HabitEditorViewModel @Inject constructor(
             val habit = (existing ?: Habit(name = "")).copy(
                 id = current.habitId,
                 name = current.name.trim(),
+                icon = current.icon,
+                iconPath = current.iconPath,
                 type = current.type,
                 sphere = current.sphere,
                 targetValue = if (current.type == HabitType.COUNTER) current.targetValue else 1f,

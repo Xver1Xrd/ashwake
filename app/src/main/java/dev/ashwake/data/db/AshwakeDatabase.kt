@@ -122,7 +122,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -163,6 +163,20 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        /**
+         * 3 → 4: значок-картинка у задачи, привычки и отказа.
+         * Хранится имя файла в каталоге приложения, а не URI галереи:
+         * разрешение на чужой URI не переживает перезагрузку.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN iconPath TEXT")
+                db.execSQL("ALTER TABLE habits ADD COLUMN iconPath TEXT")
+                db.execSQL("ALTER TABLE abstinences ADD COLUMN iconPath TEXT")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
     }
 }

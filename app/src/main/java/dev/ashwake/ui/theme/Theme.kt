@@ -36,6 +36,12 @@ val LocalAshTypography = staticCompositionLocalOf { AshTypography() }
  */
 val LocalReduceMotion = staticCompositionLocalOf { false }
 
+/** Плотность списков. Живёт в теме, потому что настраивается в редакторе. */
+val LocalAshDensity = staticCompositionLocalOf { UiDensity.NORMAL }
+
+/** Разрешено ли размытие под панелями. Выключается в редакторе темы. */
+val LocalBlurEnabled = staticCompositionLocalOf { true }
+
 /** Короткие обращения к токенам: `AshTheme.colors.warm`, `AshTheme.type.headline`. */
 object AshTheme {
     val colors: AshColors
@@ -44,26 +50,28 @@ object AshTheme {
     val type: AshTypography
         @Composable get() = LocalAshTypography.current
 
+    val shapes: AshShapeScheme
+        @Composable get() = LocalAshShapes.current
+
+    val density: UiDensity
+        @Composable get() = LocalAshDensity.current
+
+    val blurEnabled: Boolean
+        @Composable get() = LocalBlurEnabled.current
+
     val reduceMotion: Boolean
         @Composable get() = LocalReduceMotion.current
 }
 
 @Composable
 fun AshwakeTheme(
-    themeMode: ThemeMode = ThemeMode.DEFAULT,
-    accent: AccentColor = AccentColor.DEFAULT,
+    settings: ThemeSettings = ThemeSettings(),
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
-    val isDark = when (themeMode) {
-        ThemeMode.DARK -> true
-        ThemeMode.LIGHT -> false
-        ThemeMode.SYSTEM -> systemDark
-    }
 
-    val colors = remember(isDark, accent) {
-        if (isDark) darkAshColors(accent) else lightAshColors(accent)
-    }
+    val colors = remember(settings, systemDark) { settings.toColors(systemDark) }
+    val shapes = remember(settings) { settings.toShapes() }
     val typography = remember { AshTypography() }
 
     val context = LocalContext.current
@@ -75,13 +83,16 @@ fun AshwakeTheme(
     CompositionLocalProvider(
         LocalAshColors provides colors,
         LocalAshTypography provides typography,
+        LocalAshShapes provides shapes,
+        LocalAshDensity provides settings.density,
+        LocalBlurEnabled provides settings.blur,
         LocalReduceMotion provides reduceMotion,
         LocalContentColor provides colors.text
     ) {
         MaterialTheme(
             colorScheme = colors.toMaterialScheme(),
             typography = materialTypography(typography),
-            shapes = AshMaterialShapes,
+            shapes = shapes.toMaterialShapes(),
             content = content
         )
     }

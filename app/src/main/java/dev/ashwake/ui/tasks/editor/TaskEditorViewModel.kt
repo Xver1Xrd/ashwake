@@ -41,6 +41,7 @@ data class TaskEditorState(
     val taskId: Long = 0,
     val title: String = "",
     val emoji: String? = null,
+    val iconPath: String? = null,
     val note: String = "",
     val projectId: Long? = null,
     val priority: Priority = Priority.P4,
@@ -113,6 +114,7 @@ class TaskEditorViewModel @Inject constructor(
             taskId = task.id,
             title = task.title,
             emoji = task.emoji,
+            iconPath = task.iconPath,
             note = task.note.orEmpty(),
             projectId = task.projectId,
             priority = task.priority,
@@ -144,6 +146,8 @@ class TaskEditorViewModel @Inject constructor(
     fun setEmoji(value: String?) = _state.update {
         it.copy(emoji = if (it.emoji == value) null else value)
     }
+
+    fun setIconPath(value: String?) = _state.update { it.copy(iconPath = value) }
 
     fun setNote(value: String) = _state.update { it.copy(note = value) }
     fun setProject(id: Long?) = _state.update { it.copy(projectId = id) }
@@ -219,6 +223,7 @@ class TaskEditorViewModel @Inject constructor(
                 id = current.taskId,
                 title = current.title.trim(),
                 emoji = current.emoji,
+                iconPath = current.iconPath,
                 note = current.note.takeIf { it.isNotBlank() },
                 projectId = current.projectId,
                 priority = current.priority,

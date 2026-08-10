@@ -121,7 +121,10 @@ data class SkipReason(
 data class Habit(
     val id: Long = 0,
     val name: String,
+    /** Значок: одна эмодзи. */
     val icon: String? = null,
+    /** Имя файла картинки-значка. Перекрывает эмодзи. */
+    val iconPath: String? = null,
     val color: Int = 0,
     val type: HabitType = HabitType.CHECK,
     val sphere: Sphere = Sphere.HEALTH,

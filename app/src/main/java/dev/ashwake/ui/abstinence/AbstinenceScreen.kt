@@ -162,8 +162,10 @@ fun AbstinenceScreen(
 
         if (showCreate) {
             CreateAbstinenceDialog(
-                onCreate = { name, mode, startedAt, motivation, baseline, substitutes ->
-                    viewModel.create(name, mode, startedAt, motivation, baseline, substitutes)
+                onCreate = { name, icon, iconPath, mode, startedAt, motivation, baseline, subs ->
+                    viewModel.create(
+                        name, icon, iconPath, mode, startedAt, motivation, baseline, subs
+                    )
                     showCreate = false
                 },
                 onDismiss = { showCreate = false }
