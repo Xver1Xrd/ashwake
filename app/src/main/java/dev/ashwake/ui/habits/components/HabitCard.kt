@@ -36,6 +36,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.Steel
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
@@ -203,4 +204,5 @@ private val PaddingValuesCompact =
 internal val FreezeIcon = Icons.Filled.AcUnit
 
 /** Цвет заморозки в heatmap: холодный, чтобы не путался с выполнением. */
-internal val FreezeColor: Color = Steel
+internal val FreezeColor: Color
+    @Composable get() = AshTheme.colors.cold

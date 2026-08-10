@@ -1,5 +1,6 @@
 package dev.ashwake.ui.theme
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -184,47 +185,69 @@ val AshColors.onAccent: Color
 // Совместимость со старой палитрой
 //
 // До дизайн-системы у проекта была своя фэнтезийная палитра (Gold, Ember,
-// Steel, Moss, Blood, Ash*). На неё ссылается ещё несколько экранов. Имена
-// сохранены как псевдонимы новых токенов, чтобы смена палитры прошла по
-// всему приложению сразу.
+// Steel, Moss, Blood, Ash*). На неё ссылается ещё десяток экранов.
 //
-// Значения здесь — тёмной темы: это константы времени компиляции, они не
-// умеют реагировать на смену темы. Каждый экран, переписанный на
-// `AshTheme.colors`, убирает по одной такой ссылке.
+// Раньше это были константы тёмной темы, и на светлой теме такой экран
+// выглядел сломанным: чёрный текст на чёрном фоне. Теперь это свойства,
+// читающие текущую тему, — то есть настоящие токены под старыми именами.
+// Каждый переписанный экран убирает по одной такой ссылке.
+//
+// Для виджетов Glance и рисования в DrawScope, где темы нет, рядом лежат
+// сырые константы [WidgetPalette].
 // ---------------------------------------------------------------------------
 
 @Deprecated("Использовать AshTheme.colors.background", ReplaceWith("AshTheme.colors.background"))
-val Ash0D = DarkBackground
+val Ash0D: Color @Composable get() = LocalAshColors.current.background
 
 @Deprecated("Использовать AshTheme.colors.surface1", ReplaceWith("AshTheme.colors.surface1"))
-val Ash1A = DarkSurface1
+val Ash1A: Color @Composable get() = LocalAshColors.current.surface1
 
 @Deprecated("Использовать AshTheme.colors.surface2", ReplaceWith("AshTheme.colors.surface2"))
-val Ash26 = DarkSurface2
+val Ash26: Color @Composable get() = LocalAshColors.current.surface2
 
 @Deprecated("Использовать AshTheme.colors.surface3", ReplaceWith("AshTheme.colors.surface3"))
-val Ash3A = DarkSurface3
+val Ash3A: Color @Composable get() = LocalAshColors.current.surface3
 
 @Deprecated("Использовать AshTheme.colors.text", ReplaceWith("AshTheme.colors.text"))
-val AshE8 = DarkText
+val AshE8: Color @Composable get() = LocalAshColors.current.text
 
 @Deprecated("Использовать AshTheme.colors.text2", ReplaceWith("AshTheme.colors.text2"))
-val AshMuted = DarkText2
+val AshMuted: Color @Composable get() = LocalAshColors.current.text2
 
 /** Награды, монеты, стрик, выполнено. */
 @Deprecated("Использовать AshTheme.colors.warm", ReplaceWith("AshTheme.colors.warm"))
-val Gold = WarmDark
+val Gold: Color @Composable get() = LocalAshColors.current.warm
 
 @Deprecated("Использовать AshTheme.colors.warm", ReplaceWith("AshTheme.colors.warm"))
-val Ember = WarmDark
+val Ember: Color @Composable get() = LocalAshColors.current.warm
 
 /** Фокус, таймеры, счётчики отказов. */
 @Deprecated("Использовать AshTheme.colors.cold", ReplaceWith("AshTheme.colors.cold"))
-val Steel = ColdDark
+val Steel: Color @Composable get() = LocalAshColors.current.cold
 
 @Deprecated("Использовать AshTheme.colors.success", ReplaceWith("AshTheme.colors.success"))
-val Moss = SuccessDark
+val Moss: Color @Composable get() = LocalAshColors.current.success
 
 /** Срыв, удаление, просрочка. */
 @Deprecated("Использовать AshTheme.colors.danger", ReplaceWith("AshTheme.colors.danger"))
-val Blood = DangerDark
+val Blood: Color @Composable get() = LocalAshColors.current.danger
+
+/**
+ * Цвета для мест без композиции темы: виджеты Glance и рисование в DrawScope.
+ *
+ * Значения тёмной темы и только они: виджет живёт на рабочем столе, где
+ * настройки приложения не читаются, а выбирать между двумя палитрами там
+ * всё равно нечем.
+ */
+object WidgetPalette {
+    val background = DarkBackground
+    val surface1 = DarkSurface1
+    val surface2 = DarkSurface2
+    val surface3 = DarkSurface3
+    val text = DarkText
+    val text2 = DarkText2
+    val warm = WarmDark
+    val cold = ColdDark
+    val danger = DangerDark
+    val success = SuccessDark
+}

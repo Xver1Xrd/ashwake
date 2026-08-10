@@ -389,6 +389,7 @@ private fun BlockActionsDialog(
 @Composable
 private fun minuteHeight(minutes: Int): Dp = HOUR_HEIGHT * (minutes / 60f)
 
+@Composable
 private fun colorOf(kind: BlockKind): Color = when (kind) {
     BlockKind.TASK -> Steel
     BlockKind.ROUTINE -> Moss

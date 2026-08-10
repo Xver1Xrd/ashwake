@@ -435,6 +435,7 @@ private fun buildLayers(items: List<EquipItem>, tints: Map<String, Int>): List<C
         }
 }
 
+@Composable
 private fun rarityColor(rarity: Rarity): Color = when (rarity) {
     Rarity.COMMON -> Steel
     Rarity.UNCOMMON -> Moss

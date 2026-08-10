@@ -126,6 +126,7 @@ private fun LegendItem(color: Color, label: String) {
     }
 }
 
+@Composable
 private fun colorOf(entry: HabitEntry?, excluded: Boolean, emptyColor: Color): Color = when {
     entry?.status == EntryStatus.DONE -> Moss
     entry?.status == EntryStatus.MINIMUM -> Moss.copy(alpha = 0.5f)

@@ -37,7 +37,7 @@ import androidx.glance.unit.ColorProvider
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.theme.Ember
-import dev.ashwake.ui.theme.Moss
+import dev.ashwake.ui.theme.WidgetPalette
 import kotlinx.coroutines.flow.first
 import java.time.temporal.ChronoUnit
 
@@ -115,7 +115,7 @@ class HabitsWidget : GlanceAppWidget() {
                         Text(
                             if (progress.doneToday) "●  " else "○  ",
                             style = TextStyle(
-                                color = if (progress.doneToday) ColorProvider(Moss)
+                                color = if (progress.doneToday) ColorProvider(WidgetPalette.success)
                                 else GlanceTheme.colors.onSurfaceVariant
                             )
                         )
@@ -235,12 +235,17 @@ class HabitHeatmapWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * Цвет отметки. Берётся из сырой палитры, а не из темы: виджет живёт
+     * на рабочем столе, где композиции темы нет и настройки приложения
+     * не читаются.
+     */
     private fun colorOf(status: EntryStatus?): ColorProvider = when (status) {
-        EntryStatus.DONE -> ColorProvider(Moss)
-        EntryStatus.MINIMUM -> ColorProvider(Moss.copy(alpha = 0.5f))
-        EntryStatus.SKIPPED -> ColorProvider(Ember.copy(alpha = 0.6f))
-        EntryStatus.FROZEN, EntryStatus.PAUSED -> ColorProvider(dev.ashwake.ui.theme.Steel)
-        null -> ColorProvider(dev.ashwake.ui.theme.Ash26)
+        EntryStatus.DONE -> ColorProvider(WidgetPalette.success)
+        EntryStatus.MINIMUM -> ColorProvider(WidgetPalette.success.copy(alpha = 0.5f))
+        EntryStatus.SKIPPED -> ColorProvider(WidgetPalette.warm.copy(alpha = 0.6f))
+        EntryStatus.FROZEN, EntryStatus.PAUSED -> ColorProvider(WidgetPalette.cold)
+        null -> ColorProvider(WidgetPalette.surface2)
     }
 
     private companion object {

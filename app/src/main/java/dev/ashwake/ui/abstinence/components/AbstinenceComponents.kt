@@ -365,4 +365,5 @@ internal fun currencySymbol(code: String): String = when (code.uppercase()) {
 }
 
 /** Цвет фона карточки счётчика в списке. */
-internal val CounterAccent: Color = Moss
+internal val CounterAccent: Color
+    @Composable get() = AshTheme.colors.success

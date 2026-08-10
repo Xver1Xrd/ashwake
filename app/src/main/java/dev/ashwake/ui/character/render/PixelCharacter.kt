@@ -26,9 +26,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
 import dev.ashwake.domain.model.character.EquipSlot
-import dev.ashwake.ui.theme.Ash1A
-import dev.ashwake.ui.theme.Ash3A
-import dev.ashwake.ui.theme.AshE8
+import dev.ashwake.ui.theme.AshTheme
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -148,6 +146,9 @@ fun PixelCharacter(
     }
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        // Тема читается здесь: внутри Canvas композиции уже нет
+        val outline = AshTheme.colors.surface1
+        val labelColor = AshTheme.colors.text
         val density = androidx.compose.ui.platform.LocalDensity.current
         val availablePx = with(density) { minOf(maxWidth, maxHeight).toPx() }
         // Дробный масштаб запрещён: пиксель-арт обязан ложиться на целые пиксели
@@ -180,6 +181,8 @@ fun PixelCharacter(
                         rect = rect,
                         color = layer.color.desaturate(decay),
                         alpha = alpha,
+                        outline = outline,
+                        labelColor = labelColor,
                         originX = originX,
                         originY = originY,
                         scale = scale,
@@ -211,6 +214,10 @@ private fun DrawScope.drawSlot(
     rect: FloatArray,
     color: Color,
     alpha: Float,
+    // Цвета контура и подписи приходят снаружи: рисование не композиция,
+    // и тему отсюда не прочитать
+    outline: Color,
+    labelColor: Color,
     originX: Float,
     originY: Float,
     scale: Int,
@@ -229,7 +236,7 @@ private fun DrawScope.drawSlot(
         size = Size(width, height)
     )
     drawRect(
-        color = Ash1A.copy(alpha = alpha),
+        color = outline.copy(alpha = alpha),
         topLeft = Offset(left, top),
         size = Size(width, height),
         style = Stroke(width = scale.toFloat())
@@ -239,7 +246,7 @@ private fun DrawScope.drawSlot(
     if (width > MIN_LABEL_WIDTH * scale) {
         val text = measurer.measure(
             label,
-            style = TextStyle(fontSize = (3.5f * scale).sp, color = AshE8.copy(alpha = alpha))
+            style = TextStyle(fontSize = (3.5f * scale).sp, color = labelColor.copy(alpha = alpha))
         )
         drawText(
             textLayoutResult = text,
@@ -292,4 +299,5 @@ private const val MAX_DECAY = 0.7f
 private const val MIN_LABEL_WIDTH = 14f
 
 /** Заглушка фона диорамы до появления арта. */
-val PlaceholderFloor: Color = Ash3A
+val PlaceholderFloor: Color
+    @Composable get() = AshTheme.colors.surface3
