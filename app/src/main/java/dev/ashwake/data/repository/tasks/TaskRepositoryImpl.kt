@@ -129,9 +129,13 @@ class TaskRepositoryImpl @Inject constructor(
         )
         val newId = dao.insert(nextEntity)
 
-        // Серию задним числом проставляем и закрытому экземпляру, чтобы история склеивалась.
+        // Серию задним числом проставляем и закрытому экземпляру, чтобы история
+        // склеивалась. Точечным запросом, а не записью строки целиком: `row`
+        // снят до смены статуса, и запись его вернула бы задачу в работу —
+        // повторяющаяся задача из-за этого не закрывалась вовсе, а только
+        // плодила копии.
         if (row.task.seriesId == null) {
-            dao.update(row.task.copy(seriesId = series))
+            dao.setSeriesId(id, series)
         }
         // Теги переносим на следующий экземпляр.
         val tagIds = row.tags.map { it.id }
@@ -144,6 +148,24 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun reopen(id: Long) {
         val now = clock.now().toEpochMilli()
         dao.setStatus(id, TaskStatus.ACTIVE.name, null, now)
+    }
+
+    override suspend fun discardSpawnedRecurrence(taskId: Long): Long? = db.withTransaction {
+        val row = dao.getTask(taskId) ?: return@withTransaction null
+        val series = row.task.seriesId ?: return@withTransaction null
+        // Порождённый экземпляр создан в тот же момент, что закрыта задача.
+        // Секунда запаса — на случай, если вставка и запись completedAt
+        // разошлись по времени внутри транзакции
+        val completedAt = row.task.completedAt ?: return@withTransaction null
+
+        val spawned = dao.untouchedSeriesInstance(
+            seriesId = series,
+            excludeId = taskId,
+            createdAtLeast = completedAt - SPAWN_WINDOW_MILLIS
+        ) ?: return@withTransaction null
+
+        dao.deleteById(spawned.id)
+        spawned.id
     }
 
     override suspend fun postpone(id: Long, toDate: LocalDate?, source: PostponeSource) {
@@ -222,5 +244,14 @@ class TaskRepositoryImpl @Inject constructor(
                 )
             }
         }
+    }
+
+    private companion object {
+        /**
+         * Насколько раньше закрытия мог быть создан порождённый экземпляр.
+         * Вставка и запись completedAt идут в одной транзакции, но берут
+         * «сейчас» по отдельности, поэтому запас нужен.
+         */
+        const val SPAWN_WINDOW_MILLIS = 1_000L
     }
 }

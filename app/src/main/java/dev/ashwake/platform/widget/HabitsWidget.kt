@@ -158,7 +158,7 @@ class MarkHabitAction : ActionCallback {
 
         // Повторный тап снимает отметку: виджет ведёт себя как карточка в списке
         if (progress.doneToday) {
-            deps.habitRepository().clearMark(habitId, today)
+            deps.clearHabitMark().invoke(habitId, today)
         } else {
             deps.markHabit().invoke(
                 progress = progress,

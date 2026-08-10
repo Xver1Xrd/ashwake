@@ -17,6 +17,7 @@ import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
@@ -83,6 +84,7 @@ class TodayViewModel @Inject constructor(
     private val character: CharacterRepository,
     private val catalogLoader: CatalogLoader,
     private val markHabit: MarkHabitUseCase,
+    private val clearHabitMark: ClearHabitMarkUseCase,
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val clock: AppClock
@@ -155,7 +157,7 @@ class TodayViewModel @Inject constructor(
                     markHabit(progress, statusForValue(progress, next), value = next)
                 }
 
-                progress.doneToday -> habits.clearMark(habit.id, clock.today())
+                progress.doneToday -> clearHabitMark(habit.id, clock.today())
 
                 else -> markHabit(progress, EntryStatus.DONE)
             }

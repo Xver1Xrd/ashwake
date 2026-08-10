@@ -126,6 +126,41 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    /**
+     * Проставить серию, не трогая остального.
+     *
+     * Здесь нельзя обойтись `@Update` целой строкой: серия проставляется
+     * сразу после смены статуса, а строка на руках у вызывающего снята до
+     * неё — запись такой строки вернула бы задачу в «активна».
+     */
+    @Query("UPDATE tasks SET seriesId = :seriesId WHERE id = :id")
+    suspend fun setSeriesId(id: Long, seriesId: String)
+
+    /**
+     * Экземпляр серии, созданный закрытием задачи и с тех пор нетронутый.
+     *
+     * `updatedAt = createdAt` — признак того, что после создания его никто не
+     * правил: любая правка, перенос или закрытие сдвигают `updatedAt`.
+     * Берётся самый свежий, потому что серия могла закрываться и раньше.
+     */
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE seriesId = :seriesId
+          AND id != :excludeId
+          AND status = 'ACTIVE'
+          AND createdAt >= :createdAtLeast
+          AND updatedAt = createdAt
+        ORDER BY createdAt DESC
+        LIMIT 1
+        """
+    )
+    suspend fun untouchedSeriesInstance(
+        seriesId: String,
+        excludeId: Long,
+        createdAtLeast: Long
+    ): TaskEntity?
+
     // --- корзина ------------------------------------------------------------
     //
     // Удаление задачи — не DELETE, а перевод в DROPPED. Промах по свайпу

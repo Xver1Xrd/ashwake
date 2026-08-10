@@ -11,6 +11,7 @@ import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 
@@ -32,6 +33,7 @@ interface WidgetEntryPoint {
     fun catalogLoader(): CatalogLoader
     fun completeTask(): CompleteTaskUseCase
     fun markHabit(): MarkHabitUseCase
+    fun clearHabitMark(): ClearHabitMarkUseCase
     fun clock(): AppClock
 }
 

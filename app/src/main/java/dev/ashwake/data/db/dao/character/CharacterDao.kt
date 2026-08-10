@@ -109,6 +109,30 @@ interface CharacterDao {
     @Query("SELECT * FROM ledger_transactions ORDER BY at DESC LIMIT :limit")
     fun observeTransactions(limit: Int = 100): Flow<List<LedgerTransactionEntity>>
 
+    /**
+     * Сколько по событию начислено на самом деле: сумма начислений и уже
+     * сделанных отмен. Журнал только дописывается, поэтому отмена — это не
+     * удаление строки, а встречная запись, и «сколько сейчас висит на
+     * событии» считается суммой, а не последним значением.
+     */
+    @Query(
+        """
+        SELECT COALESCE(SUM(amount), 0) FROM ledger_transactions
+        WHERE refId = :refId AND currency = :currency AND source IN (:sources)
+        """
+    )
+    suspend fun netLedgerAmount(refId: String, currency: String, sources: List<String>): Long
+
+    /** То же для очков характеристик, по одной строке на характеристику. */
+    @Query(
+        """
+        SELECT stat AS stat, COALESCE(SUM(points), 0) AS points FROM stat_events
+        WHERE refId = :refId AND source IN (:sources)
+        GROUP BY stat
+        """
+    )
+    suspend fun netStatPoints(refId: String, sources: List<String>): List<StatPointsSum>
+
     // --- пользовательские награды -----------------------------------------
 
     @Query("SELECT * FROM user_rewards WHERE archived = 0 ORDER BY cost")
@@ -123,3 +147,9 @@ interface CharacterDao {
     @Insert
     suspend fun insertRedemption(redemption: UserRewardRedemptionEntity)
 }
+
+/** Строка ответа [CharacterDao.netStatPoints]: характеристика и сумма очков по ней. */
+data class StatPointsSum(
+    val stat: String,
+    val points: Int
+)

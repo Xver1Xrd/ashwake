@@ -21,6 +21,7 @@ import dev.ashwake.domain.engine.character.StatProgressCalculator
 import dev.ashwake.domain.engine.character.StatSource
 import dev.ashwake.domain.engine.reward.RewardContext
 import dev.ashwake.domain.engine.reward.RewardEngine
+import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.model.character.Bulk
 import dev.ashwake.domain.model.character.CharacterProfile
 import dev.ashwake.domain.model.character.EquipSlot
@@ -29,6 +30,7 @@ import dev.ashwake.domain.model.character.StatValue
 import dev.ashwake.domain.model.character.Wallet
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
+import dev.ashwake.domain.repository.character.RewardScope
 import dev.ashwake.domain.repository.character.PurchaseResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -214,25 +216,66 @@ class CharacterRepositoryImpl @Inject constructor(
 
     override suspend fun grantStatPoints(source: StatSource, sphere: Sphere?, refId: String?) {
         db.withTransaction {
-            val now = clock.now().toEpochMilli()
             statCalculator.pointsFor(source, sphere).forEach { (stat, points) ->
-                val existing = dao.stat(stat.name)
-                val total = (existing?.points ?: 0L) + points
-                dao.upsertStat(
-                    CharacterStatEntity(
-                        stat = stat.name,
-                        points = total,
-                        value = statCalculator.valueOf(total)
-                    )
-                )
-                dao.insertStatEvent(
-                    StatEventEntity(
-                        at = now, stat = stat.name, points = points,
-                        source = source.name, refId = refId
-                    )
-                )
+                addStatPoints(stat, points, source.name, refId)
             }
         }
+    }
+
+    /**
+     * Отмена начисления.
+     *
+     * Считается не «сколько полагалось», а сколько по этому событию сейчас
+     * реально висит в журнале: множители экипировки на момент начисления
+     * могли быть другими, а отменить надо ровно выданное. Сумма включает и
+     * прошлые отмены, поэтому второй вызов подряд снимает ноль и ничего
+     * не портит — а именно так и выглядит частое нажатие чекбокса.
+     */
+    override suspend fun revokeReward(scope: RewardScope, refId: String) {
+        db.withTransaction {
+            val ledgerSources = scope.ledgerSources()
+            val statSources = scope.statSources()
+
+            val coins = dao.netLedgerAmount(refId, CURRENCY_COIN, ledgerSources)
+            if (coins != 0L) applyCoins(-coins, scope.revokeSource(), refId, 1f)
+
+            val xp = dao.netLedgerAmount(refId, CURRENCY_XP, ledgerSources)
+            if (xp != 0L) applyXp(-xp, scope.revokeSource(), refId)
+
+            dao.netStatPoints(refId, statSources).forEach { row ->
+                if (row.points == 0) return@forEach
+                val stat = runCatching { Stat.valueOf(row.stat) }.getOrNull() ?: return@forEach
+                addStatPoints(stat, -row.points, scope.revokeSource(), refId)
+            }
+        }
+    }
+
+    /**
+     * Общий путь изменения характеристики: и начисление, и отмена.
+     *
+     * Итог не уходит ниже нуля — иначе отмена события, начисленного до
+     * восстановления из бэкапа, увела бы характеристику в минус, а
+     * `sqrt` от отрицательного не считается.
+     */
+    private suspend fun addStatPoints(stat: Stat, points: Int, source: String, refId: String?) {
+        val existing = dao.stat(stat.name)
+        val total = ((existing?.points ?: 0L) + points).coerceAtLeast(0L)
+        dao.upsertStat(
+            CharacterStatEntity(
+                stat = stat.name,
+                points = total,
+                value = statCalculator.valueOf(total)
+            )
+        )
+        dao.insertStatEvent(
+            StatEventEntity(
+                at = clock.now().toEpochMilli(),
+                stat = stat.name,
+                points = points,
+                source = source,
+                refId = refId
+            )
+        )
     }
 
     override suspend fun ensureBuiltinData() {
@@ -298,7 +341,7 @@ class CharacterRepositoryImpl @Inject constructor(
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
-                currency = "COIN",
+                currency = CURRENCY_COIN,
                 amount = amount,
                 source = source,
                 refId = refId,
@@ -315,7 +358,7 @@ class CharacterRepositoryImpl @Inject constructor(
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
-                currency = "XP",
+                currency = CURRENCY_XP,
                 amount = amount,
                 source = source,
                 refId = refId,
@@ -348,8 +391,49 @@ class CharacterRepositoryImpl @Inject constructor(
         parallaxEnabled = parallaxEnabled
     )
 
+    /**
+     * Источники, которыми начисляет событие. Знание о том, что закрытие
+     * задачи трогает три источника очков, живёт здесь и только здесь.
+     */
+    private fun RewardScope.ledgerSources(): List<String> = when (this) {
+        RewardScope.TASK -> listOf(RewardSource.TASK_DONE.name, revokeSource())
+        RewardScope.HABIT -> listOf(
+            RewardSource.HABIT_DONE.name,
+            RewardSource.HABIT_MINIMUM.name,
+            revokeSource()
+        )
+    }
+
+    private fun RewardScope.statSources(): List<String> = when (this) {
+        RewardScope.TASK -> listOf(
+            StatSource.TASK_DONE.name,
+            StatSource.TASK_ON_TIME.name,
+            StatSource.STALE_TASK_CLOSED.name,
+            revokeSource()
+        )
+
+        RewardScope.HABIT -> listOf(
+            StatSource.HABIT_DONE.name,
+            StatSource.HABIT_MINIMUM.name,
+            StatSource.STREAK_DAY.name,
+            revokeSource()
+        )
+    }
+
+    /**
+     * Источник встречной записи. У каждого вида события свой, чтобы отмена
+     * задачи не попала в сумму по привычке с тем же номером.
+     */
+    private fun RewardScope.revokeSource(): String = when (this) {
+        RewardScope.TASK -> "TASK_REWARD_REVOKED"
+        RewardScope.HABIT -> "HABIT_REWARD_REVOKED"
+    }
+
     private companion object {
         const val MAX_UPGRADE = 10
+
+        const val CURRENCY_COIN = "COIN"
+        const val CURRENCY_XP = "XP"
 
         /**
          * Комплект первого запуска: волосы, лицо и повседневная одежда.

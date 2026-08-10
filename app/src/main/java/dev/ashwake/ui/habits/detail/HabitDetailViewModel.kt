@@ -8,6 +8,7 @@ import dev.ashwake.core.time.AppClock
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.repository.habits.HabitDetail
 import dev.ashwake.domain.repository.habits.HabitRepository
+import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -18,6 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HabitDetailViewModel @Inject constructor(
     private val habits: HabitRepository,
+    private val clearHabitMark: ClearHabitMarkUseCase,
     private val clock: AppClock,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -42,7 +44,7 @@ class HabitDetailViewModel @Inject constructor(
                 null -> habits.mark(habitId, date, EntryStatus.DONE)
                 EntryStatus.DONE, EntryStatus.MINIMUM ->
                     habits.mark(habitId, date, EntryStatus.SKIPPED)
-                else -> habits.clearMark(habitId, date)
+                else -> clearHabitMark(habitId, date)
             }
         }
     }

@@ -6,6 +6,7 @@ import dev.ashwake.domain.engine.reward.RewardContext
 import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.model.tasks.TaskStatus
 import dev.ashwake.domain.repository.character.CharacterRepository
+import dev.ashwake.domain.repository.character.RewardScope
 import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
@@ -83,13 +84,37 @@ class CompleteTaskUseCase @Inject constructor(
     }
 }
 
+/**
+ * Возврат задачи в работу.
+ *
+ * Возврат обязан быть полной противоположностью закрытия, иначе закрытие
+ * становится источником монет: нажал — начислили, вернул — не сняли, нажал
+ * снова — начислили опять. Поэтому здесь не только меняется статус, но и
+ * отменяется награда, и убирается экземпляр повтора, созданный тем самым
+ * закрытием.
+ */
 class ReopenTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
-    private val scheduler: TaskReminderScheduler
+    private val scheduler: TaskReminderScheduler,
+    private val character: CharacterRepository
 ) {
     suspend operator fun invoke(taskId: Long) {
+        val before = tasks.getTask(taskId)
+        // Не была закрыта — отменять нечего, остаётся обычная смена статуса
+        val wasDone = before?.status == TaskStatus.DONE
+
+        // Строго до возврата: порождённый экземпляр ищется по времени
+        // закрытия, а возврат это время стирает
+        if (wasDone) {
+            tasks.discardSpawnedRecurrence(taskId)?.let(scheduler::cancel)
+        }
+
         tasks.reopen(taskId)
         tasks.getTask(taskId)?.let(scheduler::schedule)
+
+        if (wasDone) {
+            character.revokeReward(RewardScope.TASK, taskId.toString())
+        }
     }
 }
 
