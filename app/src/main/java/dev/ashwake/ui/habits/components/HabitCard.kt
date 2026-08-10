@@ -20,7 +20,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.theme.Ember
@@ -106,9 +107,7 @@ fun HabitCard(
 
         if (habit.hasMinimum && !progress.doneToday && !progress.paused) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextButton(onClick = onMinimum) {
-                    Text("Минимум · ${formatValue(habit.minimumValue ?: 0f)}")
-                }
+                TextAction(text = "Минимум · ${formatValue(habit.minimumValue ?: 0f)}", onClick = onMinimum)
             }
         }
     }

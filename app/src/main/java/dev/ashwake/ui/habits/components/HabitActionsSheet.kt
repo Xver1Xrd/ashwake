@@ -13,13 +13,9 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -29,6 +25,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
@@ -95,16 +94,17 @@ fun HabitActionsSheet(
             }
 
             HorizontalDivider()
-            OutlinedTextField(
+            AshTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text(stringResource(R.string.components_zametka_k_otmetke)) },
+                label = stringResource(R.string.components_zametka_k_otmetke),
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
-                trailingIcon = {
-                    TextButton(onClick = { onNote(note.takeIf { it.isNotBlank() }) }) {
-                        Text(stringResource(R.string.components_ok))
-                    }
+                trailing = {
+                    TextAction(
+                        text = stringResource(R.string.components_ok),
+                        onClick = { onNote(note.takeIf { it.isNotBlank() }) }
+                    )
                 }
             )
 
@@ -125,31 +125,36 @@ fun HabitActionsSheet(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
-                    onClick = onFreeze,
-                    enabled = progress.freezesLeftThisMonth > 0
-                ) {
-                    Icon(FreezeIcon, contentDescription = null)
-                    Text("  Заморозить (${progress.freezesLeftThisMonth})")
-                }
-                OutlinedButton(onClick = if (progress.paused) onResume else onPause) {
-                    Text(if (progress.paused) "Снять паузу" else "Пауза")
-                }
+                ChipButton(
+                    text = "  Заморозить (${progress.freezesLeftThisMonth})",
+                    icon = FreezeIcon,
+                    enabled = progress.freezesLeftThisMonth > 0,
+                    onClick = onFreeze
+                )
+                ChipButton(
+                    text = if (progress.paused) "Снять паузу" else "Пауза",
+                    onClick = if (progress.paused) onResume else onPause
+                )
             }
 
             if (progress.todayEntry != null) {
-                TextButton(onClick = onClear) { Text(stringResource(R.string.components_snyat_otmetku_za_segodnya)) }
+                TextAction(
+                    text = stringResource(R.string.components_snyat_otmetku_za_segodnya),
+                    onClick = onClear
+                )
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onEdit) {
-                    Icon(Icons.Filled.Edit, contentDescription = null)
-                    Text(stringResource(R.string.components_izmenit))
-                }
-                OutlinedButton(onClick = onArchive) {
-                    Icon(Icons.Filled.Archive, contentDescription = null)
-                    Text(stringResource(R.string.components_v_arhiv))
-                }
+                ChipButton(
+                    text = stringResource(R.string.components_izmenit),
+                    icon = Icons.Filled.Edit,
+                    onClick = onEdit
+                )
+                ChipButton(
+                    text = stringResource(R.string.components_v_arhiv),
+                    icon = Icons.Filled.Archive,
+                    onClick = onArchive
+                )
             }
         }
     }

@@ -19,15 +19,11 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +40,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.routines.SessionSummary
 import dev.ashwake.platform.service.formatTime
@@ -130,10 +130,10 @@ fun RoutineRunScreen(
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = { viewModel.adjust(-1) }) { Text("−1") }
-            OutlinedButton(onClick = { viewModel.adjust(-10) }) { Text("−10") }
-            OutlinedButton(onClick = { viewModel.adjust(1) }) { Text("+1") }
-            OutlinedButton(onClick = { viewModel.adjust(10) }) { Text("+10") }
+            ChipButton(text = "−1", onClick = { viewModel.adjust(-1) })
+            ChipButton(text = "−10", onClick = { viewModel.adjust(-10) })
+            ChipButton(text = "+1", onClick = { viewModel.adjust(1) })
+            ChipButton(text = "+10", onClick = { viewModel.adjust(10) })
         }
 
         Row(
@@ -149,13 +149,17 @@ fun RoutineRunScreen(
                     contentDescription = if (run.running) "Пауза" else "Продолжить"
                 )
             }
-            OutlinedButton(onClick = { viewModel.skip() }) {
-                Icon(Icons.Filled.SkipNext, contentDescription = null)
-                Text(stringResource(R.string.routines_propustit))
-            }
+            ChipButton(
+                text = stringResource(R.string.routines_propustit),
+                icon = Icons.Filled.SkipNext,
+                onClick = { viewModel.skip() }
+            )
         }
 
-        TextButton(onClick = { showAddStep = true }) { Text(stringResource(R.string.routines_dobavit_shag)) }
+        TextAction(
+            text = stringResource(R.string.routines_dobavit_shag),
+            onClick = { showAddStep = true }
+        )
 
         HorizontalDivider()
 
@@ -231,27 +235,28 @@ private fun AddStepDialog(onAdd: (String, Int) -> Unit, onDismiss: () -> Unit) {
         title = { Text(stringResource(R.string.routines_novyy_shag)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
+                AshTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text(stringResource(R.string.editor_nazvanie)) },
+                    label = stringResource(R.string.editor_nazvanie),
                     singleLine = true
                 )
-                OutlinedTextField(
+                AshTextField(
                     value = minutes,
                     onValueChange = { minutes = it },
-                    label = { Text(stringResource(R.string.routines_minut)) },
+                    label = stringResource(R.string.routines_minut),
                     singleLine = true
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            TextAction(
+                text = stringResource(R.string.routines_dobavit),
                 enabled = title.isNotBlank(),
                 onClick = { onAdd(title, minutes.toIntOrNull() ?: 5) }
-            ) { Text(stringResource(R.string.routines_dobavit)) }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }
 
@@ -304,6 +309,6 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
                 }
             }
         },
-        confirmButton = { Button(onClick = onDismiss) { Text(stringResource(R.string.editor_gotovo)) } }
+        confirmButton = { PrimaryButton(text = stringResource(R.string.editor_gotovo), onClick = onDismiss) }
     )
 }

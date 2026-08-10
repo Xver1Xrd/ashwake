@@ -20,18 +20,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -47,6 +43,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.blocking.UnlockCondition
@@ -222,7 +222,7 @@ private fun PermissionRow(
                 color = if (granted) Moss else AshTheme.colors.text,
                 modifier = Modifier.weight(1f)
             )
-            if (!granted) TextButton(onClick = onOpen) { Text(stringResource(R.string.blocking_vydat)) }
+            if (!granted) TextAction(text = stringResource(R.string.blocking_vydat), onClick = onOpen)
         }
         Text(
             explanation,
@@ -253,11 +253,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 modifier = Modifier.heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                AshTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.editor_nazvanie)) },
-                    placeholder = { Text(stringResource(R.string.blocking_utro_bez_socsetey)) },
+                    label = stringResource(R.string.editor_nazvanie),
+                    placeholder = stringResource(R.string.blocking_utro_bez_socsetey),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -265,11 +265,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 Text(stringResource(R.string.blocking_otkryt_kogda), style = AshTheme.type.subhead)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     UnlockCondition.entries.forEach { option ->
-                        FilterChip(
-                            selected = condition == option,
-                            onClick = { condition = option },
-                            label = { Text(shortConditionLabel(option)) }
-                        )
+                        ChipButton(
+                        text = shortConditionLabel(option),
+                        selected = condition == option,
+                        onClick = { condition = option }
+                    )
                     }
                 }
 
@@ -278,11 +278,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         routines.forEach { routine ->
-                            FilterChip(
-                                selected = routineId == routine.id,
-                                onClick = { routineId = routine.id },
-                                label = { Text(routine.name) }
-                            )
+                            ChipButton(
+                        text = routine.name,
+                        selected = routineId == routine.id,
+                        onClick = { routineId = routine.id }
+                    )
                         }
                     }
 
@@ -290,11 +290,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(8, 10, 12, 14, 18).forEach { option ->
-                            FilterChip(
-                                selected = hour == option,
-                                onClick = { hour = option },
-                                label = { Text("%02d:00".format(option)) }
-                            )
+                            ChipButton(
+                        text = "%02d:00".format(option),
+                        selected = hour == option,
+                        onClick = { hour = option }
+                    )
                         }
                     }
 
@@ -302,10 +302,10 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 }
 
                 HorizontalDivider()
-                OutlinedTextField(
+                AshTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text(stringResource(R.string.blocking_poisk_prilozheniya)) },
+                    label = stringResource(R.string.blocking_poisk_prilozheniya),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -339,7 +339,8 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
             }
         },
         confirmButton = {
-            Button(
+            PrimaryButton(
+                text = stringResource(R.string.editor_sozdat),
                 enabled = name.isNotBlank() && selected.isNotEmpty(),
                 onClick = {
                     viewModel.createRule(
@@ -352,9 +353,9 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                     )
                     onDismiss()
                 }
-            ) { Text(stringResource(R.string.editor_sozdat)) }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }
 

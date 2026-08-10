@@ -11,16 +11,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +28,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.importer.ImportSource
@@ -105,17 +105,18 @@ fun BackupScreen(
                 style = AshTheme.type.callout,
                 color = if (folder != null) Moss else Ember
             )
-            OutlinedButton(
-                onClick = { pickFolder.launch(null) },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (folder == null) "Выбрать папку" else "Сменить папку") }
+            ChipButton(
+                text = if (folder == null) "Выбрать папку" else "Сменить папку",
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { pickFolder.launch(null) }
+            )
 
             HorizontalDivider()
             Text(stringResource(R.string.backup_parol_arhiva), style = AshTheme.type.headline)
-            OutlinedTextField(
+            AshTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text(stringResource(R.string.backup_parol)) },
+                label = stringResource(R.string.backup_parol),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
@@ -131,14 +132,16 @@ fun BackupScreen(
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { viewModel.backupNow(password) },
-                    modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.backup_sdelat_kopiyu)) }
-                OutlinedButton(
-                    onClick = { pickArchive.launch(arrayOf("*/*")) },
-                    modifier = Modifier.weight(1f)
-                ) { Text(stringResource(R.string.backup_otkryt_arhiv)) }
+                PrimaryButton(
+                    text = stringResource(R.string.backup_sdelat_kopiyu),
+                    modifier = Modifier.weight(1f),
+                    onClick = { viewModel.backupNow(password) }
+                )
+                ChipButton(
+                    text = stringResource(R.string.backup_otkryt_arhiv),
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickArchive.launch(arrayOf("*/*")) }
+                )
             }
 
             HorizontalDivider()
@@ -150,13 +153,14 @@ fun BackupScreen(
             )
 
             ImportSource.entries.forEach { source ->
-                OutlinedButton(
+                ChipButton(
+                    text = sourceLabel(source),
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         importSource = source
                         pickImport.launch(arrayOf("text/*", "text/csv", "text/comma-separated-values"))
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(sourceLabel(source)) }
+                    }
+                )
             }
         }
     }
@@ -191,13 +195,14 @@ fun BackupScreen(
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = viewModel::applyImport,
-                    enabled = !import.busy && report.imported > 0
-                ) { Text(stringResource(R.string.backup_primenit)) }
+                PrimaryButton(
+                    text = stringResource(R.string.backup_primenit),
+                    enabled = !import.busy && report.imported > 0,
+                    onClick = viewModel::applyImport
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelImport) { Text(stringResource(R.string.detail_otmena)) }
+                TextAction(text = stringResource(R.string.detail_otmena), onClick = viewModel::cancelImport)
             }
         )
     }
@@ -221,18 +226,18 @@ fun BackupScreen(
                 }
             },
             confirmButton = {
-                TextButton(
-                    onClick = viewModel::applyRestore,
-                    enabled = !restoring
-                ) {
-                    Text(
-                        text = if (restoring) "Восстановление…" else "Заменить данные",
-                        color = AshTheme.colors.danger
-                    )
-                }
+                TextAction(
+                    text = if (restoring) "Восстановление…" else "Заменить данные",
+                    color = AshTheme.colors.danger,
+                    enabled = !restoring,
+                    onClick = viewModel::applyRestore
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text(stringResource(R.string.detail_otmena)) }
+                TextAction(
+                    text = stringResource(R.string.detail_otmena),
+                    onClick = viewModel::dismissRestorePreview
+                )
             }
         )
     }

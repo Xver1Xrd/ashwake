@@ -28,13 +28,11 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -53,6 +51,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.BlockKind
@@ -135,17 +135,17 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf(0, 5, 10, 15).forEach { buffer ->
-                    FilterChip(
+                    ChipButton(
+                        text = "буфер $buffer",
                         selected = settings.bufferMinutes == buffer,
-                        onClick = { viewModel.setBuffer(buffer) },
-                        label = { Text("буфер $buffer") }
+                        onClick = { viewModel.setBuffer(buffer) }
                     )
                 }
-                FilterChip(
-                    selected = useCalendar,
-                    onClick = { viewModel.setUseCalendar(!useCalendar) },
-                    label = { Text(stringResource(R.string.timebox_kalendar)) }
-                )
+                ChipButton(
+                        text = stringResource(R.string.timebox_kalendar),
+                        selected = useCalendar,
+                        onClick = { viewModel.setUseCalendar(!useCalendar) }
+                    )
             }
 
             if (useCalendar && !viewModel.calendarPermissionGranted()) {
@@ -176,10 +176,11 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 onSelect = { selectedBlock = it }
             )
 
-            TextButton(
-                onClick = viewModel::clearDay,
-                modifier = Modifier.padding(16.dp)
-            ) { Text(stringResource(R.string.timebox_ochistit_den)) }
+            TextAction(
+                text = stringResource(R.string.timebox_ochistit_den),
+                modifier = Modifier.padding(16.dp),
+                onClick = viewModel::clearDay
+            )
         }
     }
 
@@ -219,7 +220,10 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = viewModel::dismissOutcome) { Text(stringResource(R.string.detail_ponyatno)) } }
+            confirmButton = { TextAction(
+                                  text = stringResource(R.string.detail_ponyatno),
+                                  onClick = viewModel::dismissOutcome
+                              ) }
         )
     }
 
@@ -371,19 +375,20 @@ private fun BlockActionsDialog(
                         formatDuration(block.durationMinutes),
                     style = AshTheme.type.callout
                 )
-                TextButton(onClick = onPin) {
-                    Text(if (block.pinned) "Открепить" else "Закрепить: не двигать")
-                }
+                TextAction(
+                    text = if (block.pinned) "Открепить" else "Закрепить: не двигать",
+                    onClick = onPin
+                )
                 Text(stringResource(R.string.timebox_zatyanulos_na), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 30, 60).forEach { minutes ->
-                        TextButton(onClick = { onOverran(minutes) }) { Text("+$minutes") }
+                        TextAction(text = "+$minutes", onClick = { onOverran(minutes) })
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.components_zakryt)) } },
-        dismissButton = { TextButton(onClick = onDelete) { Text(stringResource(R.string.timebox_ubrat_blok)) } }
+        confirmButton = { TextAction(text = stringResource(R.string.components_zakryt), onClick = onDismiss) },
+        dismissButton = { TextAction(text = stringResource(R.string.timebox_ubrat_blok), onClick = onDelete) }
     )
 }
 

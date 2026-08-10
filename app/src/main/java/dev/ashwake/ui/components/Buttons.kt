@@ -180,12 +180,13 @@ fun ChipButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     selected: Boolean = false,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     val colors = AshTheme.colors
     Row(
         modifier = modifier
-            .tappable(onClick = onClick)
+            .tappable(enabled = enabled, onClick = onClick)
             .background(
                 if (selected) colors.accent else colors.surface2,
                 AshShapes.pill
@@ -195,7 +196,10 @@ fun ChipButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
+        // Недоступная таблетка гасится текстом, а не исчезает: пропавшая
+        // кнопка читается как поломка, а погашенная — как «сейчас нельзя»
         val content = when {
+            !enabled -> colors.text3
             selected && colors.isDark -> Color.Black
             selected -> Color.White
             else -> colors.text

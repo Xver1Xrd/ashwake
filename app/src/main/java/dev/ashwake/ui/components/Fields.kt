@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -44,6 +48,8 @@ fun AshTextField(
     minLines: Int = 1,
     textStyle: TextStyle = AshTheme.type.body,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailing: @Composable (() -> Unit)? = null,
     enabled: Boolean = true
 ) {
     val colors = AshTheme.colors
@@ -53,7 +59,7 @@ fun AshTextField(
     Column(modifier.fillMaxWidth()) {
         label?.let { FieldLabel(it) }
 
-        Box(
+        Row(
             Modifier
                 .fillMaxWidth()
                 .background(colors.surface2, AshShapes.group)
@@ -62,25 +68,33 @@ fun AshTextField(
                     color = if (focused) colors.accent else androidx.compose.ui.graphics.Color.Transparent,
                     shape = AshShapes.group
                 )
-                .padding(horizontal = 14.dp, vertical = 12.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (value.isEmpty() && placeholder != null) {
-                Text(placeholder, style = textStyle, color = colors.text3)
+            Box(Modifier.weight(1f)) {
+                if (value.isEmpty() && placeholder != null) {
+                    Text(placeholder, style = textStyle, color = colors.text3)
+                }
+                BasicTextField(
+                    value = value,
+                    onValueChange = onValueChange,
+                    enabled = enabled,
+                    singleLine = singleLine,
+                    minLines = minLines,
+                    textStyle = textStyle.copy(color = colors.text),
+                    cursorBrush = SolidColor(colors.accent),
+                    keyboardOptions = keyboardOptions,
+                    // Пароль архива нельзя показывать открытым текстом:
+                    // поле видно всякому, кто заглянул через плечо
+                    visualTransformation = visualTransformation,
+                    interactionSource = interactionSource,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = textStyle.fontSize.value.dp)
+                )
             }
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                enabled = enabled,
-                singleLine = singleLine,
-                minLines = minLines,
-                textStyle = textStyle.copy(color = colors.text),
-                cursorBrush = SolidColor(colors.accent),
-                keyboardOptions = keyboardOptions,
-                interactionSource = interactionSource,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .defaultMinSize(minHeight = textStyle.fontSize.value.dp)
-            )
+            trailing?.invoke()
         }
     }
 }

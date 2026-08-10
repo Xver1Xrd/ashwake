@@ -4,10 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +12,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.StaleResolution
 import dev.ashwake.domain.model.tasks.Task
@@ -50,60 +50,66 @@ fun StaleTaskDialog(
                 )
 
                 when (mode) {
-                    StaleResolution.DELEGATE -> OutlinedTextField(
-                        value = payload,
-                        onValueChange = { payload = it },
-                        label = { Text(stringResource(R.string.components_komu_delegirovat)) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                    StaleResolution.DELEGATE -> AshTextField(
+                                                    value = payload,
+                                                    onValueChange = { payload = it },
+                                                    label = stringResource(R.string.components_komu_delegirovat),
+                                                    singleLine = true,
+                                                    modifier = Modifier.fillMaxWidth()
+                                                )
 
-                    StaleResolution.SPLIT -> OutlinedTextField(
-                        value = payload,
-                        onValueChange = { payload = it },
-                        label = { Text(stringResource(R.string.components_podzadachi_po_odnoy_v_stroke)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3
-                    )
+                    StaleResolution.SPLIT -> AshTextField(
+                                                 value = payload,
+                                                 onValueChange = { payload = it },
+                                                 label = stringResource(R.string.components_podzadachi_po_odnoy_v_stroke),
+                                                 modifier = Modifier.fillMaxWidth(),
+                                                 minLines = 3
+                                             )
 
                     else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        OutlinedButton(
-                            onClick = { onResolve(StaleResolution.DELETE, null) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.blocking_udalit)) }
+                        ChipButton(
+                            text = stringResource(R.string.blocking_udalit),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onResolve(StaleResolution.DELETE, null) }
+                        )
 
-                        OutlinedButton(
-                            onClick = { mode = StaleResolution.DELEGATE },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.components_delegirovat)) }
+                        ChipButton(
+                            text = stringResource(R.string.components_delegirovat),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { mode = StaleResolution.DELEGATE }
+                        )
 
-                        OutlinedButton(
-                            onClick = { mode = StaleResolution.SPLIT },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.components_razbit_na_podzadachi)) }
+                        ChipButton(
+                            text = stringResource(R.string.components_razbit_na_podzadachi),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { mode = StaleResolution.SPLIT }
+                        )
 
-                        OutlinedButton(
-                            onClick = { onResolve(StaleResolution.SCHEDULE_SLOT, null) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(stringResource(R.string.components_postavit_na_segodnya)) }
+                        ChipButton(
+                            text = stringResource(R.string.components_postavit_na_segodnya),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onResolve(StaleResolution.SCHEDULE_SLOT, null) }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             if (mode != null) {
-                TextButton(
-                    onClick = { onResolve(mode!!, payload.takeIf { it.isNotBlank() }) },
-                    enabled = payload.isNotBlank()
-                ) { Text(stringResource(R.string.editor_gotovo)) }
+                TextAction(
+                    text = stringResource(R.string.editor_gotovo),
+                    enabled = payload.isNotBlank(),
+                    onClick = { onResolve(mode!!, payload.takeIf { it.isNotBlank() }) }
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = {
-                if (mode != null) mode = null else onResolve(StaleResolution.KEEP, null)
-            }) {
-                Text(if (mode != null) "Назад" else "Оставить как есть")
-            }
+            TextAction(
+                text = if (mode != null) "Назад" else "Оставить как есть",
+                onClick = {
+                    if (mode != null) mode = null else onResolve(StaleResolution.KEEP, null)
+                }
+            )
         }
     )
 }

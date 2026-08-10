@@ -13,14 +13,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.components.IconButtonSlot
@@ -28,7 +29,6 @@ import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
@@ -105,10 +105,10 @@ fun HabitEditorScreen(
                     expanded = showIconPicker,
                     onClick = { showIconPicker = !showIconPicker }
                 )
-                OutlinedTextField(
+                AshTextField(
                     value = state.name,
                     onValueChange = viewModel::setName,
-                    label = { Text(stringResource(R.string.editor_nazvanie)) },
+                    label = stringResource(R.string.editor_nazvanie),
                     modifier = Modifier.weight(1f),
                     singleLine = true
                 )
@@ -126,10 +126,10 @@ fun HabitEditorScreen(
             Text(stringResource(R.string.editor_tip), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 HabitType.entries.forEach { type ->
-                    FilterChip(
+                    ChipButton(
+                        text = typeLabel(type),
                         selected = state.type == type,
-                        onClick = { viewModel.setType(type) },
-                        label = { Text(typeLabel(type)) }
+                        onClick = { viewModel.setType(type) }
                     )
                 }
             }
@@ -143,18 +143,18 @@ fun HabitEditorScreen(
 
             if (state.type == HabitType.COUNTER) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
+                    AshTextField(
                         value = state.targetValue.toInt().toString(),
                         onValueChange = { it.toFloatOrNull()?.let(viewModel::setTarget) },
-                        label = { Text(stringResource(R.string.editor_cel)) },
+                        label = stringResource(R.string.editor_cel),
                         singleLine = true,
                         modifier = Modifier.weight(1f),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )
-                    OutlinedTextField(
+                    AshTextField(
                         value = state.unitName,
                         onValueChange = viewModel::setUnit,
-                        label = { Text(stringResource(R.string.editor_edinica)) },
+                        label = stringResource(R.string.editor_edinica),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -182,10 +182,10 @@ fun HabitEditorScreen(
                 )
             }
             if (state.minimumEnabled) {
-                OutlinedTextField(
+                AshTextField(
                     value = state.minimumValue.toInt().toString(),
                     onValueChange = { it.toFloatOrNull()?.let(viewModel::setMinimum) },
-                    label = { Text(stringResource(R.string.editor_minimum)) },
+                    label = stringResource(R.string.editor_minimum),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
@@ -196,10 +196,10 @@ fun HabitEditorScreen(
             Text(stringResource(R.string.editor_raspisanie), style = AshTheme.type.headline)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 HabitScheduleType.entries.forEach { type ->
-                    FilterChip(
+                    ChipButton(
+                        text = scheduleLabel(type),
                         selected = state.scheduleType == type,
-                        onClick = { viewModel.setScheduleType(type) },
-                        label = { Text(scheduleLabel(type)) }
+                        onClick = { viewModel.setScheduleType(type) }
                     )
                 }
             }
@@ -209,11 +209,11 @@ fun HabitEditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     (1..7).forEach { times ->
-                        FilterChip(
-                            selected = state.timesPerWeek == times,
-                            onClick = { viewModel.setTimesPerWeek(times) },
-                            label = { Text("$times") }
-                        )
+                        ChipButton(
+                        text = "$times",
+                        selected = state.timesPerWeek == times,
+                        onClick = { viewModel.setTimesPerWeek(times) }
+                    )
                     }
                 }
 
@@ -221,11 +221,11 @@ fun HabitEditorScreen(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     DayOfWeek.entries.forEachIndexed { index, day ->
-                        FilterChip(
-                            selected = day in state.weekdays,
-                            onClick = { viewModel.toggleWeekday(day) },
-                            label = { Text(WEEKDAY_LABELS[index]) }
-                        )
+                        ChipButton(
+                        text = WEEKDAY_LABELS[index],
+                        selected = day in state.weekdays,
+                        onClick = { viewModel.toggleWeekday(day) }
+                    )
                     }
                 }
 
@@ -237,10 +237,10 @@ fun HabitEditorScreen(
             Text(stringResource(R.string.editor_sfera), style = AshTheme.type.headline)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Sphere.entries.forEach { sphere ->
-                    FilterChip(
+                    ChipButton(
+                        text = sphereLabel(sphere),
                         selected = state.sphere == sphere,
-                        onClick = { viewModel.setSphere(sphere) },
-                        label = { Text(sphereLabel(sphere)) }
+                        onClick = { viewModel.setSphere(sphere) }
                     )
                 }
             }
@@ -254,23 +254,26 @@ fun HabitEditorScreen(
 
             Text(stringResource(R.string.editor_napominanie), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(
-                    selected = state.reminderTime != null,
-                    onClick = { showTimePicker = true },
-                    label = { Text(state.reminderTime?.format(TIME_FORMAT) ?: "Время") }
-                )
+                ChipButton(
+                        text = state.reminderTime?.format(TIME_FORMAT) ?: "Время",
+                        selected = state.reminderTime != null,
+                        onClick = { showTimePicker = true }
+                    )
                 if (state.reminderTime != null) {
-                    TextButton(onClick = { viewModel.setReminder(null) }) { Text(stringResource(R.string.editor_ubrat)) }
+                    TextAction(
+                        text = stringResource(R.string.editor_ubrat),
+                        onClick = { viewModel.setReminder(null) }
+                    )
                 }
             }
 
             Text(stringResource(R.string.editor_zamorozok_v_mesyac), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(0, 1, 3, 5, 10).forEach { quota ->
-                    FilterChip(
+                    ChipButton(
+                        text = "$quota",
                         selected = state.freezeQuota == quota,
-                        onClick = { viewModel.setFreezeQuota(quota) },
-                        label = { Text("$quota") }
+                        onClick = { viewModel.setFreezeQuota(quota) }
                     )
                 }
             }
@@ -284,41 +287,44 @@ fun HabitEditorScreen(
                 color = AshTheme.colors.text2
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = state.anchorType == null,
-                    onClick = { viewModel.setAnchorType(null) },
-                    label = { Text(stringResource(R.string.editor_net)) }
-                )
+                ChipButton(
+                        text = stringResource(R.string.editor_net),
+                        selected = state.anchorType == null,
+                        onClick = { viewModel.setAnchorType(null) }
+                    )
                 listOf(AnchorType.HABIT_DONE, AnchorType.FIRST_UNLOCK).forEach { type ->
-                    FilterChip(
+                    ChipButton(
+                        text = anchorLabel(type),
                         selected = state.anchorType == type,
-                        onClick = { viewModel.setAnchorType(type) },
-                        label = { Text(anchorLabel(type)) }
+                        onClick = { viewModel.setAnchorType(type) }
                     )
                 }
             }
             if (state.anchorType == AnchorType.HABIT_DONE) {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     anchorCandidates.forEach { candidate ->
-                        FilterChip(
-                            selected = state.anchorHabitId == candidate.id,
-                            onClick = { viewModel.setAnchorHabit(candidate.id) },
-                            label = { Text(candidate.name) }
-                        )
+                        ChipButton(
+                        text = candidate.name,
+                        selected = state.anchorHabitId == candidate.id,
+                        onClick = { viewModel.setAnchorHabit(candidate.id) }
+                    )
                     }
                 }
             }
 
-            Button(
-                onClick = viewModel::save,
+            PrimaryButton(
+                text = stringResource(R.string.detail_sohranit),
+                modifier = Modifier.fillMaxWidth(),
                 enabled = state.canSave,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(stringResource(R.string.detail_sohranit)) }
+                onClick = viewModel::save
+            )
 
             if (!state.isNew) {
-                TextButton(onClick = viewModel::archive, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.editor_v_arhiv))
-                }
+                TextAction(
+                    text = stringResource(R.string.editor_v_arhiv),
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = viewModel::archive
+                )
             }
         }
     }
@@ -331,13 +337,19 @@ fun HabitEditorScreen(
         DatePickerDialog(
             onDismissRequest = { showTimePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.setReminder(LocalTime.of(pickerState.hour, pickerState.minute))
-                    showTimePicker = false
-                }) { Text(stringResource(R.string.editor_gotovo)) }
+                TextAction(
+                    text = stringResource(R.string.editor_gotovo),
+                    onClick = {
+                        viewModel.setReminder(LocalTime.of(pickerState.hour, pickerState.minute))
+                        showTimePicker = false
+                    }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text(stringResource(R.string.detail_otmena)) }
+                TextAction(
+                    text = stringResource(R.string.detail_otmena),
+                    onClick = { showTimePicker = false }
+                )
             }
         ) {
             Column(

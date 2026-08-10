@@ -19,18 +19,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.character.EffectKeys
@@ -151,8 +151,14 @@ fun CharacterScreen(
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = viewModel::savePortrait) { Text(stringResource(R.string.character_sohranit_portret)) }
-                    TextButton(onClick = viewModel::sharePortrait) { Text(stringResource(R.string.character_podelitsya)) }
+                    TextAction(
+                        text = stringResource(R.string.character_sohranit_portret),
+                        onClick = viewModel::savePortrait
+                    )
+                    TextAction(
+                        text = stringResource(R.string.character_podelitsya),
+                        onClick = viewModel::sharePortrait
+                    )
                 }
             }
 
@@ -288,9 +294,15 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
                 onClick = { viewModel.applyPreset(index) },
                 label = { Text("${index + 1}") }
             )
-            TextButton(onClick = { viewModel.savePreset(index) }) { Text(stringResource(R.string.character_sohr)) }
+            TextAction(
+                text = stringResource(R.string.character_sohr),
+                onClick = { viewModel.savePreset(index) }
+            )
         }
-        TextButton(onClick = viewModel::unequipAll) { Text(stringResource(R.string.character_snyat_vse)) }
+        TextAction(
+            text = stringResource(R.string.character_snyat_vse),
+            onClick = viewModel::unequipAll
+        )
     }
 }
 
@@ -298,39 +310,39 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
 @Composable
 private fun ShopFilters(viewModel: CharacterViewModel, filter: ShopFilter) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilterChip(
-            selected = filter.slot == null,
-            onClick = { viewModel.setSlotFilter(null) },
-            label = { Text(stringResource(R.string.character_vse_sloty)) }
-        )
+        ChipButton(
+                        text = stringResource(R.string.character_vse_sloty),
+                        selected = filter.slot == null,
+                        onClick = { viewModel.setSlotFilter(null) }
+                    )
         EquipSlot.entries.filter { it.isUserFacing }.forEach { slot ->
-            FilterChip(
-                selected = filter.slot == slot,
-                onClick = { viewModel.setSlotFilter(if (filter.slot == slot) null else slot) },
-                label = { Text(slot.title) }
-            )
+            ChipButton(
+                        text = slot.title,
+                        selected = filter.slot == slot,
+                        onClick = { viewModel.setSlotFilter(if (filter.slot == slot) null else slot) }
+                    )
         }
     }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Rarity.entries.forEach { rarity ->
-            FilterChip(
-                selected = filter.rarity == rarity,
-                onClick = {
+            ChipButton(
+                        text = rarity.title,
+                        selected = filter.rarity == rarity,
+                        onClick = {
                     viewModel.setRarityFilter(if (filter.rarity == rarity) null else rarity)
-                },
-                label = { Text(rarity.title) }
-            )
+                }
+                    )
         }
-        FilterChip(
-            selected = filter.onlyOwned,
-            onClick = viewModel::toggleOwnedOnly,
-            label = { Text(stringResource(R.string.character_tolko_moi)) }
-        )
-        FilterChip(
-            selected = filter.onlyAffordable,
-            onClick = viewModel::toggleAffordable,
-            label = { Text(stringResource(R.string.character_po_karmanu)) }
-        )
+        ChipButton(
+                        text = stringResource(R.string.character_tolko_moi),
+                        selected = filter.onlyOwned,
+                        onClick = viewModel::toggleOwnedOnly
+                    )
+        ChipButton(
+                        text = stringResource(R.string.character_po_karmanu),
+                        selected = filter.onlyAffordable,
+                        onClick = viewModel::toggleAffordable
+                    )
     }
 }
 
@@ -383,13 +395,13 @@ private fun ShopRow(
                     style = AshTheme.type.footnote,
                     color = Moss
                 )
-                owned -> TextButton(onClick = onEquip) { Text(stringResource(R.string.character_nadet)) }
+                owned -> TextAction(text = stringResource(R.string.character_nadet), onClick = onEquip)
                 item.price == null -> Text(
                     "за достижение",
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
-                else -> Button(onClick = onBuy) { Text("${item.price} ◈") }
+                else -> PrimaryButton(text = "${item.price} ◈", onClick = onBuy)
             }
         }
 
@@ -418,7 +430,7 @@ private fun ShopRow(
             )
         }
         if (owned && item.price != 0) {
-            TextButton(onClick = onUpgrade) { Text("Улучшить · $upgradeCost ◈") }
+            TextAction(text = "Улучшить · $upgradeCost ◈", onClick = onUpgrade)
         }
     }
 }

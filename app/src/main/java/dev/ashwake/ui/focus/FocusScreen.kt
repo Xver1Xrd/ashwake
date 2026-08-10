@@ -18,13 +18,10 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +34,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.focus.phaseTitle
 import dev.ashwake.domain.model.focus.FocusMode
@@ -108,15 +107,17 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                         )
                     }
                     if (run.mode == FocusMode.POMODORO) {
-                        OutlinedButton(onClick = viewModel::skipPhase) {
-                            Icon(Icons.Filled.SkipNext, contentDescription = null)
-                            Text(stringResource(R.string.focus_dalshe))
-                        }
+                        ChipButton(
+                            text = stringResource(R.string.focus_dalshe),
+                            icon = Icons.Filled.SkipNext,
+                            onClick = viewModel::skipPhase
+                        )
                     }
-                    OutlinedButton(onClick = viewModel::stop) {
-                        Icon(Icons.Filled.Stop, contentDescription = null)
-                        Text(stringResource(R.string.focus_stop))
-                    }
+                    ChipButton(
+                        text = stringResource(R.string.focus_stop),
+                        icon = Icons.Filled.Stop,
+                        onClick = viewModel::stop
+                    )
                 }
 
                 if (run.completedPomodoros > 0) {
@@ -140,39 +141,41 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 Text(stringResource(R.string.focus_dlitelnost_raboty), style = AshTheme.type.subhead)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 25, 30, 45, 50, 90).forEach { minutes ->
-                        FilterChip(
-                            selected = config.workMinutes == minutes,
-                            onClick = { viewModel.setWorkMinutes(minutes) },
-                            label = { Text("$minutes") }
-                        )
+                        ChipButton(
+                        text = "$minutes",
+                        selected = config.workMinutes == minutes,
+                        onClick = { viewModel.setWorkMinutes(minutes) }
+                    )
                     }
                 }
 
                 if (tasks.isNotEmpty()) {
                     Text(stringResource(R.string.focus_privyazat_k_zadache), style = AshTheme.type.subhead)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = viewModel.selectedTaskId == null,
-                            onClick = { viewModel.selectTask(null) },
-                            label = { Text(stringResource(R.string.focus_bez_zadachi)) }
-                        )
+                        ChipButton(
+                        text = stringResource(R.string.focus_bez_zadachi),
+                        selected = viewModel.selectedTaskId == null,
+                        onClick = { viewModel.selectTask(null) }
+                    )
                         tasks.take(8).forEach { task ->
-                            FilterChip(
-                                selected = viewModel.selectedTaskId == task.id,
-                                onClick = { viewModel.selectTask(task.id) },
-                                label = { Text(task.title.take(24)) }
-                            )
+                            ChipButton(
+                        text = task.title.take(24),
+                        selected = viewModel.selectedTaskId == task.id,
+                        onClick = { viewModel.selectTask(task.id) }
+                    )
                         }
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = { viewModel.start(FocusMode.POMODORO) }) {
-                        Text(stringResource(R.string.focus_pomodoro))
-                    }
-                    OutlinedButton(onClick = { viewModel.start(FocusMode.STOPWATCH) }) {
-                        Text(stringResource(R.string.focus_sekundomer))
-                    }
+                    PrimaryButton(
+                        text = stringResource(R.string.focus_pomodoro),
+                        onClick = { viewModel.start(FocusMode.POMODORO) }
+                    )
+                    ChipButton(
+                        text = stringResource(R.string.focus_sekundomer),
+                        onClick = { viewModel.start(FocusMode.STOPWATCH) }
+                    )
                 }
             }
 

@@ -30,7 +30,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -48,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshNavBar
@@ -638,16 +638,19 @@ private fun DatePickerSheet(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
-                pickerState.selectedDateMillis?.let { millis ->
-                    // Пикер отдаёт UTC-полночь: переводим её в дату без сдвига пояса
-                    onPick(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+            TextAction(
+                text = "Готово",
+                onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        // Пикер отдаёт UTC-полночь: переводим её в дату без сдвига пояса
+                        onPick(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    onDismiss()
                 }
-                onDismiss()
-            }) { Text("Готово") }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextAction(text = "Отмена", onClick = onDismiss)
         }
     ) { DatePicker(state = pickerState) }
 }
@@ -668,13 +671,16 @@ private fun TimePickerSheet(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
-                onPick(LocalTime.of(pickerState.hour, pickerState.minute))
-                onDismiss()
-            }) { Text("Готово") }
+            TextAction(
+                text = "Готово",
+                onClick = {
+                    onPick(LocalTime.of(pickerState.hour, pickerState.minute))
+                    onDismiss()
+                }
+            )
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextAction(text = "Отмена", onClick = onDismiss)
         }
     ) {
         Column(

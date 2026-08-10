@@ -31,7 +31,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +38,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.tasks.CalendarScale
@@ -125,7 +125,7 @@ private fun CalendarHeader(
         IconButton(onClick = { onShift(true) }) {
             Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
         }
-        TextButton(onClick = onToday) { Text(stringResource(R.string.calendar_segodnya)) }
+        TextAction(text = stringResource(R.string.calendar_segodnya), onClick = onToday)
     }
 
     SingleChoiceSegmentedButtonRow(

@@ -12,17 +12,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +29,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.habits.HabitWithProgress
@@ -114,11 +113,13 @@ fun RitualScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 if (stepIndex > 0) {
-                    OutlinedButton(onClick = viewModel::back) { Text(stringResource(R.string.detail_nazad)) }
+                    ChipButton(text = stringResource(R.string.detail_nazad), onClick = viewModel::back)
                 }
-                Button(onClick = viewModel::next, modifier = Modifier.weight(1f)) {
-                    Text(if (step == RitualStep.NOTE) "Закончить" else "Дальше")
-                }
+                PrimaryButton(
+                    text = if (step == RitualStep.NOTE) "Закончить" else "Дальше",
+                    modifier = Modifier.weight(1f),
+                    onClick = viewModel::next
+                )
             }
         }
     }
@@ -145,11 +146,11 @@ private fun ScaleRow(label: String, value: Int?, onSelect: (Int) -> Unit) {
         Text(label, style = AshTheme.type.subhead)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (1..5).forEach { level ->
-                FilterChip(
-                    selected = value == level,
-                    onClick = { onSelect(level) },
-                    label = { Text("$level") }
-                )
+                ChipButton(
+                        text = "$level",
+                        selected = value == level,
+                        onClick = { onSelect(level) }
+                    )
             }
         }
     }
@@ -164,9 +165,10 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
         return
     }
 
-    TextButton(onClick = { viewModel.postponeAll(tasks) }) {
-        Text(stringResource(R.string.ritual_perenesti_vse_na_zavtra))
-    }
+    TextAction(
+        text = stringResource(R.string.ritual_perenesti_vse_na_zavtra),
+        onClick = { viewModel.postponeAll(tasks) }
+    )
 
     tasks.take(12).forEach { task ->
         Row(
@@ -184,8 +186,14 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
                 overflow = TextOverflow.Ellipsis,
                 style = AshTheme.type.callout
             )
-            TextButton(onClick = { viewModel.postponeToTomorrow(task) }) { Text(stringResource(R.string.ritual_zavtra)) }
-            TextButton(onClick = { viewModel.drop(task) }) { Text(stringResource(R.string.ritual_udalit)) }
+            TextAction(
+                text = stringResource(R.string.ritual_zavtra),
+                onClick = { viewModel.postponeToTomorrow(task) }
+            )
+            TextAction(
+                text = stringResource(R.string.ritual_udalit),
+                onClick = { viewModel.drop(task) }
+            )
         }
     }
 }
@@ -213,8 +221,14 @@ private fun HabitsStep(habits: List<HabitWithProgress>, viewModel: RitualViewMod
                 modifier = Modifier.weight(1f),
                 style = AshTheme.type.callout
             )
-            TextButton(onClick = { viewModel.markDone(progress) }) { Text(stringResource(R.string.ritual_sdelal)) }
-            TextButton(onClick = { viewModel.markSkipped(progress) }) { Text(stringResource(R.string.ritual_propustil)) }
+            TextAction(
+                text = stringResource(R.string.ritual_sdelal),
+                onClick = { viewModel.markDone(progress) }
+            )
+            TextAction(
+                text = stringResource(R.string.ritual_propustil),
+                onClick = { viewModel.markSkipped(progress) }
+            )
         }
     }
 }
@@ -275,11 +289,11 @@ private fun TomorrowStep(
 @Composable
 private fun NoteStep(form: RitualForm, viewModel: RitualViewModel) {
     Text(stringResource(R.string.ritual_zametka_dnya), style = AshTheme.type.title3)
-    OutlinedTextField(
+    AshTextField(
         value = form.note,
         onValueChange = viewModel::setNote,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text(stringResource(R.string.ritual_chto_zapomnilos)) },
+        placeholder = stringResource(R.string.ritual_chto_zapomnilos),
         minLines = 4
     )
 }

@@ -9,15 +9,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.components.IconButtonSlot
 import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -87,11 +87,11 @@ fun CreateAbstinenceDialog(
                         expanded = showIconPicker,
                         onClick = { showIconPicker = !showIconPicker }
                     )
-                    OutlinedTextField(
+                    AshTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text(stringResource(R.string.editor_nazvanie)) },
-                        placeholder = { Text(stringResource(R.string.editor_ne_kuryu)) },
+                        label = stringResource(R.string.editor_nazvanie),
+                        placeholder = stringResource(R.string.editor_ne_kuryu),
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -109,11 +109,11 @@ fun CreateAbstinenceDialog(
                 Text(stringResource(R.string.editor_rezhim), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AbstinenceMode.entries.forEach { option ->
-                        FilterChip(
-                            selected = mode == option,
-                            onClick = { mode = option },
-                            label = { Text(if (option == AbstinenceMode.GENTLE) "мягкий" else "строгий") }
-                        )
+                        ChipButton(
+                        text = if (option == AbstinenceMode.GENTLE) "мягкий" else "строгий",
+                        selected = mode == option,
+                        onClick = { mode = option }
+                    )
                     }
                 }
                 Text(
@@ -127,27 +127,27 @@ fun CreateAbstinenceDialog(
                 Text(stringResource(R.string.editor_nachalo), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 1, 3, 7, 30).forEach { days ->
-                        FilterChip(
-                            selected = daysAgo == days,
-                            onClick = { daysAgo = days },
-                            label = { Text(if (days == 0) "сейчас" else "$days дн. назад") }
-                        )
+                        ChipButton(
+                        text = if (days == 0) "сейчас" else "$days дн. назад",
+                        selected = daysAgo == days,
+                        onClick = { daysAgo = days }
+                    )
                     }
                 }
 
-                OutlinedTextField(
+                AshTextField(
                     value = motivation,
                     onValueChange = { motivation = it },
-                    label = { Text(stringResource(R.string.editor_zachem_ya_eto_brosil)) },
-                    placeholder = { Text(stringResource(R.string.editor_pokazhetsya_kogda_stanet_tyazhelo)) },
+                    label = stringResource(R.string.editor_zachem_ya_eto_brosil),
+                    placeholder = stringResource(R.string.editor_pokazhetsya_kogda_stanet_tyazhelo),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
 
-                OutlinedTextField(
+                AshTextField(
                     value = substitutes,
                     onValueChange = { substitutes = it },
-                    label = { Text(stringResource(R.string.editor_chem_zanyatsya_vmesto_po_stroke)) },
+                    label = stringResource(R.string.editor_chem_zanyatsya_vmesto_po_stroke),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -170,27 +170,27 @@ fun CreateAbstinenceDialog(
                 }
 
                 if (baselineEnabled) {
-                    OutlinedTextField(
+                    AshTextField(
                         value = unitName,
                         onValueChange = { unitName = it },
-                        label = { Text(stringResource(R.string.editor_chego_imenno)) },
-                        placeholder = { Text(stringResource(R.string.editor_sigaret)) },
+                        label = stringResource(R.string.editor_chego_imenno),
+                        placeholder = stringResource(R.string.editor_sigaret),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        AshTextField(
                             value = unitsPerDay,
                             onValueChange = { unitsPerDay = it },
-                            label = { Text(stringResource(R.string.editor_v_den)) },
+                            label = stringResource(R.string.editor_v_den),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
-                        OutlinedTextField(
+                        AshTextField(
                             value = costPerUnit,
                             onValueChange = { costPerUnit = it },
-                            label = { Text(stringResource(R.string.editor_cena_za_shtuku)) },
+                            label = stringResource(R.string.editor_cena_za_shtuku),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -200,7 +200,8 @@ fun CreateAbstinenceDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            TextAction(
+                text = stringResource(R.string.editor_sozdat),
                 enabled = name.isNotBlank(),
                 onClick = {
                     val baseline = if (baselineEnabled) {
@@ -211,7 +212,7 @@ fun CreateAbstinenceDialog(
                             Baseline(unitName.trim(), units, cost)
                         } else null
                     } else null
-
+            
                     onCreate(
                         name,
                         icon,
@@ -223,8 +224,8 @@ fun CreateAbstinenceDialog(
                         substitutes.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
                     )
                 }
-            ) { Text(stringResource(R.string.editor_sozdat)) }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }

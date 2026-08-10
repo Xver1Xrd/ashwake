@@ -13,11 +13,11 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.assets.HabitPresetCategory
 import dev.ashwake.domain.model.habits.Habit
@@ -83,7 +83,7 @@ fun HabitCatalogDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.components_zakryt)) } }
+        confirmButton = { TextAction(text = stringResource(R.string.components_zakryt), onClick = onDismiss) }
     )
 }
 

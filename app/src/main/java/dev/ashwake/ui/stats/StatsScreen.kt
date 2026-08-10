@@ -15,7 +15,6 @@ import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -26,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.analytics.CorrelationPair
@@ -88,12 +88,14 @@ fun StatsScreen(
                 else -> year?.let {
                     YearBlock(it)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = { viewModel.exportYear(share = false) }) {
-                            Text(stringResource(R.string.stats_sohranit_kartinkoy))
-                        }
-                        TextButton(onClick = { viewModel.exportYear(share = true) }) {
-                            Text(stringResource(R.string.character_podelitsya))
-                        }
+                        TextAction(
+                            text = stringResource(R.string.stats_sohranit_kartinkoy),
+                            onClick = { viewModel.exportYear(share = false) }
+                        )
+                        TextAction(
+                            text = stringResource(R.string.character_podelitsya),
+                            onClick = { viewModel.exportYear(share = true) }
+                        )
                     }
                 } ?: Loading()
             }
