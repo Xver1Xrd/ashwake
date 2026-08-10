@@ -237,19 +237,25 @@ fun AshwakeRoot(
 
                 composable(Destination.Character.route) {
                     CharacterScreen(
+                        onBack = { navController.popBackStack() },
                         onOpenSettings = { navController.navigate(Destination.Settings.route) }
                     )
                 }
 
                 composable(Destination.Timers.route) {
-                    TimersScreen(onRunRoutine = { navController.navigate("routine-run") })
+                    TimersScreen(
+                        onRunRoutine = { navController.navigate("routine-run") },
+                        onBack = { navController.popBackStack() }
+                    )
                 }
 
                 composable("routine-run") {
                     RoutineRunScreen(onExit = { navController.popBackStack() })
                 }
 
-                composable(Destination.Stats.route) { StatsScreen() }
+                composable(Destination.Stats.route) {
+                    StatsScreen(onBack = { navController.popBackStack() })
+                }
 
                 composable("ritual") {
                     RitualScreen(onDone = { navController.popBackStack() })

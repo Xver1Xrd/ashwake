@@ -26,13 +26,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,6 +44,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.character.EffectKeys
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
@@ -62,6 +62,7 @@ import dev.ashwake.R
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CharacterScreen(
+    onBack: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: CharacterViewModel = hiltViewModel()
 ) {
@@ -91,16 +92,18 @@ fun CharacterScreen(
     }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(state.profile.name) },
+            AshNavBar(
+                title = state.profile.name,
+                onBack = onBack,
                 actions = {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.character_nastroyki))
                     }
                     Text(
                         "${state.wallet.coins} ◈",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AshTheme.type.title3,
                         color = Gold,
                         modifier = Modifier.padding(end = 16.dp)
                     )
@@ -120,7 +123,7 @@ fun CharacterScreen(
                         .fillMaxWidth()
                         .height(280.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(AshTheme.colors.surface1)
                 ) {
                     PixelCharacter(
                         layers = layers,
@@ -130,8 +133,8 @@ fun CharacterScreen(
                     if (layers.isEmpty()) {
                         Text(
                             "Наденьте что-нибудь из магазина ниже",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = AshTheme.type.callout,
+                            color = AshTheme.colors.text2,
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
@@ -155,7 +158,7 @@ fun CharacterScreen(
 
             item {
                 HorizontalDivider()
-                Text(stringResource(R.string.character_magazin), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.character_magazin), style = AshTheme.type.title3)
                 ShopFilters(viewModel, filter)
             }
 
@@ -164,8 +167,8 @@ fun CharacterScreen(
                 item {
                     Text(
                         "По этим фильтрам ничего нет",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.callout,
+                        color = AshTheme.colors.text2
                     )
                 }
             }
@@ -195,11 +198,11 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Уровень $level", style = MaterialTheme.typography.titleSmall)
+            Text("Уровень $level", style = AshTheme.type.headline)
             Text(
                 "$xp XP",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         LinearProgressIndicator(
@@ -213,11 +216,11 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
 @Composable
 private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterState) {
     Column(Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.character_harakteristiki), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_harakteristiki), style = AshTheme.type.headline)
         Text(
             "Растут от поведения, а не за монеты",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
         FlowRow(
             modifier = Modifier.padding(top = 6.dp),
@@ -245,28 +248,28 @@ private fun ActiveEffectsBlock(state: dev.ashwake.domain.repository.character.Ch
     if (equipment.effects.isEmpty() && equipment.activeSets.isEmpty()) return
 
     Column(Modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.character_aktivnye_bonusy), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_aktivnye_bonusy), style = AshTheme.type.headline)
         equipment.activeSets.forEach { active ->
             Text(
                 "Сет «${active.set.title}» — ${active.pieces} част${if (active.pieces == 1) "ь" else "и"}: " +
                     active.tiers.joinToString("/") { "$it" },
-                style = MaterialTheme.typography.labelMedium,
+                style = AshTheme.type.footnote,
                 color = Moss
             )
         }
         equipment.effects.entries.sortedBy { it.key }.forEach { (key, value) ->
             Text(
                 "${effectTitle(key)}: ${formatEffect(key, value)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (value < 0) Ember else MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = if (value < 0) Ember else AshTheme.colors.text2
             )
         }
         if (equipment.blockedItems.isNotEmpty()) {
             Text(
                 "Не работают из-за требований: " +
                     equipment.blockedItems.joinToString { it.name },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.danger
             )
         }
     }
@@ -279,7 +282,7 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(stringResource(R.string.character_obrazy), style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.character_obrazy), style = AshTheme.type.subhead)
         (0..2).forEach { index ->
             AssistChip(
                 onClick = { viewModel.applyPreset(index) },
@@ -348,7 +351,7 @@ private fun ShopRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(AshTheme.colors.surface1)
             .clickable(onClick = onPreview)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -363,28 +366,28 @@ private fun ShopRow(
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                 Text(
                     item.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AshTheme.type.callout,
                     fontWeight = if (equipped) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     "${item.slot.title} · ${item.rarity.title} · ${item.style.title}",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AshTheme.type.footnote,
                     color = rarityColor(item.rarity)
                 )
             }
             when {
                 equipped -> Text(
                     "надето",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AshTheme.type.footnote,
                     color = Moss
                 )
                 owned -> TextButton(onClick = onEquip) { Text(stringResource(R.string.character_nadet)) }
                 item.price == null -> Text(
                     "за достижение",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
                 else -> Button(onClick = onBuy) { Text("${item.price} ◈") }
             }
@@ -395,23 +398,23 @@ private fun ShopRow(
                 item.effects.joinToString(" · ") {
                     "${effectTitle(it.key)} ${formatEffect(it.key, it.value)}"
                 },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         if (missing.isNotEmpty()) {
             // Предмет виден в магазине, но не надевается — с подписью, чего не хватает
             Text(
                 "нужно: " + missing.entries.joinToString { "${statTitle(it.key)} +${it.value}" },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.danger
             )
         }
         if (item.lore.isNotBlank()) {
             Text(
                 item.lore,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         if (owned && item.price != 0) {

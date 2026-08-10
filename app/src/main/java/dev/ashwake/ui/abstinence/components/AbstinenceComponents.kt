@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
@@ -82,8 +81,8 @@ fun LiveCounter(duration: Duration, modifier: Modifier = Modifier) {
             )
             Text(
                 "  ${dayWord(shownDays.toLong())}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = AshTheme.type.title3,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
@@ -187,8 +186,8 @@ fun MilestoneRing(
         if (label != null) {
             Text(
                 "до вехи: $label",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -211,11 +210,11 @@ fun StatsRow(stats: AbstinenceStats, modifier: Modifier = Modifier) {
 @Composable
 private fun StatCell(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(value, style = AshTheme.type.title2, fontWeight = FontWeight.Bold)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -224,15 +223,15 @@ private fun StatCell(value: String, label: String) {
 @Composable
 fun SavingsBlock(savings: Savings, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text(stringResource(R.string.components_sekonomleno), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_sekonomleno), style = AshTheme.type.headline)
         Text(
             "не ${savings.units.roundToInt()} ${savings.unitName}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2
         )
         Text(
             "${formatMoney(savings.money)} ${currencySymbol(savings.currency)}",
-            style = MaterialTheme.typography.headlineSmall,
+            style = AshTheme.type.title2,
             color = Gold
         )
     }
@@ -256,14 +255,14 @@ fun AttemptsChart(
     val maxDays = durations.maxOf { it.toDays() }.coerceAtLeast(1)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(stringResource(R.string.components_popytki), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_popytki), style = AshTheme.type.headline)
         attempts.forEachIndexed { index, attempt ->
             val days = durations[index].toDays()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "№${attempt.ordinal}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(28.dp)
                 )
                 Box(
@@ -271,7 +270,7 @@ fun AttemptsChart(
                         .weight(1f)
                         .height(14.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(AshTheme.colors.surface2)
                 ) {
                     Box(
                         Modifier
@@ -283,8 +282,8 @@ fun AttemptsChart(
                 }
                 Text(
                     "  $days",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(36.dp)
                 )
             }
@@ -297,7 +296,7 @@ fun AttemptsChart(
 fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
     val max = heatmap.flatMap { it.asIterable() }.maxOrNull() ?: 0
     if (max == 0) return
-    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
+    val emptyColor = AshTheme.colors.surface2
     val labels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -308,8 +307,8 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
             ) {
                 Text(
                     labels[day - 1],
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     fontSize = 9.sp,
                     modifier = Modifier.width(18.dp)
                 )
@@ -332,9 +331,9 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
             listOf(0, 6, 12, 18).forEach { hour ->
                 Text(
                     "%02d".format(hour),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AshTheme.type.footnote,
                     fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.weight(1f)
                 )
             }

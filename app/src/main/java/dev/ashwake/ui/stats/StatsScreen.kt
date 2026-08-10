@@ -10,14 +10,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.analytics.CorrelationPair
 import dev.ashwake.domain.engine.analytics.Trend
 import dev.ashwake.domain.engine.analytics.WeeklyReport
@@ -45,13 +45,24 @@ private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
+fun StatsScreen(
+    onBack: () -> Unit = {},
+    viewModel: StatsViewModel = hiltViewModel()
+) {
     val weekly by viewModel.weekly.collectAsStateWithLifecycle()
     val correlations by viewModel.correlations.collectAsStateWithLifecycle()
     val year by viewModel.year.collectAsStateWithLifecycle()
     var tab by rememberSaveable { mutableIntStateOf(0) }
 
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.stats_statistika)) }) }) { padding ->
+    Scaffold(
+        containerColor = AshTheme.colors.background,
+        topBar = {
+            AshNavBar(
+                title = stringResource(R.string.stats_statistika),
+                onBack = onBack
+            )
+        }
+    ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,14 +103,14 @@ fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
 
 @Composable
 private fun Loading() {
-    Text(stringResource(R.string.stats_schitayu), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text(stringResource(R.string.stats_schitayu), color = AshTheme.colors.text2)
 }
 
 @Composable
 private fun WeeklyBlock(report: WeeklyReport) {
     Text(
         "${report.weekStart.format(DATE_FORMAT)} — ${report.weekEnd.format(DATE_FORMAT)}",
-        style = MaterialTheme.typography.titleSmall
+        style = AshTheme.type.headline
     )
 
     TrendRow("Задачи закрыты", report.tasksCompleted) { it.toString() }
@@ -110,33 +121,33 @@ private fun WeeklyBlock(report: WeeklyReport) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(stringResource(R.string.stats_vypolnenie_privychek), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.stats_vypolnenie_privychek), style = AshTheme.type.callout)
         Text(
             "${(report.habitCompletionRate * 100).roundToInt()}%",
-            style = MaterialTheme.typography.bodyMedium,
+            style = AshTheme.type.callout,
             color = if (report.completionRateDelta >= 0) Moss else Ember
         )
     }
 
     Text(
         "Ритуал пройден ${report.ritualDays} из 7 дней",
-        style = MaterialTheme.typography.labelMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        style = AshTheme.type.footnote,
+        color = AshTheme.colors.text2
     )
 
     report.averageMood?.let {
         Text(
             "Среднее настроение %.1f".format(it),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 
     if (report.abstinenceDays.isNotEmpty()) {
         HorizontalDivider()
-        Text(stringResource(R.string.stats_schetchiki_otkazov), style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.stats_schetchiki_otkazov), style = AshTheme.type.subhead)
         report.abstinenceDays.forEach { (name, days) ->
-            Text("$name — $days дн.", style = MaterialTheme.typography.bodySmall)
+            Text("$name — $days дн.", style = AshTheme.type.subhead)
         }
     }
 }
@@ -149,13 +160,13 @@ private fun TrendRow(label: String, trend: Trend, format: (Long) -> String) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, style = MaterialTheme.typography.bodyMedium)
+        Text(label, style = AshTheme.type.callout)
         Row {
-            Text(format(trend.current), style = MaterialTheme.typography.bodyMedium)
+            Text(format(trend.current), style = AshTheme.type.callout)
             trend.percent?.let { percent ->
                 Text(
                     "  ${if (percent >= 0) "+" else ""}$percent%",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AshTheme.type.footnote,
                     color = if (percent >= 0) Moss else Ember
                 )
             }
@@ -177,17 +188,17 @@ private fun CorrelationsBlock(
         // Меньше двух недель — выводов не делаем вовсе
         Text(
             "Пока мало данных: связи считаются от 14 дней с заполненным ритуалом. Сейчас ${report.sampleDays}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2
         )
         return
     }
 
-    Text(stringResource(R.string.stats_chto_svyazano_s_nastroeniem_i_energiey), style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.stats_chto_svyazano_s_nastroeniem_i_energiey), style = AshTheme.type.headline)
     Text(
         viewModel.disclaimer,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
+        style = AshTheme.type.footnote,
+        color = AshTheme.colors.text2
     )
 
     val positive = report.topPositive()
@@ -195,19 +206,19 @@ private fun CorrelationsBlock(
 
     if (positive.isNotEmpty()) {
         HorizontalDivider()
-        Text(stringResource(R.string.stats_svyazano_polozhitelno), style = MaterialTheme.typography.labelLarge, color = Moss)
+        Text(stringResource(R.string.stats_svyazano_polozhitelno), style = AshTheme.type.subhead, color = Moss)
         positive.forEach { PairRow(viewModel, it) }
     }
     if (negative.isNotEmpty()) {
         HorizontalDivider()
-        Text(stringResource(R.string.stats_svyazano_otricatelno), style = MaterialTheme.typography.labelLarge, color = Ember)
+        Text(stringResource(R.string.stats_svyazano_otricatelno), style = AshTheme.type.subhead, color = Ember)
         negative.forEach { PairRow(viewModel, it) }
     }
     if (positive.isEmpty() && negative.isEmpty()) {
         Text(
             "Заметных связей не нашлось",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -215,24 +226,24 @@ private fun CorrelationsBlock(
 @Composable
 private fun PairRow(viewModel: StatsViewModel, pair: CorrelationPair) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text(viewModel.describe(pair), style = MaterialTheme.typography.bodyMedium)
+        Text(viewModel.describe(pair), style = AshTheme.type.callout)
         Text(
             "коэффициент %.2f · выборка %d дней".format(pair.coefficient, pair.sampleSize),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
 
 @Composable
 private fun YearBlock(summary: YearSummary) {
-    Text("Год ${summary.year} в цифрах", style = MaterialTheme.typography.titleSmall)
+    Text("Год ${summary.year} в цифрах", style = AshTheme.type.headline)
 
     if (!summary.hasData) {
         Text(
             "За этот год данных пока нет",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2
         )
         return
     }
@@ -255,27 +266,27 @@ private fun YearBlock(summary: YearSummary) {
 
     HorizontalDivider()
     summary.longestStreakHabit?.let {
-        Text("Самая длинная серия: $it", style = MaterialTheme.typography.bodyMedium)
+        Text("Самая длинная серия: $it", style = AshTheme.type.callout)
     }
     summary.mostStableHabit?.let {
-        Text("Самая стабильная: $it", style = MaterialTheme.typography.bodyMedium, color = Moss)
+        Text("Самая стабильная: $it", style = AshTheme.type.callout, color = Moss)
     }
     summary.mostProblematicHabit?.let {
-        Text("Самая проблемная: $it", style = MaterialTheme.typography.bodyMedium, color = Ember)
+        Text("Самая проблемная: $it", style = AshTheme.type.callout, color = Ember)
     }
     summary.bestMonth?.let {
         Text(
             "Лучший месяц: ${it.month.value}.${it.year}",
-            style = MaterialTheme.typography.labelMedium,
+            style = AshTheme.type.footnote,
             color = Gold
         )
     }
 
     if (summary.relapseReasons.isNotEmpty()) {
         HorizontalDivider()
-        Text(stringResource(R.string.stats_prichiny_sryvov), style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.stats_prichiny_sryvov), style = AshTheme.type.subhead)
         summary.relapseReasons.forEach { (reason, count) ->
-            Text("$reason — $count", style = MaterialTheme.typography.bodySmall)
+            Text("$reason — $count", style = AshTheme.type.subhead)
         }
     }
 }
@@ -283,11 +294,11 @@ private fun YearBlock(summary: YearSummary) {
 @Composable
 private fun Metric(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium)
+        Text(value, style = AshTheme.type.title3)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }

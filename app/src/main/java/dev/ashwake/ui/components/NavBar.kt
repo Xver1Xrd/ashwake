@@ -5,7 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -52,7 +53,7 @@ fun AshLargeTitle(
             .padding(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f)) {
             Text(
                 text = title,
                 style = AshTheme.type.largeTitle,
@@ -76,6 +77,7 @@ fun AshLargeTitle(
 fun AshNavBar(
     title: String,
     modifier: Modifier = Modifier,
+    subtitle: String? = null,
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
@@ -83,7 +85,7 @@ fun AshNavBar(
         modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .height(NavBarHeight)
+            .heightIn(min = NavBarHeight)
             .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -98,15 +100,31 @@ fun AshNavBar(
             Box(Modifier.size(44.dp))
         }
 
-        Text(
-            text = title,
-            style = AshTheme.type.headline,
-            color = AshTheme.colors.text,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = title,
+                style = AshTheme.type.headline,
+                color = AshTheme.colors.text,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            // Подзаголовок нужен там, где заголовок один и тот же, а экран
+            // разный: «Вечерний ритуал» за вчера и за сегодня — не одно и то же
+            subtitle?.let {
+                Text(
+                    text = it,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
 
         Row(
             verticalAlignment = Alignment.CenterVertically,

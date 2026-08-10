@@ -9,21 +9,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.domain.engine.abstinence.describeCravingPeak
 import dev.ashwake.ui.abstinence.components.AttemptsChart
 import dev.ashwake.ui.abstinence.components.CravingHeatmap
@@ -65,14 +59,11 @@ fun AbstinenceDetailScreen(
     var showCraving by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(detail?.abstinence?.name ?: "Отказ") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
-                    }
-                }
+            AshNavBar(
+                title = detail?.abstinence?.name ?: "Отказ",
+                onBack = onBack
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -80,7 +71,7 @@ fun AbstinenceDetailScreen(
         val data = detail
         if (data == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.detail_zagruzka), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.detail_zagruzka), color = AshTheme.colors.text2)
             }
             return@Scaffold
         }
@@ -104,8 +95,8 @@ fun AbstinenceDetailScreen(
             data.stats.nextMilestone?.userText?.let { text ->
                 Text(
                     text,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -233,7 +224,7 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text(stringResource(R.string.detail_tyaga), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.detail_tyaga), style = AshTheme.type.headline)
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -252,20 +243,20 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
         describeCravingPeak(analytics.peak)?.let { peak ->
             Text(
                 peak,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary
+                style = AshTheme.type.callout,
+                color = AshTheme.colors.warm
             )
         }
 
         CravingHeatmap(analytics.heatmap, modifier = Modifier.fillMaxWidth())
 
         if (analytics.topTriggers.isNotEmpty()) {
-            Text(stringResource(R.string.detail_top_triggerov), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_top_triggerov), style = AshTheme.type.subhead)
             analytics.topTriggers.take(3).forEach { entry ->
                 Text(
                     "${entry.trigger?.label ?: "без триггера"} — ${entry.count}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.subhead,
+                    color = AshTheme.colors.text2
                 )
             }
         }
@@ -275,11 +266,11 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
 @Composable
 private fun Metric(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium)
+        Text(value, style = AshTheme.type.title3)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }

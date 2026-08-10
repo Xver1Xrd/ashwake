@@ -1,6 +1,5 @@
 package dev.ashwake.ui.focus
 
-import android.content.Context
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,11 +24,9 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -40,6 +37,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.focus.phaseTitle
 import dev.ashwake.domain.model.focus.FocusMode
 import dev.ashwake.domain.model.focus.FocusPhase
@@ -58,7 +56,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
     val stats by viewModel.stats.collectAsStateWithLifecycle()
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
 
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.focus_fokus)) }) }) { padding ->
+    Scaffold(containerColor = AshTheme.colors.background) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -73,7 +71,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     phaseTitle(run.phase) +
                         if (run.mode == FocusMode.POMODORO) " · помидор ${run.pomodoroNumber}"
                         else "",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AshTheme.type.title3,
                     color = if (run.phase == FocusPhase.WORK) Moss else Gold
                 )
 
@@ -91,8 +89,8 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 run.taskTitle?.let { title ->
                     Text(
                         title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.callout,
+                        color = AshTheme.colors.text2
                     )
                 }
 
@@ -124,22 +122,22 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 if (run.completedPomodoros > 0) {
                     Text(
                         "Помидоров за сессию: ${run.completedPomodoros}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2
                     )
                 }
             } else {
                 Text(
                     "${config.workMinutes} / ${config.breakMinutes}",
-                    style = MaterialTheme.typography.headlineMedium
+                    style = AshTheme.type.title1
                 )
                 Text(
                     "Длинный перерыв ${config.longBreakMinutes} мин каждые ${config.longBreakEvery} помидора",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
 
-                Text(stringResource(R.string.focus_dlitelnost_raboty), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.focus_dlitelnost_raboty), style = AshTheme.type.subhead)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 25, 30, 45, 50, 90).forEach { minutes ->
                         FilterChip(
@@ -151,7 +149,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 }
 
                 if (tasks.isNotEmpty()) {
-                    Text(stringResource(R.string.focus_privyazat_k_zadache), style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.focus_privyazat_k_zadache), style = AshTheme.type.subhead)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         FilterChip(
                             selected = viewModel.selectedTaskId == null,
@@ -180,7 +178,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.focus_statistika_za_30_dney), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.focus_statistika_za_30_dney), style = AshTheme.type.headline)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -202,8 +200,8 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
 
 @Composable
 private fun TimerRing(progress: Float) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val accent = MaterialTheme.colorScheme.primary
+    val track = AshTheme.colors.surface2
+    val accent = AshTheme.colors.accent
 
     Canvas(modifier = Modifier.size(240.dp)) {
         val stroke = 12.dp.toPx()
@@ -224,11 +222,11 @@ private fun TimerRing(progress: Float) {
 @Composable
 private fun Metric(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleMedium)
+        Text(value, style = AshTheme.type.title3)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -239,8 +237,8 @@ private fun WeekdayChart(byWeekday: Map<Int, Long>) {
     val labels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
     val max = byWeekday.values.maxOrNull() ?: 0L
     if (max == 0L) return
-    val accent = MaterialTheme.colorScheme.primary
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val accent = AshTheme.colors.accent
+    val track = AshTheme.colors.surface2
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         (1..7).forEach { day ->
@@ -248,8 +246,8 @@ private fun WeekdayChart(byWeekday: Map<Int, Long>) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     labels[day - 1],
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.padding(end = 6.dp)
                 )
                 Canvas(modifier = Modifier.weight(1f).size(height = 12.dp, width = 1.dp)) {
@@ -261,8 +259,8 @@ private fun WeekdayChart(byWeekday: Map<Int, Long>) {
                 }
                 Text(
                     "  ${formatTime(seconds.toInt())}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
         }

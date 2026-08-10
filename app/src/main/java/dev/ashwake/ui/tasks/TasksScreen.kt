@@ -12,21 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.ViewTimeline
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -247,13 +239,13 @@ private fun EmptyState(onlyStale: Boolean) {
     ) {
         Text(
             if (onlyStale) "Залежавшихся задач нет" else "Пусто",
-            style = MaterialTheme.typography.titleMedium
+            style = AshTheme.type.title3
         )
         Text(
             if (onlyStale) "Сюда попадают задачи после трёх переносов"
             else "Добавьте задачу строкой снизу — дата, время, приоритет и теги разберутся сами",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center
         )
     }

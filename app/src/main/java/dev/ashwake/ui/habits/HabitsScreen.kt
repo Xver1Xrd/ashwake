@@ -8,19 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -105,8 +99,8 @@ fun HabitsScreen(
                 item {
                     Text(
                         "Режим отпуска: дни не считаются пропусками",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.warm
                     )
                 }
             }
@@ -125,8 +119,8 @@ fun HabitsScreen(
                 item {
                     Text(
                         "Не на сегодня",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AshTheme.type.subhead,
+                        color = AshTheme.colors.text2,
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
@@ -183,11 +177,11 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(stringResource(R.string.habits_privychek_poka_net), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.habits_privychek_poka_net), style = AshTheme.type.title3)
         Text(
             "Возьмите готовую из каталога или заведите свою. Score растёт постепенно и не обнуляется от пары пропусков",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )

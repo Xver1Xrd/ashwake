@@ -3,7 +3,6 @@ package dev.ashwake.platform.tile
 import android.app.PendingIntent
 import android.os.Build
 import android.service.quicksettings.TileService
-import androidx.annotation.RequiresApi
 import dev.ashwake.platform.widget.AppRoutes
 import dev.ashwake.platform.widget.appIntent
 

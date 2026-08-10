@@ -11,8 +11,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.components.IconButtonSlot
 import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Switch
@@ -106,7 +106,7 @@ fun CreateAbstinenceDialog(
                     )
                 }
 
-                Text(stringResource(R.string.editor_rezhim), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.editor_rezhim), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AbstinenceMode.entries.forEach { option ->
                         FilterChip(
@@ -120,11 +120,11 @@ fun CreateAbstinenceDialog(
                     if (mode == AbstinenceMode.GENTLE)
                         "Срыв отнимает семь дней, но не обнуляет счётчик"
                     else "Срыв обнуляет счётчик, как в классических трекерах",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
 
-                Text(stringResource(R.string.editor_nachalo), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.editor_nachalo), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 1, 3, 7, 30).forEach { days ->
                         FilterChip(
@@ -159,11 +159,11 @@ fun CreateAbstinenceDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(stringResource(R.string.editor_schitat_sekonomlennoe), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.editor_schitat_sekonomlennoe), style = AshTheme.type.subhead)
                         Text(
                             "Без этих цифр блок экономии просто не показывается",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = AshTheme.type.footnote,
+                            color = AshTheme.colors.text2
                         )
                     }
                     Switch(checked = baselineEnabled, onCheckedChange = { baselineEnabled = it })

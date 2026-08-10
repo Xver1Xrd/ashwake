@@ -12,13 +12,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.assets.HabitPresetCategory
 import dev.ashwake.domain.model.habits.Habit
 import dev.ashwake.domain.model.habits.HabitScheduleType
@@ -51,7 +51,7 @@ fun HabitCatalogDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
-                        Text(stringResource(R.string.components_svoya_privychka), style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.components_svoya_privychka), style = AshTheme.type.body)
                     }
                 }
 
@@ -59,8 +59,8 @@ fun HabitCatalogDialog(
                     item(key = "cat-${category.sphere}") {
                         Text(
                             category.title,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.secondary,
+                            style = AshTheme.type.subhead,
+                            color = AshTheme.colors.warm,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                     }
@@ -72,11 +72,11 @@ fun HabitCatalogDialog(
                                 .clickable { onPick(habit) }
                                 .padding(vertical = 8.dp)
                         ) {
-                            Text(habit.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(habit.name, style = AshTheme.type.callout)
                             Text(
                                 describe(habit),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }

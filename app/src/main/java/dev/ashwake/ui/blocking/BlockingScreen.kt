@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
@@ -28,13 +27,11 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -50,6 +47,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.blocking.UnlockCondition
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Moss
@@ -83,14 +82,11 @@ fun BlockingScreen(
     }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.blocking_blokirovka_prilozheniy)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
-                    }
-                }
+            AshNavBar(
+                title = stringResource(R.string.blocking_blokirovka_prilozheniy),
+                onBack = onBack
             )
         },
         floatingActionButton = {
@@ -110,13 +106,13 @@ fun BlockingScreen(
             PermissionsBlock(permissions, viewModel)
 
             HorizontalDivider()
-            Text(stringResource(R.string.blocking_pravila), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.blocking_pravila), style = AshTheme.type.headline)
 
             if (rules.isEmpty()) {
                 Text(
                     "Правил нет. Правило описывает, какие приложения закрыты и что нужно сделать, чтобы они открылись",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -125,21 +121,21 @@ fun BlockingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(AshTheme.colors.surface1)
                         .padding(12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(rule.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(rule.name, style = AshTheme.type.body)
                             Text(
                                 conditionLabel(rule.condition, rule.unlockTime),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                             Text(
                                 rule.packages.joinToString { viewModel.appLabel(it) },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2,
                                 maxLines = 2
                             )
                         }
@@ -157,17 +153,17 @@ fun BlockingScreen(
 
             if (bypasses.isNotEmpty()) {
                 HorizontalDivider()
-                Text(stringResource(R.string.blocking_ekstrennye_obhody), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.blocking_ekstrennye_obhody), style = AshTheme.type.headline)
                 Text(
                     "Обход всегда возможен — запирать себя в собственном телефоне нельзя. Но он остаётся в логе, и по нему видно, работает правило или стало формальностью",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
                 bypasses.take(10).forEach { record ->
                     Text(
                         "${record.at.atZone(ZoneId.systemDefault()).format(TIME_FORMAT)} · " +
                             viewModel.appLabel(record.packageName),
-                        style = MaterialTheme.typography.bodySmall
+                        style = AshTheme.type.subhead
                     )
                 }
             }
@@ -187,7 +183,7 @@ fun BlockingScreen(
  */
 @Composable
 private fun PermissionsBlock(state: PermissionState, viewModel: BlockingViewModel) {
-    Text(stringResource(R.string.blocking_razresheniya), style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.blocking_razresheniya), style = AshTheme.type.headline)
 
     PermissionRow(
         granted = state.usageAccess,
@@ -205,7 +201,7 @@ private fun PermissionsBlock(state: PermissionState, viewModel: BlockingViewMode
     if (!state.allGranted) {
         Text(
             "Без обоих разрешений блокировка не включается",
-            style = MaterialTheme.typography.labelMedium,
+            style = AshTheme.type.footnote,
             color = Ember
         )
     }
@@ -222,16 +218,16 @@ private fun PermissionRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (granted) "✓  $title" else "○  $title",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (granted) Moss else MaterialTheme.colorScheme.onSurface,
+                style = AshTheme.type.callout,
+                color = if (granted) Moss else AshTheme.colors.text,
                 modifier = Modifier.weight(1f)
             )
             if (!granted) TextButton(onClick = onOpen) { Text(stringResource(R.string.blocking_vydat)) }
         }
         Text(
             explanation,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -266,7 +262,7 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text(stringResource(R.string.blocking_otkryt_kogda), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.blocking_otkryt_kogda), style = AshTheme.type.subhead)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     UnlockCondition.entries.forEach { option ->
                         FilterChip(
@@ -333,9 +329,9 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         ) {
                             Text(
                                 if (isSelected) "✓  ${app.label}" else "○  ${app.label}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AshTheme.type.callout,
                                 color = if (isSelected) Moss
-                                else MaterialTheme.colorScheme.onSurface
+                                else AshTheme.colors.text
                             )
                         }
                     }

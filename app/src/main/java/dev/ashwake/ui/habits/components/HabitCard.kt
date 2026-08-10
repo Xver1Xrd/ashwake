@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -37,7 +36,6 @@ import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.AshTheme
-import dev.ashwake.ui.theme.Steel
 import kotlin.math.roundToInt
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
@@ -65,7 +63,7 @@ fun HabitCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(AshTheme.colors.surface1)
             .combinedClickable(onClick = onOpenDetail, onLongClick = onLongClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -84,14 +82,14 @@ fun HabitCard(
             ) {
                 Text(
                     text = habit.name,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = AshTheme.type.body,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = subtitle(progress),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -99,7 +97,7 @@ fun HabitCard(
                 Icon(
                     Icons.Filled.PauseCircle,
                     contentDescription = stringResource(R.string.components_na_pauze),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = AshTheme.colors.text2
                 )
             } else {
                 PrimaryButton(progress, onPrimaryAction)
@@ -125,7 +123,7 @@ private fun PrimaryButton(progress: HabitWithProgress, onClick: () -> Unit) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                 Text(
                     "  ${formatValue(progress.todayValue)}/${formatValue(habit.targetValue)}",
-                    style = MaterialTheme.typography.labelMedium
+                    style = AshTheme.type.footnote
                 )
             }
 
@@ -134,7 +132,7 @@ private fun PrimaryButton(progress: HabitWithProgress, onClick: () -> Unit) {
                     modifier = Modifier.size(18.dp))
             }
 
-            else -> Text(stringResource(R.string.components_otmetit), style = MaterialTheme.typography.labelMedium)
+            else -> Text(stringResource(R.string.components_otmetit), style = AshTheme.type.footnote)
         }
     }
 }
@@ -150,7 +148,7 @@ private fun ScoreRing(score: Float, done: Boolean, modifier: Modifier = Modifier
         score >= 0.4f -> Gold
         else -> Ember
     }
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val track = AshTheme.colors.surface2
 
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxWidth()) {
@@ -175,8 +173,8 @@ private fun ScoreRing(score: Float, done: Boolean, modifier: Modifier = Modifier
         }
         Text(
             text = "${(score * 100).roundToInt()}",
-            style = MaterialTheme.typography.labelMedium,
-            color = if (done) color else MaterialTheme.colorScheme.onSurface
+            style = AshTheme.type.footnote,
+            color = if (done) color else AshTheme.colors.text
         )
     }
 }

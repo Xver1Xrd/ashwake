@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -40,6 +39,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.tasks.CalendarScale
 import dev.ashwake.ui.tasks.CalendarUiState
@@ -117,7 +117,7 @@ private fun CalendarHeader(
                 CalendarScale.DAY -> state.anchor.format(DAY_FORMAT)
                 else -> state.anchor.format(MONTH_FORMAT)
             }.replaceFirstChar { it.titlecase(Locale.getDefault()) },
-            style = MaterialTheme.typography.titleSmall,
+            style = AshTheme.type.headline,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -204,8 +204,8 @@ private fun WeekdayHeader() {
         WEEKDAY_LABELS.forEach { label ->
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.weight(1f).padding(vertical = 4.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -229,12 +229,12 @@ private fun DayCell(
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surface
+                if (isSelected) AshTheme.colors.surface2
+                else AshTheme.colors.surface1
             )
             .then(
                 if (isToday) Modifier.border(
-                    1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)
+                    1.dp, AshTheme.colors.warm, RoundedCornerShape(8.dp)
                 ) else Modifier
             )
             .clickable(onClick = onClick)
@@ -244,11 +244,11 @@ private fun DayCell(
     ) {
         Text(
             text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.labelMedium,
+            style = AshTheme.type.footnote,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
             // Дни соседних месяцев приглушены, но кликабельны
-            color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            color = if (isCurrentMonth) AshTheme.colors.text
+            else AshTheme.colors.text2.copy(alpha = 0.5f)
         )
         // Точки по приоритетам: больше трёх не показываем, дальше «+N»
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -264,8 +264,8 @@ private fun DayCell(
         if (tasks.size > 3) {
             Text(
                 "+${tasks.size - 3}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
     }
@@ -277,8 +277,8 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(
                 "На этот день задач нет",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.callout,
+                color = AshTheme.colors.text2
             )
         }
         return
@@ -293,7 +293,7 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(AshTheme.colors.surface1)
                     .clickable { onTaskClick(task) }
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -306,7 +306,7 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 )
                 Text(
                     text = "  " + (task.dueTime?.format(TIME_FORMAT)?.plus("  ") ?: "") + task.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AshTheme.type.callout,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -330,8 +330,8 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
         if (untimed.isNotEmpty()) {
             Text(
                 "Без времени",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(start = 12.dp, top = 8.dp)
             )
             untimed.forEach { task ->
@@ -340,11 +340,11 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 3.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(AshTheme.colors.surface2)
                         .clickable { onTaskClick(task) }
                         .padding(8.dp)
                 ) {
-                    Text(task.title, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    Text(task.title, style = AshTheme.type.subhead, maxLines = 1)
                 }
             }
             HorizontalDivider(Modifier.padding(top = 8.dp))
@@ -361,8 +361,8 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 ) {
                     Text(
                         text = "%02d".format(hour),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2,
                         modifier = Modifier.width(32.dp).padding(start = 6.dp, top = 2.dp)
                     )
                     HorizontalDivider(Modifier.padding(top = 6.dp))
@@ -391,7 +391,7 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 ) {
                     Text(
                         text = "${time.format(TIME_FORMAT)}  ${task.title}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AshTheme.type.footnote,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )

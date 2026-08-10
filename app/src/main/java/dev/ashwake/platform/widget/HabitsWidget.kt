@@ -3,7 +3,6 @@ package dev.ashwake.platform.widget
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -36,10 +35,8 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitWithProgress
-import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.WidgetPalette
 import kotlinx.coroutines.flow.first
-import java.time.temporal.ChronoUnit
 
 /**
  * Виджет привычек на сегодня с недельным прогрессом (п. 18).

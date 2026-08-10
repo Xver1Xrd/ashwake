@@ -1,57 +1,66 @@
 package dev.ashwake.ui.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import dev.ashwake.R
-import dev.ashwake.ui.components.AshIcons
-import dev.ashwake.ui.theme.AccentColor
-import dev.ashwake.ui.theme.AshTheme
-import dev.ashwake.ui.theme.ThemeMode
-import dev.ashwake.ui.theme.ThemeSettings
 import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Switch
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.R
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.ListGroup
+import dev.ashwake.ui.components.ListGroupFooter
+import dev.ashwake.ui.components.ListDivider
+import dev.ashwake.ui.components.ListRow
+import dev.ashwake.ui.components.SegmentedControl
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AccentColor
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.ThemeMode
+import dev.ashwake.ui.theme.ThemeSettings
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/**
+ * Настройки.
+ *
+ * Раскладка группами, а не сплошной лентой с разделителями: настройка
+ * находится по группе, в которой лежит, и её не приходится вычитывать из
+ * общего потока. Каждой группе положено пояснение снизу — настройка,
+ * смысл которой надо угадывать, не настраивается, а перещёлкивается
+ * наугад.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -64,26 +73,21 @@ fun SettingsScreen(
     val dayStart by viewModel.dayStartHour.collectAsStateWithLifecycle()
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
+    val colors = AshTheme.colors
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.character_nastroyki)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(colors.background)
+    ) {
+        AshNavBar(title = stringResource(R.string.character_nastroyki), onBack = onBack)
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(GroupGap)
         ) {
             AppearanceSection(
                 theme = theme,
@@ -92,103 +96,106 @@ fun SettingsScreen(
                 onOpenEditor = onOpenThemeEditor
             )
 
-            HorizontalDivider()
-            Text(stringResource(R.string.settings_nachalo_sutok), style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, счётчики отказов и статистику",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ChipGroup(
+                header = stringResource(R.string.settings_nachalo_sutok),
+                footer = "Отметка в час ночи попадёт в предыдущий день. " +
+                    "Влияет на стрики, счётчики отказов и статистику",
+                options = listOf(0, 2, 4, 6),
+                label = { "%02d:00".format(it) },
+                selected = { it == dayStart },
+                onSelect = viewModel::setDayStartHour
             )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(0, 2, 4, 6).forEach { hour ->
-                    FilterChip(
-                        selected = dayStart == hour,
-                        onClick = { viewModel.setDayStartHour(hour) },
-                        label = { Text("%02d:00".format(hour)) }
-                    )
-                }
-            }
 
-            HorizontalDivider()
-            Text(stringResource(R.string.settings_rabochie_chasy), style = MaterialTheme.typography.titleSmall)
-            Text(
-                "В этом окне раскладывается день",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(6, 7, 8, 9, 10).forEach { hour ->
-                    FilterChip(
-                        selected = timebox.workStartMinute == hour * 60,
-                        onClick = { viewModel.setWorkStart(hour) },
-                        label = { Text("с %02d".format(hour)) }
-                    )
-                }
-            }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(17, 18, 19, 20, 22).forEach { hour ->
-                    FilterChip(
-                        selected = timebox.workEndMinute == hour * 60,
-                        onClick = { viewModel.setWorkEnd(hour) },
-                        label = { Text("до %02d".format(hour)) }
-                    )
-                }
-            }
-
-            Text(stringResource(R.string.settings_bufer_mezhdu_blokami), style = MaterialTheme.typography.titleSmall)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                listOf(0, 5, 10, 15).forEach { minutes ->
-                    FilterChip(
-                        selected = timebox.bufferMinutes == minutes,
-                        onClick = { viewModel.setBuffer(minutes) },
-                        label = { Text("$minutes мин") }
-                    )
-                }
-            }
-
-            Text(stringResource(R.string.settings_obed), style = MaterialTheme.typography.titleSmall)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                FilterChip(
-                    selected = timebox.lunchStartMinute == null,
-                    onClick = { viewModel.setLunch(false) },
-                    label = { Text(stringResource(R.string.settings_bez_obeda)) }
+            ListGroup(
+                header = stringResource(R.string.settings_rabochie_chasy),
+                footer = "В этом окне раскладывается день"
+            ) {
+                ChipRow(
+                    options = listOf(6, 7, 8, 9, 10),
+                    label = { "с %02d".format(it) },
+                    selected = { timebox.workStartMinute == it * 60 },
+                    onSelect = viewModel::setWorkStart
                 )
-                listOf(12, 13, 14).forEach { hour ->
-                    FilterChip(
-                        selected = timebox.lunchStartMinute == hour * 60,
-                        onClick = { viewModel.setLunch(true, hour) },
-                        label = { Text("%02d:00".format(hour)) }
+                ListDivider(inset = 0.dp)
+                ChipRow(
+                    options = listOf(17, 18, 19, 20, 22),
+                    label = { "до %02d".format(it) },
+                    selected = { timebox.workEndMinute == it * 60 },
+                    onSelect = viewModel::setWorkEnd
+                )
+            }
+
+            ChipGroup(
+                header = stringResource(R.string.settings_bufer_mezhdu_blokami),
+                footer = "Зазор между соседними блоками: без него день " +
+                    "раскладывается впритык и рассыпается от первой задержки",
+                options = listOf(0, 5, 10, 15),
+                label = { "$it мин" },
+                selected = { timebox.bufferMinutes == it },
+                onSelect = viewModel::setBuffer
+            )
+
+            ListGroup(header = stringResource(R.string.settings_obed)) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth().padding(ChipRowPadding),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    ChipButton(
+                        text = stringResource(R.string.settings_bez_obeda),
+                        selected = timebox.lunchStartMinute == null,
+                        onClick = { viewModel.setLunch(false) }
                     )
+                    listOf(12, 13, 14).forEach { hour ->
+                        ChipButton(
+                            text = "%02d:00".format(hour),
+                            selected = timebox.lunchStartMinute == hour * 60,
+                            onClick = { viewModel.setLunch(true, hour) }
+                        )
+                    }
                 }
             }
 
-            HorizontalDivider()
-            SettingsRow(
-                title = stringResource(R.string.settings_sistemnyy_kalendar),
-                subtitle = if (useCalendar) "События учитываются при раскладке дня"
-                else "События календаря не учитываются",
-                onClick = { viewModel.setUseCalendar(!useCalendar) }
-            )
-            SettingsRow(
-                title = stringResource(R.string.settings_dannye_i_bekapy),
-                subtitle = stringResource(R.string.settings_rezervnye_kopii_shifrovanie_import_iz_drugih),
-                onClick = onOpenBackup
-            )
-            SettingsRow(
-                title = stringResource(R.string.blocking_blokirovka_prilozheniy),
-                subtitle = stringResource(R.string.settings_vyklyuchena_po_umolchaniyu_trebuet_dvuh_razr),
-                onClick = onOpenBlocking
-            )
+            ListGroup(header = "Данные и система") {
+                ListRow(
+                    title = stringResource(R.string.settings_sistemnyy_kalendar),
+                    subtitle = if (useCalendar) "События учитываются при раскладке дня"
+                    else "События календаря не учитываются",
+                    trailing = {
+                        Switch(
+                            checked = useCalendar,
+                            onCheckedChange = { viewModel.setUseCalendar(it) }
+                        )
+                    },
+                    onClick = { viewModel.setUseCalendar(!useCalendar) }
+                )
+                ListDivider()
+                ListRow(
+                    title = stringResource(R.string.settings_dannye_i_bekapy),
+                    subtitle = stringResource(
+                        R.string.settings_rezervnye_kopii_shifrovanie_import_iz_drugih
+                    ),
+                    showChevron = true,
+                    onClick = onOpenBackup
+                )
+                ListDivider()
+                ListRow(
+                    title = stringResource(R.string.blocking_blokirovka_prilozheniy),
+                    subtitle = stringResource(
+                        R.string.settings_vyklyuchena_po_umolchaniyu_trebuet_dvuh_razr
+                    ),
+                    showChevron = true,
+                    onClick = onOpenBlocking
+                )
+            }
 
-            HorizontalDivider()
             BatteryOptimizationSection()
 
-            HorizontalDivider()
-            Text(
-                "Приложение работает офлайн: ни одного сетевого вызова, ни аналитики, ни сторонних SDK",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            ListGroupFooter(
+                "Приложение работает офлайн: ни одного сетевого вызова, " +
+                    "ни аналитики, ни сторонних SDK"
             )
+            Spacer(Modifier.navigationBarsPadding())
         }
     }
 }
@@ -208,81 +215,106 @@ private fun AppearanceSection(
     onOpenEditor: () -> Unit
 ) {
     val colors = AshTheme.colors
+    val modes = ThemeMode.entries
 
-    Text("Оформление", style = MaterialTheme.typography.titleSmall)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        ThemeMode.entries.forEach { mode ->
-            FilterChip(
-                selected = theme.mode == mode,
-                onClick = { onThemeMode(mode) },
-                label = { Text(mode.title) }
+    ListGroup(header = "Оформление") {
+        Box(Modifier.padding(ChipRowPadding)) {
+            SegmentedControl(
+                options = modes.map { it.title },
+                selectedIndex = modes.indexOf(theme.mode),
+                onSelect = { onThemeMode(modes[it]) }
             )
         }
-    }
 
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        AccentColor.entries.forEach { accent ->
-            val selected = theme.customAccent == null && theme.accent == accent
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                accent.resolve(colors.isDark),
-                                accent.resolveAlt(colors.isDark)
-                            )
-                        ),
-                        CircleShape
-                    )
-                    .border(
-                        width = if (selected) 2.dp else 0.dp,
-                        color = if (selected) colors.text else Color.Transparent,
-                        shape = CircleShape
-                    )
-                    .clickable { onAccent(accent) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (selected) {
-                    Icon(
-                        AshIcons.Check,
-                        contentDescription = accent.title,
-                        tint = if (colors.isDark) Color.Black else Color.White,
-                        modifier = Modifier.size(18.dp)
-                    )
+        ListDivider(inset = 0.dp)
+
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(ChipRowPadding),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            AccentColor.entries.forEach { accent ->
+                // Свой цвет из редактора отменяет пресет: иначе выбранными
+                // выглядели бы сразу два, и непонятно, что применено
+                val selected = theme.customAccent == null && theme.accent == accent
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    accent.resolve(colors.isDark),
+                                    accent.resolveAlt(colors.isDark)
+                                )
+                            ),
+                            CircleShape
+                        )
+                        .border(
+                            width = if (selected) 2.dp else 0.dp,
+                            color = if (selected) colors.text else Color.Transparent,
+                            shape = CircleShape
+                        )
+                        .tappable(onClick = { onAccent(accent) }),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (selected) {
+                        Icon(
+                            AshIcons.Check,
+                            contentDescription = accent.title,
+                            tint = if (colors.isDark) Color.Black else Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
-    }
 
-    SettingsRow(
-        title = "Редактор темы",
-        subtitle = "Свой цвет, форма углов, скругление, плотность, эффекты",
-        onClick = onOpenEditor
-    )
+        ListDivider()
+
+        ListRow(
+            title = "Редактор темы",
+            subtitle = "Свой цвет, форма углов, скругление, плотность, эффекты",
+            showChevron = true,
+            onClick = onOpenEditor
+        )
+    }
 }
 
+/** Группа из одного ряда таблеток: половина настроек здесь именно такая. */
 @Composable
-private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+private fun <T> ChipGroup(
+    header: String,
+    options: List<T>,
+    label: (T) -> String,
+    selected: (T) -> Boolean,
+    onSelect: (T) -> Unit,
+    footer: String? = null
+) {
+    ListGroup(header = header, footer = footer) {
+        ChipRow(options, label, selected, onSelect)
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun <T> ChipRow(
+    options: List<T>,
+    label: (T) -> String,
+    selected: (T) -> Boolean,
+    onSelect: (T) -> Unit
+) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth().padding(ChipRowPadding),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+        options.forEach { option ->
+            ChipButton(
+                text = label(option),
+                selected = selected(option),
+                onClick = { onSelect(option) }
             )
         }
-        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
     }
 }
 
@@ -301,6 +333,7 @@ private fun SettingsRow(title: String, subtitle: String, onClick: () -> Unit) {
 @Composable
 private fun BatteryOptimizationSection() {
     val context = LocalContext.current
+    val colors = AshTheme.colors
     val ignoring = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             context.getSystemService(PowerManager::class.java)
@@ -308,29 +341,41 @@ private fun BatteryOptimizationSection() {
         } else true
     }
 
-    Text(
-        stringResource(R.string.settings_battery_title),
-        style = MaterialTheme.typography.titleSmall
-    )
-    Text(
-        if (ignoring) stringResource(R.string.settings_battery_ok)
-        else stringResource(R.string.settings_battery_warning),
-        style = MaterialTheme.typography.labelSmall,
-        color = if (ignoring) MaterialTheme.colorScheme.onSurfaceVariant
-        else MaterialTheme.colorScheme.error
-    )
-    if (!ignoring) {
-        SettingsRow(
-            title = stringResource(R.string.settings_battery_action),
-            subtitle = stringResource(R.string.settings_battery_action_hint),
-            onClick = {
-                runCatching {
-                    context.startActivity(
-                        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    )
-                }
+    ListGroup(header = stringResource(R.string.settings_battery_title)) {
+        ListRow(
+            title = if (ignoring) stringResource(R.string.settings_battery_ok)
+            else stringResource(R.string.settings_battery_warning),
+            titleColor = if (ignoring) colors.text else colors.danger,
+            leading = {
+                Icon(
+                    imageVector = if (ignoring) AshIcons.CheckCircle else AshIcons.Warning,
+                    contentDescription = null,
+                    tint = if (ignoring) colors.success else colors.danger,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         )
+        if (!ignoring) {
+            ListDivider()
+            ListRow(
+                title = stringResource(R.string.settings_battery_action),
+                subtitle = stringResource(R.string.settings_battery_action_hint),
+                showChevron = true,
+                onClick = {
+                    runCatching {
+                        context.startActivity(
+                            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                }
+            )
+        }
     }
 }
+
+/** Просвет между группами: меньше — и группы сливаются в одну ленту. */
+private val GroupGap = 18.dp
+
+/** Внутренние поля ряда таблеток внутри группы. */
+private val ChipRowPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp)

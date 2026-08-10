@@ -21,11 +21,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.platform.service.formatTime
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
@@ -58,7 +57,7 @@ fun RoutinesScreen(
     LaunchedEffect(run.active) { if (run.active) onRun() }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.routines_rutiny)) }) },
+        containerColor = AshTheme.colors.background,
         floatingActionButton = {
             FloatingActionButton(onClick = { showPresets = true }) {
                 Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.routines_dobavit_rutinu))
@@ -71,11 +70,11 @@ fun RoutinesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(stringResource(R.string.routines_rutin_poka_net), style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.routines_rutin_poka_net), style = AshTheme.type.title3)
                 Text(
                     "Рутина — это список шагов с таймером: запустил и не думаешь, что дальше",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2,
                     textAlign = TextAlign.Center
                 )
             }
@@ -90,18 +89,18 @@ fun RoutinesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(AshTheme.colors.surface1)
                             .clickable { viewModel.start(routine) }
                             .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(routine.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(routine.name, style = AshTheme.type.body)
                             Text(
                                 "${routine.steps.size} шагов · ${formatTime(routine.plannedSeconds)}" +
                                     (routine.startTime?.let { " · в $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                         }
                         IconButton(onClick = { viewModel.start(routine) }) {
@@ -128,11 +127,11 @@ fun RoutinesScreen(
                                     }
                                     .padding(vertical = 8.dp)
                             ) {
-                                Text(preset.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(preset.name, style = AshTheme.type.callout)
                                 Text(
                                     "${preset.steps.size} шагов · ${formatTime(preset.totalSeconds)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = AshTheme.type.footnote,
+                                    color = AshTheme.colors.text2
                                 )
                             }
                         }
@@ -150,6 +149,6 @@ fun RoutinesScreen(
 @Composable
 internal fun RoutinePlaceholder(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, color = AshTheme.colors.text2)
     }
 }

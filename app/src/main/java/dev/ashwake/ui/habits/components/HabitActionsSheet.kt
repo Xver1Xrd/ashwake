@@ -14,7 +14,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.habits.SkipReason
@@ -72,11 +72,11 @@ fun HabitActionsSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(habit.name, style = MaterialTheme.typography.titleMedium)
+            Text(habit.name, style = AshTheme.type.title3)
             Text(
                 "score ${(progress.score * 100).toInt()}% · серия ${progress.currentStreak} · рекорд ${progress.recordStreak}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             if (habit.type == HabitType.COUNTER) {
@@ -84,7 +84,7 @@ fun HabitActionsSheet(
                 Text(
                     "Сегодня: ${formatValue(counter)} из ${formatValue(habit.targetValue)}" +
                         (habit.unitName?.let { " $it" } ?: ""),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AshTheme.type.callout
                 )
                 Slider(
                     value = counter,
@@ -109,7 +109,7 @@ fun HabitActionsSheet(
             )
 
             HorizontalDivider()
-            Text(stringResource(R.string.components_propustit_i_ukazat_prichinu), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.components_propustit_i_ukazat_prichinu), style = AshTheme.type.subhead)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 skipReasons.forEach { reason ->
                     AssistChip(

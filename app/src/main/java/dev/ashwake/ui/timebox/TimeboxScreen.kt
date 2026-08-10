@@ -32,11 +32,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -55,6 +53,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.BlockKind
 import dev.ashwake.domain.model.tasks.TimeboxBlock
 import dev.ashwake.ui.theme.Ember
@@ -85,9 +85,10 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
     var selectedBlock by remember { mutableStateOf<TimeboxBlock?>(null) }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.timebox_shkala_dnya)) },
+            AshNavBar(
+                title = stringResource(R.string.timebox_shkala_dnya),
                 actions = {
                     IconButton(onClick = { viewModel.shiftDate(-1) }) {
                         Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.detail_nazad))
@@ -114,7 +115,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
         ) {
             Text(
                 date.format(DATE_FORMAT).replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleSmall,
+                style = AshTheme.type.headline,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -124,8 +125,8 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             ) {
                 Text(
                     "${settings.workStartMinute / 60}:00–${settings.workEndMinute / 60}:00 · буфер ${settings.bufferMinutes} мин",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -150,8 +151,8 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             if (useCalendar && !viewModel.calendarPermissionGranted()) {
                 Text(
                     "Нет доступа к календарю — события учитываться не будут. Разрешение запрашивается в настройках системы",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.danger,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
@@ -159,7 +160,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             if (day.deficitMinutes > 0) {
                 Text(
                     "Не влезло ${formatDuration(day.deficitMinutes)} — часть задач придётся вынести на завтра",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AshTheme.type.footnote,
                     color = Ember,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
@@ -191,28 +192,28 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                     if (data.deficitMinutes > 0) {
                         Text(
                             "Не хватает ${formatDuration(data.deficitMinutes)}",
-                            style = MaterialTheme.typography.bodyMedium,
+                            style = AshTheme.type.callout,
                             color = Ember
                         )
-                        Text(stringResource(R.string.timebox_na_zavtra_stoit_vynesti), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.timebox_na_zavtra_stoit_vynesti), style = AshTheme.type.subhead)
                         data.deferredTitles.take(6).forEach {
-                            Text("· $it", style = MaterialTheme.typography.bodySmall)
+                            Text("· $it", style = AshTheme.type.subhead)
                         }
                     } else {
-                        Text(stringResource(R.string.timebox_vse_pomestilos), style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.timebox_vse_pomestilos), style = AshTheme.type.callout)
                     }
 
                     if (data.withoutEstimateTitles.isNotEmpty()) {
                         HorizontalDivider(Modifier.padding(vertical = 4.dp))
                         Text(
                             "Без оценки времени — не раскладываются:",
-                            style = MaterialTheme.typography.labelLarge
+                            style = AshTheme.type.subhead
                         )
                         data.withoutEstimateTitles.take(6).forEach {
                             Text(
                                 "· $it",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.subhead,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }
@@ -273,8 +274,8 @@ private fun DayGrid(
             ) {
                 Text(
                     "%02d:00".format(startHour + index),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(44.dp).padding(start = 8.dp, top = 2.dp)
                 )
                 HorizontalDivider(Modifier.padding(top = 8.dp))
@@ -342,7 +343,7 @@ private fun DayGrid(
                     }
                     Text(
                         text = " ${block.startTime()} ${block.title}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AshTheme.type.footnote,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -368,12 +369,12 @@ private fun BlockActionsDialog(
                 Text(
                     "${block.startTime()}–${block.endTime()} · " +
                         formatDuration(block.durationMinutes),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AshTheme.type.callout
                 )
                 TextButton(onClick = onPin) {
                     Text(if (block.pinned) "Открепить" else "Закрепить: не двигать")
                 }
-                Text(stringResource(R.string.timebox_zatyanulos_na), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.timebox_zatyanulos_na), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 30, 60).forEach { minutes ->
                         TextButton(onClick = { onOverran(minutes) }) { Text("+$minutes") }

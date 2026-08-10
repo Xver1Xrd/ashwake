@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,6 +37,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.EisenhowerQuadrant
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.theme.PriorityColors
@@ -154,11 +154,11 @@ private fun QuadrantCell(
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (isHovered) accent.copy(alpha = 0.16f)
-                else MaterialTheme.colorScheme.surface
+                else AshTheme.colors.surface1
             )
             .border(
                 width = if (isHovered) 2.dp else 1.dp,
-                color = if (isHovered) accent else MaterialTheme.colorScheme.outline,
+                color = if (isHovered) accent else AshTheme.colors.separator,
                 shape = RoundedCornerShape(12.dp)
             )
             .padding(8.dp)
@@ -172,21 +172,21 @@ private fun QuadrantCell(
             )
             Text(
                 text = "  $title",
-                style = MaterialTheme.typography.labelLarge,
+                style = AshTheme.type.subhead,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = tasks.size.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         Text(
             text = action,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2,
             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
         )
 
@@ -222,7 +222,7 @@ private fun TaskChip(task: Task, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(AshTheme.colors.surface2)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -234,7 +234,7 @@ private fun TaskChip(task: Task, modifier: Modifier = Modifier) {
         )
         Text(
             text = "  ${task.title}",
-            style = MaterialTheme.typography.bodySmall,
+            style = AshTheme.type.subhead,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )

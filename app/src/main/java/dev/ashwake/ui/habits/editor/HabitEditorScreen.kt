@@ -12,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePickerDialog
@@ -21,8 +20,9 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.components.IconButtonSlot
 import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Scaffold
@@ -30,7 +30,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -70,14 +69,11 @@ fun HabitEditorScreen(
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(if (state.isNew) "Новая привычка" else "Привычка") },
-                navigationIcon = {
-                    IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
-                    }
-                },
+            AshNavBar(
+                title = if (state.isNew) "Новая привычка" else "Привычка",
+                onBack = onDone,
                 actions = {
                     if (!state.isNew) {
                         IconButton(onClick = viewModel::delete) {
@@ -127,7 +123,7 @@ fun HabitEditorScreen(
                 )
             }
 
-            Text(stringResource(R.string.editor_tip), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_tip), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 HabitType.entries.forEach { type ->
                     FilterChip(
@@ -140,8 +136,8 @@ fun HabitEditorScreen(
             if (state.type == HabitType.NEGATIVE) {
                 Text(
                     "Успех — это отсутствие отметки. Отмечать нужно срывы, а не выполнение",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -173,11 +169,11 @@ fun HabitEditorScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text(stringResource(R.string.editor_minimalnaya_planka), style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.editor_minimalnaya_planka), style = AshTheme.type.headline)
                     Text(
                         "Цель на плохой день. Держит серию и даёт половину вклада в score",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2
                     )
                 }
                 Switch(
@@ -197,7 +193,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.editor_raspisanie), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_raspisanie), style = AshTheme.type.headline)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 HabitScheduleType.entries.forEach { type ->
                     FilterChip(
@@ -238,7 +234,7 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.editor_sfera), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_sfera), style = AshTheme.type.headline)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Sphere.entries.forEach { sphere ->
                     FilterChip(
@@ -250,13 +246,13 @@ fun HabitEditorScreen(
             }
             Text(
                 "Сфера определяет, какая характеристика персонажа растёт от этой привычки",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.editor_napominanie), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_napominanie), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = state.reminderTime != null,
@@ -268,7 +264,7 @@ fun HabitEditorScreen(
                 }
             }
 
-            Text(stringResource(R.string.editor_zamorozok_v_mesyac), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_zamorozok_v_mesyac), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf(0, 1, 3, 5, 10).forEach { quota ->
                     FilterChip(
@@ -281,11 +277,11 @@ fun HabitEditorScreen(
 
             HorizontalDivider()
 
-            Text(stringResource(R.string.editor_yakor), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.editor_yakor), style = AshTheme.type.headline)
             Text(
                 "Привязка к событию вместо часов: цепочка привычек одна за другой",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 FilterChip(

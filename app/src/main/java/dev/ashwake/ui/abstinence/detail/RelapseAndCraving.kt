@@ -17,7 +17,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -75,7 +74,7 @@ fun RelapseDialog(
             text = {
                 Text(
                     "Счётчик начнёт новую попытку. История никуда не денется: рекорд и общее число чистых дней сохранятся.",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AshTheme.type.callout
                 )
             },
             confirmButton = { TextButton(onClick = { confirmed = true }) { Text(stringResource(R.string.detail_da)) } },
@@ -89,10 +88,10 @@ fun RelapseDialog(
         title = { Text(stringResource(R.string.detail_chto_sluchilos)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(stringResource(R.string.detail_prichina), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_prichina), style = AshTheme.type.subhead)
                 ReasonChips(reasons, selectedReason) { selectedReason = it }
 
-                Text(stringResource(R.string.detail_kogda), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_kogda), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 3, 12, 24).forEach { hours ->
                         FilterChip(
@@ -182,21 +181,21 @@ fun CravingSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(stringResource(R.string.detail_seychas_tyazhelo), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.detail_seychas_tyazhelo), style = AshTheme.type.title3)
 
             abstinence.motivationText?.let { text ->
                 Text(
                     text,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = AshTheme.type.body,
                     modifier = Modifier.fillMaxWidth()
                 )
                 HorizontalDivider()
             }
 
             if (abstinence.substitutes.isNotEmpty()) {
-                Text(stringResource(R.string.detail_mozhno_sdelat_vmesto), style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_mozhno_sdelat_vmesto), style = AshTheme.type.subhead)
                 abstinence.substitutes.forEach { substitute ->
-                    Text("· ${substitute.text}", style = MaterialTheme.typography.bodyMedium)
+                    Text("· ${substitute.text}", style = AshTheme.type.callout)
                 }
                 HorizontalDivider()
             }
@@ -214,7 +213,7 @@ fun CravingSheet(
             )
 
             HorizontalDivider()
-            Text(stringResource(R.string.detail_naskolko_silno), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_naskolko_silno), style = AshTheme.type.subhead)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 (1..5).forEach { level ->
                     FilterChip(
@@ -225,7 +224,7 @@ fun CravingSheet(
                 }
             }
 
-            Text(stringResource(R.string.detail_chto_podtolknulo), style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_chto_podtolknulo), style = AshTheme.type.subhead)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 triggers.forEach { trigger ->
                     FilterChip(
@@ -282,8 +281,8 @@ fun CravingSheet(
 
             Text(
                 "Пока вы не отметили срыв, счётчик идёт дальше",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
     }
@@ -350,18 +349,18 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
                     holding -> "держим"
                     else -> "выдох"
                 },
-                style = MaterialTheme.typography.labelLarge,
+                style = AshTheme.type.subhead,
                 color = if (colors.isDark) Color.Black else Color.White
             )
         }
         Text(
             "%d:%02d".format(seconds / 60, seconds % 60),
-            style = MaterialTheme.typography.titleMedium
+            style = AshTheme.type.title3
         )
         Text(
             "Две–пять минут обычно достаточно, чтобы волна прошла",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center
         )
         OutlinedButton(onClick = onToggle) {
@@ -384,7 +383,7 @@ fun SubstanceWarningDialog(onAcknowledge: () -> Unit) {
                 "Резкий отказ от алкоголя или веществ может быть небезопасен. " +
                     "Имеет смысл обсудить это с врачом.\n\n" +
                     "Приложение считает дни и ведёт историю. Медицинских рекомендаций оно не даёт.",
-                style = MaterialTheme.typography.bodyMedium
+                style = AshTheme.type.callout
             )
         },
         confirmButton = { TextButton(onClick = onAcknowledge) { Text(stringResource(R.string.detail_ponyatno)) } }

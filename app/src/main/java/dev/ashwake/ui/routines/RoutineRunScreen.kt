@@ -24,7 +24,6 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.routines.SessionSummary
 import dev.ashwake.platform.service.formatTime
 import dev.ashwake.ui.theme.CounterLarge
@@ -92,7 +92,7 @@ fun RoutineRunScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(AshTheme.colors.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -103,7 +103,7 @@ fun RoutineRunScreen(
         ) {
             Text(
                 run.routine?.name.orEmpty(),
-                style = MaterialTheme.typography.titleMedium,
+                style = AshTheme.type.title3,
                 modifier = Modifier.weight(1f)
             )
             IconButton(onClick = { viewModel.finish() }) {
@@ -113,8 +113,8 @@ fun RoutineRunScreen(
 
         Text(
             "Шаг ${run.stepIndex + 1} из ${run.steps.size}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
 
         Box(contentAlignment = Alignment.Center) {
@@ -123,7 +123,7 @@ fun RoutineRunScreen(
                 Text(formatTime(run.progress.stepRemainingSeconds), style = CounterLarge)
                 Text(
                     run.currentStep?.title.orEmpty(),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = AshTheme.type.title3,
                     textAlign = TextAlign.Center
                 )
             }
@@ -165,27 +165,27 @@ fun RoutineRunScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(AshTheme.colors.surface1)
                     .padding(12.dp)
             ) {
                 Text(
                     "Дальше",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
-                Text(next.title, style = MaterialTheme.typography.bodyLarge)
+                Text(next.title, style = AshTheme.type.body)
                 Text(
                     formatTime(next.plannedSeconds),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
         }
 
         Text(
             "Осталось всего: ${formatTime(run.progress.totalRemainingSeconds)}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 
@@ -202,8 +202,8 @@ fun RoutineRunScreen(
 
 @Composable
 private fun StepRing(progress: Float) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
-    val accent = MaterialTheme.colorScheme.primary
+    val track = AshTheme.colors.surface2
+    val accent = AshTheme.colors.accent
 
     Canvas(modifier = Modifier.size(260.dp)) {
         val stroke = 12.dp.toPx()
@@ -268,37 +268,37 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
             ) {
                 Text(
                     "План ${formatTime(summary.plannedSeconds)} · факт ${formatTime(summary.actualSeconds)}",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AshTheme.type.callout
                 )
                 Text(
                     if (summary.overran)
                         "Дольше плана на ${formatTime(summary.deviationSeconds)}"
                     else "Быстрее плана на ${formatTime(-summary.deviationSeconds)}",
-                    style = MaterialTheme.typography.labelMedium,
+                    style = AshTheme.type.footnote,
                     color = if (summary.overran) Ember else Moss
                 )
                 if (summary.skippedSteps > 0) {
                     Text(
                         "Пропущено шагов: ${summary.skippedSteps}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2
                     )
                 } else {
                     Text(
                         "Без пропусков",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AshTheme.type.footnote,
                         color = Gold
                     )
                 }
 
                 if (summary.notableSteps.isNotEmpty()) {
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
-                    Text(stringResource(R.string.routines_zametnye_otkloneniya), style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.routines_zametnye_otkloneniya), style = AshTheme.type.subhead)
                     summary.notableSteps.forEach { step ->
                         Text(
                             "${step.title}: план ${formatTime(step.plannedSeconds)}, факт ${formatTime(step.actualSeconds)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = AshTheme.type.footnote,
+                            color = AshTheme.colors.text2
                         )
                     }
                 }

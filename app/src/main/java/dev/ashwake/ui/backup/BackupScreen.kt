@@ -10,15 +10,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -26,7 +21,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,6 +32,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.importer.ImportSource
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Moss
@@ -80,14 +76,11 @@ fun BackupScreen(
     ) { uri -> uri?.let { viewModel.parseImport(it, importSource) } }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.backup_dannye)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
-                    }
-                }
+            AshNavBar(
+                title = stringResource(R.string.backup_dannye),
+                onBack = onBack
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -100,16 +93,16 @@ fun BackupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(stringResource(R.string.backup_rezervnye_kopii), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_rezervnye_kopii), style = AshTheme.type.headline)
             Text(
                 "Копия пишется в выбранную папку раз в сутки. Положите её туда, где работает ваша синхронизация — приложение само никуда ничего не отправляет",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             Text(
                 folder?.let { "Папка выбрана" } ?: "Папка не выбрана",
-                style = MaterialTheme.typography.bodyMedium,
+                style = AshTheme.type.callout,
                 color = if (folder != null) Moss else Ember
             )
             OutlinedButton(
@@ -118,7 +111,7 @@ fun BackupScreen(
             ) { Text(if (folder == null) "Выбрать папку" else "Сменить папку") }
 
             HorizontalDivider()
-            Text(stringResource(R.string.backup_parol_arhiva), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_parol_arhiva), style = AshTheme.type.headline)
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
@@ -133,8 +126,8 @@ fun BackupScreen(
                 } else {
                     "Пароль нигде не хранится. Забытый пароль означает потерянный архив"
                 },
-                style = MaterialTheme.typography.labelSmall,
-                color = if (password.isBlank()) Ember else MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = if (password.isBlank()) Ember else AshTheme.colors.text2
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -149,11 +142,11 @@ fun BackupScreen(
             }
 
             HorizontalDivider()
-            Text(stringResource(R.string.backup_import_iz_drugogo_prilozheniya), style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_import_iz_drugogo_prilozheniya), style = AshTheme.type.headline)
             Text(
                 "Разбор показывается до применения: ничего не меняется, пока вы не нажмёте «Применить»",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             ImportSource.entries.forEach { source ->
@@ -176,22 +169,22 @@ fun BackupScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         "Импортируется ${report.imported}, пропущено ${report.skipped}",
-                        style = MaterialTheme.typography.bodyMedium
+                        style = AshTheme.type.callout
                     )
                     if (report.previewTitles.isNotEmpty()) {
-                        Text(stringResource(R.string.backup_naprimer), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_naprimer), style = AshTheme.type.subhead)
                         report.previewTitles.forEach {
-                            Text("· $it", style = MaterialTheme.typography.bodySmall)
+                            Text("· $it", style = AshTheme.type.subhead)
                         }
                     }
                     if (report.reasons.isNotEmpty()) {
                         HorizontalDivider()
-                        Text(stringResource(R.string.backup_propuscheno), style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_propuscheno), style = AshTheme.type.subhead)
                         report.reasons.forEach { (reason, count) ->
                             Text(
                                 "$reason — $count",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.subhead,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }
@@ -222,8 +215,8 @@ fun BackupScreen(
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
                         "Восстановление заменит текущие данные целиком: задачи, привычки с историей отметок, отказы, персонажа и монеты. Отменить это нельзя",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2
                     )
                 }
             },
@@ -234,7 +227,7 @@ fun BackupScreen(
                 ) {
                     Text(
                         text = if (restoring) "Восстановление…" else "Заменить данные",
-                        color = MaterialTheme.colorScheme.error
+                        color = AshTheme.colors.danger
                     )
                 }
             },

@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -16,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.StaleResolution
 import dev.ashwake.domain.model.tasks.Task
 import androidx.compose.ui.res.stringResource
@@ -42,11 +42,11 @@ fun StaleTaskDialog(
         title = { Text("Задача переносится ${task.postponeCount}-й раз") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(task.title, style = MaterialTheme.typography.bodyLarge)
+                Text(task.title, style = AshTheme.type.body)
                 Text(
                     "Похоже, в текущем виде она не двигается. Что с ней сделать?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
                 )
 
                 when (mode) {

@@ -16,7 +16,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.repository.tasks.TaskFilter
@@ -106,8 +106,8 @@ fun ProjectsDialog(
                 if (projects.isEmpty()) {
                     Text(
                         "Пока ни одного проекта",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = AshTheme.type.callout,
+                        color = AshTheme.colors.text2
                     )
                 }
                 projects.forEach { project ->
