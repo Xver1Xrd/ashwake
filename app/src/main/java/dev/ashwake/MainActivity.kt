@@ -39,6 +39,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var tasks: TaskRepository
     @Inject lateinit var settings: AppSettings
     @Inject lateinit var iconStore: IconStore
+    @Inject lateinit var backupDao: dev.ashwake.data.db.dao.backup.BackupDao
 
     /**
      * Куда открыться при запуске из виджета, плитки или шортката.
@@ -55,6 +56,7 @@ class MainActivity : ComponentActivity() {
 
         requestNotificationPermissionIfNeeded()
         purgeOldTrash()
+        sweepIcons()
         handleShare(intent)
         handleRoute(intent)
 
@@ -63,6 +65,10 @@ class MainActivity : ComponentActivity() {
             // экрана, и прокидывать её через навигацию было бы дороже
             val theme by settings.theme
                 .collectAsStateWithLifecycle(initialValue = ThemeSettings())
+            // null — ещё не прочитали: показывать знакомство до ответа
+            // хранилища значит мигать им при каждом запуске
+            val onboardingDone by settings.onboardingDone
+                .collectAsStateWithLifecycle(initialValue = null as Boolean?)
 
             AshwakeTheme(settings = theme) {
                 // Значки читают файлы из хранилища прямо в строке списка,
@@ -70,7 +76,12 @@ class MainActivity : ComponentActivity() {
                 androidx.compose.runtime.CompositionLocalProvider(
                     LocalIconStore provides iconStore
                 ) {
-                    AshwakeRoot(pendingRoute = pendingRoute)
+                    if (onboardingDone != null) {
+                        AshwakeRoot(
+                            pendingRoute = pendingRoute,
+                            showOnboarding = onboardingDone == false
+                        )
+                    }
                 }
             }
         }
@@ -90,6 +101,19 @@ class MainActivity : ComponentActivity() {
      */
     private fun purgeOldTrash() {
         lifecycleScope.launch { tasks.purgeTrashOlderThan(TRASH_KEEP_DAYS) }
+    }
+
+    /**
+     * Значки без хозяина.
+     *
+     * Картинка переживает свою задачу: её удалили, заменили другой или
+     * откатили правку — файл остаётся. Подметание на запуске стоит один
+     * проход по каталогу с десятком файлов и снимает вопрос навсегда.
+     */
+    private fun sweepIcons() {
+        lifecycleScope.launch {
+            runCatching { iconStore.sweep(backupDao.usedIconPaths().toSet()) }
+        }
     }
 
     private fun handleRoute(intent: Intent?) {

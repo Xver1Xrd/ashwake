@@ -24,6 +24,29 @@ android {
         }
     }
 
+    // Подпись релиза берётся из переменных окружения: держать хранилище
+    // ключей в репозитории нельзя, а собирать релиз debug-ключом — значит
+    // выпустить сборку, которую нельзя обновить настоящей.
+    //
+    // Ключа нет — конфигурация не создаётся, и релиз собирается неподписанным
+    // и честно об этом молчит. Падать здесь неправильно: debug-сборка
+    // на машине без ключа должна собираться.
+    val releaseKeystore = System.getenv("ASHWAKE_KEYSTORE")
+        ?.takeIf { it.isNotBlank() }
+        ?.let(::File)
+        ?.takeIf { it.exists() }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("ASHWAKE_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ASHWAKE_KEY_ALIAS")
+                keyPassword = System.getenv("ASHWAKE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
@@ -38,6 +61,7 @@ android {
             matchingFallbacks += listOf("release")
         }
         release {
+            signingConfig = releaseKeystore?.let { signingConfigs.getByName("release") }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

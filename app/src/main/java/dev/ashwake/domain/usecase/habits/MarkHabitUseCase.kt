@@ -10,6 +10,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.RewardScope
 import dev.ashwake.domain.repository.habits.HabitRepository
+import dev.ashwake.platform.widget.WidgetRefresher
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -25,6 +26,7 @@ class MarkHabitUseCase @Inject constructor(
     private val habits: HabitRepository,
     private val character: CharacterRepository,
     private val fireAnchors: FireAnchorsUseCase,
+    private val widgets: WidgetRefresher,
     private val clock: AppClock
 ) {
     suspend operator fun invoke(
@@ -38,6 +40,7 @@ class MarkHabitUseCase @Inject constructor(
     ) {
         val wasCounted = progress.todayEntry?.countsForStreak == true
         habits.mark(progress.habit.id, date, status, value, note, skipReasonId, source)
+        widgets.refreshHabits()
 
         val nowCounted = status == EntryStatus.DONE || status == EntryStatus.MINIMUM
         if (!nowCounted || wasCounted) return
@@ -69,6 +72,7 @@ class MarkHabitUseCase @Inject constructor(
         if (progress.currentStreak > 0) {
             character.grantStatPoints(StatSource.STREAK_DAY, refId = refId)
         }
+        widgets.refreshCharacter()
     }
 }
 
@@ -91,10 +95,13 @@ fun habitRewardRef(habitId: Long, date: LocalDate): String = "$habitId@$date"
 class ClearHabitMarkUseCase @Inject constructor(
     private val habits: HabitRepository,
     private val character: CharacterRepository,
+    private val widgets: WidgetRefresher,
     private val clock: AppClock
 ) {
     suspend operator fun invoke(habitId: Long, date: LocalDate = clock.today()) {
         habits.clearMark(habitId, date)
         character.revokeReward(RewardScope.HABIT, habitRewardRef(habitId, date))
+        widgets.refreshHabits()
+        widgets.refreshCharacter()
     }
 }

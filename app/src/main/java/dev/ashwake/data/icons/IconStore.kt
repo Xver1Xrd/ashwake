@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.util.Base64
 import android.util.Log
 import android.util.LruCache
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -75,6 +76,54 @@ class IconStore @Inject constructor(
     fun delete(name: String) {
         cache.remove(name)
         runCatching { File(directory, name).delete() }
+    }
+
+    /**
+     * Убирает файлы, на которые больше никто не ссылается.
+     *
+     * Уборка сделана подметанием, а не удалением по месту: значок теряет
+     * хозяина не только при удалении задачи, но и при замене картинки, при
+     * отмене правки, при восстановлении из архива и при очистке корзины —
+     * перечислять эти пути по одному значит однажды забыть новый.
+     *
+     * @return сколько файлов удалено
+     */
+    suspend fun sweep(used: Set<String>): Int = withContext(Dispatchers.IO) {
+        val files = directory.listFiles().orEmpty()
+        files.count { file ->
+            if (file.name in used) return@count false
+            cache.remove(file.name)
+            file.delete()
+        }
+    }
+
+    /**
+     * Все значки в виде base64 — для резервной копии.
+     *
+     * Картинки едут внутри того же файла, а не отдельной папкой: архив
+     * обещает быть одним файлом, который можно открыть и прочитать, и
+     * ссылка на картинку без самой картинки восстанавливает пустой кружок.
+     * Значок весит десятки килобайт, поэтому размер архива это переживёт.
+     */
+    suspend fun exportAll(names: Set<String>): Map<String, String> =
+        withContext(Dispatchers.IO) {
+            names.mapNotNull { name ->
+                val file = File(directory, name)
+                if (!file.exists()) return@mapNotNull null
+                name to Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+            }.toMap()
+        }
+
+    /** Кладёт значки из архива на диск. Уже существующие не перезаписывает. */
+    suspend fun importAll(icons: Map<String, String>) = withContext(Dispatchers.IO) {
+        icons.forEach { (name, encoded) ->
+            runCatching {
+                val file = File(directory, name)
+                if (file.exists()) return@runCatching
+                file.writeBytes(Base64.decode(encoded, Base64.NO_WRAP))
+                cache.remove(name)
+            }.onFailure { Log.e(TAG, "Значок из архива не записан: $name", it) }
+        }
     }
 
     /**

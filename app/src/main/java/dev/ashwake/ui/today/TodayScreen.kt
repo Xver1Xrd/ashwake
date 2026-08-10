@@ -51,6 +51,8 @@ import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ListGroup
 import dev.ashwake.ui.components.ScreenPadding
 import dev.ashwake.ui.components.SkeletonList
+import dev.ashwake.ui.components.ToastHost
+import dev.ashwake.ui.components.rememberToastState
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
@@ -84,6 +86,7 @@ fun TodayScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
     val coins = rememberCoinFlightState()
+    val toast = rememberToastState()
 
     Box(Modifier.fillMaxSize()) {
     LazyColumn(
@@ -169,7 +172,15 @@ fun TodayScreen(
                                 // возврат в работу её и так забирает обратно
                                 if (!task.isDone) coins.launch(from)
                             },
-                            onPostpone = { viewModel.postponeTask(task) },
+                            onPostpone = {
+                                viewModel.postponeTask(task)
+                                // Свайп применяется сразу, поэтому промах по
+                                // нему обязан лечиться одним нажатием, пока
+                                // человек ещё смотрит на экран
+                                toast.show("Перенесено на завтра", "Отменить") {
+                                    viewModel.undoPostpone(task.id)
+                                }
+                            },
                             onOpen = { onOpenTask(task.id) }
                         )
                     }
@@ -194,7 +205,15 @@ fun TodayScreen(
                                 // возврат в работу её и так забирает обратно
                                 if (!task.isDone) coins.launch(from)
                             },
-                            onPostpone = { viewModel.postponeTask(task) },
+                            onPostpone = {
+                                viewModel.postponeTask(task)
+                                // Свайп применяется сразу, поэтому промах по
+                                // нему обязан лечиться одним нажатием, пока
+                                // человек ещё смотрит на экран
+                                toast.show("Перенесено на завтра", "Отменить") {
+                                    viewModel.undoPostpone(task.id)
+                                }
+                            },
                             onOpen = { onOpenTask(task.id) }
                         )
                     }
@@ -242,6 +261,7 @@ fun TodayScreen(
     }
 
         CoinFlightHost(coins)
+        ToastHost(toast)
     }
 }
 

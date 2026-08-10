@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.foundation.layout.height
@@ -49,13 +50,40 @@ class ToastState {
     var message: String? by mutableStateOf(null)
         private set
 
+    /**
+     * Действие на плашке. Обычно это «Отменить»: действие, которое
+     * применилось сразу, обязано давать способ передумать, пока человек
+     * ещё смотрит на экран.
+     */
+    var actionLabel: String? by mutableStateOf(null)
+        private set
+
+    internal var action: (() -> Unit)? = null
+        private set
+
     /** Показывает плашку. Повторный вызов перебивает предыдущую. */
     fun show(text: String) {
         message = text
+        actionLabel = null
+        action = null
+    }
+
+    /** Плашка с действием: «Задача перенесена» — «Отменить». */
+    fun show(text: String, actionText: String, onAction: () -> Unit) {
+        message = text
+        actionLabel = actionText
+        action = onAction
+    }
+
+    internal fun runAction() {
+        action?.invoke()
+        clear()
     }
 
     internal fun clear() {
         message = null
+        actionLabel = null
+        action = null
     }
 }
 
@@ -83,20 +111,27 @@ fun BoxScope.ToastHost(state: ToastState, modifier: Modifier = Modifier) {
         exit = slideOutVertically { -it } + fadeOut(),
         modifier = modifier.align(Alignment.TopCenter)
     ) {
-        Box(
+        Row(
             Modifier
                 .statusBarsPadding()
                 .padding(top = 8.dp, start = ScreenPadding, end = ScreenPadding)
-                .widthIn(max = 320.dp)
+                .widthIn(max = 360.dp)
                 .background(AshTheme.colors.surface2, AshShapes.pill)
-                .padding(horizontal = 16.dp, vertical = 10.dp)
+                .padding(start = 16.dp, end = if (state.actionLabel != null) 6.dp else 16.dp)
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
                 text = message.orEmpty(),
                 style = AshTheme.type.subhead,
                 color = AshTheme.colors.text,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f, fill = false)
             )
+            state.actionLabel?.let { label ->
+                TextAction(text = label, onClick = state::runAction)
+            }
         }
     }
 }

@@ -329,6 +329,15 @@ class CharacterRepositoryImpl @Inject constructor(
     private suspend fun walletOrCreate(): WalletEntity =
         dao.wallet() ?: WalletEntity().also { dao.upsertWallet(it) }
 
+    /**
+     * Движение монет.
+     *
+     * Баланс не уходит в минус, и в журнал пишется **фактически применённое**,
+     * а не запрошенное. Иначе списание с нулевого счёта записывало бы сумму,
+     * которой не было: сложение всех строк журнала перестало бы сходиться
+     * с балансом, а именно этой суммой считается, сколько по событию сейчас
+     * начислено — то есть отмена награды начала бы отменять чужое.
+     */
     private suspend fun applyCoins(
         amount: Long,
         source: String,
@@ -337,12 +346,15 @@ class CharacterRepositoryImpl @Inject constructor(
     ) {
         val wallet = walletOrCreate()
         val balance = (wallet.coins + amount).coerceAtLeast(0L)
+        val applied = balance - wallet.coins
+        if (applied == 0L) return
+
         dao.upsertWallet(wallet.copy(coins = balance))
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
                 currency = CURRENCY_COIN,
-                amount = amount,
+                amount = applied,
                 source = source,
                 refId = refId,
                 multiplierApplied = multiplier,
@@ -351,15 +363,19 @@ class CharacterRepositoryImpl @Inject constructor(
         )
     }
 
+    /** То же правило, что и у монет: в журнал идёт применённое. */
     private suspend fun applyXp(amount: Long, source: String, refId: String?) {
         val wallet = walletOrCreate()
         val xp = (wallet.xp + amount).coerceAtLeast(0L)
+        val applied = xp - wallet.xp
+        if (applied == 0L) return
+
         dao.upsertWallet(wallet.copy(xp = xp, level = rewardEngine.levelForXp(xp)))
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
                 currency = CURRENCY_XP,
-                amount = amount,
+                amount = applied,
                 source = source,
                 refId = refId,
                 balanceAfter = xp

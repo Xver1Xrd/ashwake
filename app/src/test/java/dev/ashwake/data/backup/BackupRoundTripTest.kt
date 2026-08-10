@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import dev.ashwake.data.db.AshwakeDatabase
+import dev.ashwake.data.icons.IconStore
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
@@ -49,6 +50,7 @@ class BackupRoundTripTest {
             .build()
         serializer = JsonBackupSerializer(
             db = db,
+            icons = IconStore(context),
             taskDao = db.taskDao(),
             habitDao = db.habitDao(),
             abstinenceDao = db.abstinenceDao(),

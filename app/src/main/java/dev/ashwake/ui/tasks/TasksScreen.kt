@@ -47,6 +47,8 @@ import dev.ashwake.ui.tasks.components.ProjectsDialog
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshLargeTitle
 import dev.ashwake.ui.components.IconAction
+import dev.ashwake.ui.components.ToastHost
+import dev.ashwake.ui.components.rememberToastState
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.tasks.components.QuickAddBar
 import dev.ashwake.ui.tasks.components.StaleTaskDialog
@@ -68,6 +70,7 @@ fun TasksScreen(
     val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
     val voice by viewModel.voiceState.collectAsStateWithLifecycle()
     var showProjects by remember { mutableStateOf(false) }
+    val toast = rememberToastState()
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
@@ -132,7 +135,8 @@ fun TasksScreen(
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize()) {
             if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
@@ -173,7 +177,12 @@ fun TasksScreen(
                                     task = task,
                                     today = state.today,
                                     onComplete = { viewModel.complete(task) },
-                                    onPostpone = { viewModel.postponeToTomorrow(task) },
+                                    onPostpone = {
+                                        viewModel.postponeToTomorrow(task)
+                                        toast.show("Перенесено на завтра", "Отменить") {
+                                            viewModel.undoPostpone(task.id)
+                                        }
+                                    },
                                     onClick = { onOpenTask(task.id) },
                                     expanded = task.id in state.expandedTaskIds,
                                     onExpandToggle = { viewModel.toggleExpanded(task.id) }
@@ -216,6 +225,8 @@ fun TasksScreen(
                     )
                 }
             }
+        }
+            ToastHost(toast)
         }
     }
 }

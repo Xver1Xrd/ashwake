@@ -26,6 +26,7 @@ import dev.ashwake.domain.scheduler.HabitReminderScheduler
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
 import dev.ashwake.domain.usecase.habits.FireAnchorsUseCase
 import dev.ashwake.domain.usecase.habits.StubHabitRepository
+import dev.ashwake.platform.widget.testWidgetRefresher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -94,8 +95,9 @@ class TaskRewardRevocationTest {
             scheduler = NoopHabitScheduler(),
             clock = clock
         )
-        complete = CompleteTaskUseCase(tasks, scheduler, character, anchors, clock)
-        reopen = ReopenTaskUseCase(tasks, scheduler, character)
+        val widgets = testWidgetRefresher()
+        complete = CompleteTaskUseCase(tasks, scheduler, character, anchors, widgets, clock)
+        reopen = ReopenTaskUseCase(tasks, scheduler, character, widgets)
     }
 
     @After

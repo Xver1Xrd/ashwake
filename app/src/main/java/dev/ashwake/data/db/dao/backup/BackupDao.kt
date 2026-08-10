@@ -26,6 +26,22 @@ import dev.ashwake.data.db.entity.tasks.TaskEntity
 @Dao
 interface BackupDao {
 
+    /**
+     * Имена файлов значков, на которые ещё кто-то ссылается.
+     *
+     * Одним запросом по трём таблицам: подметанию нужен весь список сразу,
+     * а собирать его тремя вызовами значит на мгновение считать живым
+     * значок, чью строку как раз удаляют.
+     */
+    @Query(
+        """
+        SELECT iconPath FROM tasks WHERE iconPath IS NOT NULL
+        UNION SELECT iconPath FROM habits WHERE iconPath IS NOT NULL
+        UNION SELECT iconPath FROM abstinences WHERE iconPath IS NOT NULL
+        """
+    )
+    suspend fun usedIconPaths(): List<String>
+
     // --- очистка ------------------------------------------------------------
     //
     // Порядок важен: сначала то, что ссылается, потом то, на что ссылаются.

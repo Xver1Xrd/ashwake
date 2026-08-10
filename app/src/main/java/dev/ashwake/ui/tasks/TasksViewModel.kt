@@ -21,6 +21,7 @@ import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
+import dev.ashwake.domain.usecase.tasks.UndoPostponeUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.speech.VoiceInput
@@ -78,6 +79,7 @@ class TasksViewModel @Inject constructor(
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val postponeTask: PostponeTaskUseCase,
+    private val undoPostpone: UndoPostponeUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val voiceInput: VoiceInput
 ) : ViewModel() {
@@ -278,6 +280,11 @@ class TasksViewModel @Inject constructor(
             val count = postponeTask(task.id, source = PostponeSource.SWIPE)
             if (count >= STALE_DIALOG_THRESHOLD) staleTaskId.value = task.id
         }
+    }
+
+    /** Отмена последнего переноса — пара к свайпу. */
+    fun undoPostpone(taskId: Long) {
+        viewModelScope.launch { undoPostpone.invoke(taskId) }
     }
 
     fun delete(task: Task) {

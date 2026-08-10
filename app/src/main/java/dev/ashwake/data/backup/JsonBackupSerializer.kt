@@ -18,6 +18,7 @@ import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.icons.IconStore
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,6 +46,7 @@ data class BackupContents(
 @Singleton
 class JsonBackupSerializer @Inject constructor(
     private val db: AshwakeDatabase,
+    private val icons: IconStore,
     private val taskDao: TaskDao,
     private val habitDao: HabitDao,
     private val abstinenceDao: AbstinenceDao,
@@ -80,6 +82,8 @@ class JsonBackupSerializer @Inject constructor(
                     put("targetValue", habit.targetValue)
                     put("unitName", habit.unitName)
                     put("minimumValue", habit.minimumValue)
+                    put("icon", habit.icon)
+                    put("iconPath", habit.iconPath)
                     put("scheduleType", habit.scheduleType)
                     put("timesPerWeek", habit.timesPerWeek)
                     put("weekdaysMask", habit.weekdaysMask)
@@ -96,6 +100,7 @@ class JsonBackupSerializer @Inject constructor(
                     put("gentlePenaltyDays", item.gentlePenaltyDays)
                     put("motivationText", item.motivationText)
                     put("icon", item.icon)
+                    put("iconPath", item.iconPath)
                     put("paletteId", item.paletteId)
                     put("milestonesEnabled", item.milestonesEnabled)
                     put("baselineUnitName", item.baselineUnitName)
@@ -147,6 +152,12 @@ class JsonBackupSerializer @Inject constructor(
             }))
             put("equippedItems", JSONObject().apply {
                 equipped.forEach { put(it.slot, it.itemId) }
+            })
+            // Картинки значков едут внутри архива: имя файла без самого файла
+            // восстанавливает пустой кружок, а починить его будет уже нечем
+            put("icons", JSONObject().apply {
+                icons.exportAll(backupDao.usedIconPaths().toSet())
+                    .forEach { (name, encoded) -> put(name, encoded) }
             })
             put("stats", JSONObject().apply {
                 stats.forEach { stat ->
@@ -202,6 +213,12 @@ class JsonBackupSerializer @Inject constructor(
         val abstinences = root.optJSONArray("abstinences").objects().map { it.toAbstinenceEntity() }
         val attempts = root.optJSONArray("abstinenceAttempts").objects().map { it.toAttemptEntity() }
         val reviews = root.optJSONArray("dailyReviews").objects().map { it.toReviewEntity() }
+
+        // Картинки кладём до записи строк: иначе между восстановлением задачи
+        // и появлением файла список успевает нарисовать пустой кружок
+        root.optJSONObject("icons")?.let { node ->
+            icons.importAll(node.keys().asSequence().associateWith { node.optString(it) })
+        }
 
         // Порядок очистки: сначала ссылающиеся таблицы, потом те, на которые
         // ссылаются. Полагаться на CASCADE при полной замене нельзя
@@ -344,6 +361,8 @@ class JsonBackupSerializer @Inject constructor(
         timesPerWeek = optInt("timesPerWeek", 3),
         weekdaysMask = optInt("weekdaysMask", 0b1111111),
         archived = optBoolean("archived"),
+        icon = optStringOrNull("icon"),
+        iconPath = optStringOrNull("iconPath"),
         createdAt = optLong("createdAt")
     )
 
@@ -360,6 +379,7 @@ class JsonBackupSerializer @Inject constructor(
         id = optLong("id"),
         name = optString("name"),
         icon = optStringOrNull("icon"),
+        iconPath = optStringOrNull("iconPath"),
         paletteId = optString("paletteId", "default"),
         mode = optString("mode", "STRICT"),
         gentlePenaltyDays = optInt("gentlePenaltyDays", 7),

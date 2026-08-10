@@ -41,6 +41,7 @@ import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.more.MoreScreen
+import dev.ashwake.ui.onboarding.OnboardingScreen
 import dev.ashwake.ui.ritual.RitualScreen
 import dev.ashwake.ui.routines.RoutineRunScreen
 import dev.ashwake.ui.settings.SettingsScreen
@@ -71,8 +72,14 @@ import kotlinx.coroutines.launch
  */
 const val TABS_ROUTE = "tabs"
 
+/** Знакомство. Стартовый экран, пока его не прошли. */
+const val ONBOARDING_ROUTE = "onboarding"
+
 @Composable
-fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)) {
+fun AshwakeRoot(
+    pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null),
+    showOnboarding: Boolean = false
+) {
     val navController = rememberNavController()
     val route by pendingRoute.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -137,7 +144,7 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
         ) { padding ->
             NavHost(
                 navController = navController,
-                startDestination = TABS_ROUTE,
+                startDestination = if (showOnboarding) ONBOARDING_ROUTE else TABS_ROUTE,
                 modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
                 // Экран поверх вкладок вырастает из содержимого и слегка
                 // отодвигает то, что под ним: видно, что он лёг сверху,
@@ -148,6 +155,19 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                 popEnterTransition = { screenPopEnter(reduceMotion) },
                 popExitTransition = { screenPopExit(reduceMotion) }
             ) {
+                composable(ONBOARDING_ROUTE) {
+                    OnboardingScreen(
+                        onDone = {
+                            // Знакомство не должно оставаться в истории:
+                            // «назад» с главного экрана обязан закрывать
+                            // приложение, а не возвращать в приветствие
+                            navController.navigate(TABS_ROUTE) {
+                                popUpTo(ONBOARDING_ROUTE) { inclusive = true }
+                            }
+                        }
+                    )
+                }
+
                 composable(TABS_ROUTE) {
                     HorizontalPager(
                         state = pagerState,
@@ -371,4 +391,7 @@ private fun destinationFor(route: String): String = when (route) {
  * именно её отсутствие заставляло искать системную кнопку «назад».
  */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit-editor?", "routine-run", "ritual", "blocking", "backup", "theme")
+    listOf(
+        "task?", "habit-editor?", "routine-run", "ritual",
+        "blocking", "backup", "theme", ONBOARDING_ROUTE
+    )

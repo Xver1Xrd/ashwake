@@ -168,6 +168,13 @@ class TaskRepositoryImpl @Inject constructor(
         spawned.id
     }
 
+    override suspend fun undoLastPostpone(taskId: Long): Boolean = db.withTransaction {
+        val last = dao.lastPostponement(taskId) ?: return@withTransaction false
+        dao.revertPostpone(taskId, last.fromDate, clock.now().toEpochMilli())
+        dao.deletePostponement(last.id)
+        true
+    }
+
     override suspend fun postpone(id: Long, toDate: LocalDate?, source: PostponeSource) {
         db.withTransaction {
             val row = dao.getTask(id) ?: return@withTransaction

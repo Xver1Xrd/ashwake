@@ -136,6 +136,23 @@ interface TaskDao {
     @Query("UPDATE tasks SET seriesId = :seriesId WHERE id = :id")
     suspend fun setSeriesId(id: Long, seriesId: String)
 
+    @Query("SELECT * FROM task_postponements WHERE taskId = :taskId ORDER BY at DESC LIMIT 1")
+    suspend fun lastPostponement(taskId: Long): TaskPostponementEntity?
+
+    @Query("DELETE FROM task_postponements WHERE id = :id")
+    suspend fun deletePostponement(id: Long)
+
+    @Query(
+        """
+        UPDATE tasks
+        SET dueDate = :dueDate,
+            postponeCount = MAX(postponeCount - 1, 0),
+            updatedAt = :at
+        WHERE id = :id
+        """
+    )
+    suspend fun revertPostpone(id: Long, dueDate: Int?, at: Long)
+
     /**
      * Экземпляр серии, созданный закрытием задачи и с тех пор нетронутый.
      *

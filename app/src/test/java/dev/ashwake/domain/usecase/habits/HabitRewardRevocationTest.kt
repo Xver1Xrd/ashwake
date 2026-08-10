@@ -19,6 +19,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
+import dev.ashwake.platform.widget.testWidgetRefresher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -71,13 +72,15 @@ class HabitRewardRevocationTest {
             clock = clock
         )
         habits = RecordingHabitRepository()
+        val widgets = testWidgetRefresher()
         mark = MarkHabitUseCase(
             habits = habits,
             character = character,
             fireAnchors = FireAnchorsUseCase(habits, NoopHabitScheduler(), clock),
+            widgets = widgets,
             clock = clock
         )
-        clearMark = ClearHabitMarkUseCase(habits, character, clock)
+        clearMark = ClearHabitMarkUseCase(habits, character, widgets, clock)
     }
 
     @After

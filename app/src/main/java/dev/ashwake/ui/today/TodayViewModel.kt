@@ -21,6 +21,7 @@ import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
+import dev.ashwake.domain.usecase.tasks.UndoPostponeUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.ui.character.render.CharacterLayer
 import dev.ashwake.ui.character.render.buildCharacterLayers
@@ -90,6 +91,7 @@ class TodayViewModel @Inject constructor(
     private val clearHabitMark: ClearHabitMarkUseCase,
     private val completeTask: CompleteTaskUseCase,
     private val postpone: PostponeTaskUseCase,
+    private val undoPostpone: UndoPostponeUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val clock: AppClock
 ) : ViewModel() {
@@ -172,6 +174,11 @@ class TodayViewModel @Inject constructor(
     /** Свайп влево: перенос на завтра. То же действие, что на экране задач. */
     fun postponeTask(task: Task) {
         viewModelScope.launch { postpone(task.id, clock.today().plusDays(1)) }
+    }
+
+    /** Отмена переноса по кнопке на плашке. */
+    fun undoPostpone(taskId: Long) {
+        viewModelScope.launch { undoPostpone.invoke(taskId) }
     }
 
     fun toggleTask(task: Task) {

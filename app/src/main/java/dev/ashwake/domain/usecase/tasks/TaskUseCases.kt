@@ -12,6 +12,7 @@ import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.habits.FireAnchorsUseCase
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
+import dev.ashwake.platform.widget.WidgetRefresher
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -25,11 +26,13 @@ import javax.inject.Inject
 
 class SaveTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
-    private val scheduler: TaskReminderScheduler
+    private val scheduler: TaskReminderScheduler,
+    private val widgets: WidgetRefresher
 ) {
     suspend operator fun invoke(task: Task): Long {
         val id = tasks.upsert(task)
         tasks.getTask(id)?.let(scheduler::schedule)
+        widgets.refreshTasks()
         return id
     }
 }
@@ -39,6 +42,7 @@ class CompleteTaskUseCase @Inject constructor(
     private val scheduler: TaskReminderScheduler,
     private val character: CharacterRepository,
     private val fireAnchors: FireAnchorsUseCase,
+    private val widgets: WidgetRefresher,
     private val clock: AppClock
 ) {
     /** @return id следующего экземпляра серии, если задача повторяющаяся. */
@@ -76,6 +80,9 @@ class CompleteTaskUseCase @Inject constructor(
                 )
             }
         }
+        // Виджет на экране обязан показывать то же, что список в приложении
+        widgets.refreshTasks()
+        widgets.refreshCharacter()
         return nextId
     }
 
@@ -96,7 +103,8 @@ class CompleteTaskUseCase @Inject constructor(
 class ReopenTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
     private val scheduler: TaskReminderScheduler,
-    private val character: CharacterRepository
+    private val character: CharacterRepository,
+    private val widgets: WidgetRefresher
 ) {
     suspend operator fun invoke(taskId: Long) {
         val before = tasks.getTask(taskId)
@@ -115,12 +123,15 @@ class ReopenTaskUseCase @Inject constructor(
         if (wasDone) {
             character.revokeReward(RewardScope.TASK, taskId.toString())
         }
+        widgets.refreshTasks()
+        widgets.refreshCharacter()
     }
 }
 
 class PostponeTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
     private val scheduler: TaskReminderScheduler,
+    private val widgets: WidgetRefresher,
     private val clock: AppClock
 ) {
     /**
@@ -136,16 +147,40 @@ class PostponeTaskUseCase @Inject constructor(
         tasks.postpone(taskId, target, source)
         val updated = tasks.getTask(taskId)
         updated?.let(scheduler::schedule)
+        widgets.refreshTasks()
         return updated?.postponeCount ?: 0
+    }
+}
+
+/**
+ * Отмена последнего переноса.
+ *
+ * Пара к [PostponeTaskUseCase]: свайп применяется сразу, и без обратного
+ * хода промах по нему стоит человеку потерянной задачи.
+ */
+class UndoPostponeUseCase @Inject constructor(
+    private val tasks: TaskRepository,
+    private val scheduler: TaskReminderScheduler,
+    private val widgets: WidgetRefresher
+) {
+    suspend operator fun invoke(taskId: Long): Boolean {
+        val undone = tasks.undoLastPostpone(taskId)
+        if (undone) {
+            tasks.getTask(taskId)?.let(scheduler::schedule)
+            widgets.refreshTasks()
+        }
+        return undone
     }
 }
 
 class DeleteTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
-    private val scheduler: TaskReminderScheduler
+    private val scheduler: TaskReminderScheduler,
+    private val widgets: WidgetRefresher
 ) {
     suspend operator fun invoke(taskId: Long) {
         scheduler.cancel(taskId)
         tasks.delete(taskId)
+        widgets.refreshTasks()
     }
 }

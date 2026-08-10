@@ -148,6 +148,18 @@ class AppSettings @Inject constructor(
         }
     }
 
+    /**
+     * Показано ли знакомство. Отдельный флаг, а не «в базе есть привычки»:
+     * человек мог всё удалить, и встречать его знакомством второй раз
+     * значит не помнить, что он тут уже был.
+     */
+    val onboardingDone: Flow<Boolean> =
+        context.dataStore.data.map { it[ONBOARDING_DONE] ?: false }
+
+    suspend fun setOnboardingDone() {
+        context.dataStore.edit { it[ONBOARDING_DONE] = true }
+    }
+
     suspend fun setThemeMode(mode: ThemeMode) {
         context.dataStore.edit { it[THEME_MODE] = mode.name }
     }
@@ -172,6 +184,7 @@ class AppSettings @Inject constructor(
         val DAY_START_HOUR = intPreferencesKey("day_start_hour")
         val BACKUP_FOLDER = stringPreferencesKey("backup_folder_uri")
         val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
+        val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val ACCENT = stringPreferencesKey("accent_color")
         val CUSTOM_ACCENT = intPreferencesKey("accent_custom")
