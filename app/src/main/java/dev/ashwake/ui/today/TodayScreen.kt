@@ -1,326 +1,334 @@
 package dev.ashwake.ui.today
 
-import androidx.compose.foundation.Canvas
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.lerp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 import dev.ashwake.ui.character.render.PixelCharacter
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.EmptyState
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ListGroup
 import dev.ashwake.ui.components.ScreenPadding
-import dev.ashwake.ui.components.glass
-import dev.ashwake.ui.components.hazeSource
-import dev.ashwake.ui.components.rememberHazeState
+import dev.ashwake.ui.components.appHazeSource
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
-import androidx.compose.ui.res.stringResource
-import dev.ashwake.R
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 /**
- * Главный экран — подпись приложения (раздел 1 дизайн-системы).
+ * Главный экран.
  *
- * Диорама с персонажем занимает верхнюю треть и при прокрутке сжимается
- * вместе с крупным заголовком: персонаж уменьшается и в конце превращается
- * в круглый аватар слева в компактной панели, с кольцом прогресса дня вокруг.
+ * Порядок сверху вниз повторяет то, ради чего экран открывают: сначала
+ * персонаж — он показывает, что накопилось за все дни, — потом задачи и
+ * привычки на сегодня, внизу отказы с их счётчиками.
  *
- * Схлопывание привязано к прокрутке **напрямую**, а не запускается анимацией
- * по событию: доля схлопывания считается из `firstVisibleItemScrollOffset`,
- * поэтому обложка движется ровно за пальцем и в обратную сторону тоже.
- *
- * Один непрерывный жест связывает «смотрю на персонажа» и «работаю со
- * списком», без переключения экранов.
+ * Персонаж не уезжает в маленький аватар при прокрутке, как было раньше:
+ * схлопывание отнимало у списков верх экрана и требовало держать обложку
+ * поверх содержимого. Теперь герой-блок прокручивается вместе со всем
+ * остальным, и списки видно сразу — ради них экран и открывают.
  */
-
-/** Высота развёрнутой обложки. Примерно верхняя треть экрана. */
-private val CoverExpandedHeight = 260.dp
-
-/** Высота компактной панели, в которую обложка схлопывается. */
-private val CompactBarHeight = 52.dp
-
-private val AvatarSize = 32.dp
-private val CharacterExpandedSize = 190.dp
+private val CharacterSize = 132.dp
 
 @Composable
 fun TodayScreen(
     onOpenHabit: (Long) -> Unit,
     onOpenTask: (Long) -> Unit,
     onCreateTask: () -> Unit,
+    onOpenCharacter: () -> Unit,
+    onOpenAbstinence: (Long) -> Unit,
     viewModel: TodayViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
-    val haze = rememberHazeState()
-    val listState = rememberLazyListState()
-    val density = LocalDensity.current
 
-    // Расстояние, на котором обложка полностью схлопывается
-    val collapseDistancePx = remember(density) {
-        with(density) { (CoverExpandedHeight - CompactBarHeight).toPx() }
-    }
-
-    val collapse by remember {
-        derivedStateOf {
-            if (listState.firstVisibleItemIndex > 0) 1f
-            else (listState.firstVisibleItemScrollOffset / collapseDistancePx).coerceIn(0f, 1f)
-        }
-    }
-
-    BoxWithConstraints(
-        Modifier
+    LazyColumn(
+        modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
+            .appHazeSource(),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
-        val screenWidth = maxWidth
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                .hazeSource(haze),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            // Место под обложку: сама обложка лежит поверх и не прокручивается,
-            // поэтому здесь именно распорка, а не контент
-            item { Spacer(Modifier.height(CoverExpandedHeight)) }
-
-            item {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = ScreenPadding),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+        item {
+            Row(
+                Modifier
+                    .statusBarsPadding()
+                    .fillMaxWidth()
+                    .padding(start = ScreenPadding, end = ScreenPadding, top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
                         text = stringResource(R.string.calendar_segodnya),
                         style = AshTheme.type.largeTitle,
-                        color = colors.text,
-                        modifier = Modifier.weight(1f)
+                        color = colors.text
                     )
-                    IconAction(
-                        icon = AshIcons.Add,
-                        contentDescription = stringResource(R.string.today_novaya_zadacha),
-                        onClick = onCreateTask
-                    )
-                }
-            }
-
-            if (state.totalCount == 0) {
-                item {
-                    EmptyState(
-                        icon = AshIcons.Sun,
-                        title = stringResource(R.string.today_na_segodnya_pusto),
-                        description = stringResource(R.string.today_zavedite_privychku_ili_zadachu_oni_poyavyats),
-                        actionText = stringResource(R.string.today_sozdat_zadachu),
-                        onAction = onCreateTask
+                    Text(
+                        text = state.today.format(DateFormat)
+                            .replaceFirstChar { it.titlecase(Locale.getDefault()) },
+                        style = AshTheme.type.subhead,
+                        color = colors.text2
                     )
                 }
+                IconAction(
+                    icon = AshIcons.Add,
+                    contentDescription = stringResource(R.string.today_novaya_zadacha),
+                    onClick = onCreateTask
+                )
             }
+        }
 
-            if (state.habits.isNotEmpty()) {
-                item {
-                    ListGroup(
-                        items = state.habits,
-                        header = "Сегодня, ${state.doneCount} из ${state.totalCount}",
-                        dividerInset = 56.dp
-                    ) { progress ->
-                        HabitTodayRow(
-                            progress = progress,
-                            onToggle = { viewModel.toggleHabit(progress) },
-                            onOpen = { onOpenHabit(progress.habit.id) }
-                        )
-                    }
-                }
+        item {
+            HeroCard(
+                state = state,
+                onClick = onOpenCharacter,
+                modifier = Modifier.padding(horizontal = ScreenPadding)
+            )
+        }
+
+        if (state.isEmpty) {
+            item {
+                EmptyState(
+                    icon = AshIcons.Sun,
+                    title = stringResource(R.string.today_na_segodnya_pusto),
+                    description = stringResource(
+                        R.string.today_zavedite_privychku_ili_zadachu_oni_poyavyats
+                    ),
+                    actionText = stringResource(R.string.today_sozdat_zadachu),
+                    onAction = onCreateTask
+                )
             }
+        }
 
-            if (state.tasks.isNotEmpty()) {
-                item {
-                    ListGroup(
-                        items = state.tasks,
-                        header = stringResource(R.string.tasks_zadachi),
-                        dividerInset = 52.dp
-                    ) { task ->
-                        TaskTodayRow(
-                            task = task,
-                            onToggle = { viewModel.toggleTask(task) },
-                            onOpen = { onOpenTask(task.id) }
-                        )
-                    }
+        // Просрочка стоит выше всего остального: это то, о чём человек уже
+        // один раз забыл, и в общем списке она затеряется второй раз
+        if (state.overdueTasks.isNotEmpty()) {
+            item {
+                ListGroup(
+                    items = state.overdueTasks,
+                    header = "Просрочено",
+                    dividerInset = 62.dp
+                ) { task ->
+                    TaskTodayRow(
+                        task = task,
+                        today = state.today,
+                        onToggle = { viewModel.toggleTask(task) },
+                        onOpen = { onOpenTask(task.id) }
+                    )
                 }
             }
         }
 
-        Cover(
-            collapse = collapse,
-            screenWidth = screenWidth,
-            state = state,
-            haze = haze,
-            onCreateTask = onCreateTask
-        )
+        if (state.todayTasks.isNotEmpty()) {
+            item {
+                ListGroup(
+                    items = state.todayTasks,
+                    header = "Задачи · ${state.todayTasks.count { it.isDone }} из ${state.todayTasks.size}",
+                    dividerInset = 62.dp
+                ) { task ->
+                    TaskTodayRow(
+                        task = task,
+                        today = state.today,
+                        onToggle = { viewModel.toggleTask(task) },
+                        onOpen = { onOpenTask(task.id) }
+                    )
+                }
+            }
+        }
+
+        if (state.habits.isNotEmpty()) {
+            item {
+                ListGroup(
+                    items = state.habits,
+                    header = "Привычки · ${state.habits.count { it.doneToday }} из ${state.habits.size}",
+                    dividerInset = 56.dp
+                ) { progress ->
+                    HabitTodayRow(
+                        progress = progress,
+                        onToggle = { viewModel.toggleHabit(progress) },
+                        onOpen = { onOpenHabit(progress.habit.id) }
+                    )
+                }
+            }
+        }
+
+        if (state.abstinences.isNotEmpty()) {
+            item {
+                ListGroup(
+                    items = state.abstinences,
+                    header = stringResource(R.string.abstinence_otkazy),
+                    dividerInset = 16.dp
+                ) { item ->
+                    AbstinenceTodayRow(
+                        item = item,
+                        onOpen = { onOpenAbstinence(item.abstinence.id) }
+                    )
+                }
+            }
+        }
     }
 }
 
 /**
- * Обложка: диорама, которая на глазах превращается в панель.
+ * Герой-блок с персонажем.
  *
- * Все величины интерполируются одной долей [collapse], поэтому промежуточные
- * состояния выглядят как одно движение, а не как несколько независимых
- * анимаций, каждая со своей скоростью.
+ * Единственное место в приложении с градиентной заливкой: этим он и
+ * отличается от всех прочих карточек, поэтому глаз находит его первым,
+ * не разбирая экран по частям.
  */
 @Composable
-private fun Cover(
-    collapse: Float,
-    screenWidth: androidx.compose.ui.unit.Dp,
+private fun HeroCard(
     state: TodayUiState,
-    haze: dev.chrisbanes.haze.HazeState,
-    onCreateTask: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val colors = AshTheme.colors
-    val height = lerp(CoverExpandedHeight, CompactBarHeight, collapse)
-    val characterSize = lerp(CharacterExpandedSize, AvatarSize, collapse)
-
-    // Персонаж едет из центра диорамы в левый край панели одним движением
-    val startX = (screenWidth - CharacterExpandedSize) / 2
-    val endX = ScreenPadding
-    val characterX = lerp(startX, endX, collapse)
-    val characterY = lerp(28.dp, (CompactBarHeight - AvatarSize) / 2, collapse)
+    val progress by animateFloatAsState(state.progress, label = "day-progress")
 
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
-            .height(height)
-            // Панель становится стеклом только когда действительно схлопнулась:
-            // размывать диораму на весь экран незачем и дорого
-            .then(
-                if (collapse > 0.99f) Modifier.glass(haze)
-                else Modifier.background(
-                    Brush.verticalGradient(
-                        // Диорама плавно уходит в фон, а не обрывается кромкой
-                        0f to colors.surface1,
-                        1f to colors.background
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        colors.accent.copy(alpha = 0.22f),
+                        colors.accentAlt.copy(alpha = 0.10f),
+                        colors.surface1
                     )
-                )
+                ),
+                AshShapes.sheet
             )
+            .tappable(onClick = onClick)
+            .padding(18.dp)
     ) {
-        Box(Modifier.statusBarsPadding().fillMaxWidth().height(height)) {
-            Box(
-                Modifier
-                    .offset(x = characterX, y = characterY)
-                    .size(characterSize)
-                    .semantics {
-                        contentDescription =
-                            "Персонаж, выполнено ${state.doneCount} из ${state.totalCount} дел"
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(
+                    Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = state.character.profile.name,
+                        style = AshTheme.type.title2,
+                        color = colors.text
+                    )
+                    Text(
+                        text = "Уровень ${state.character.level}",
+                        style = AshTheme.type.subhead,
+                        color = colors.text2
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            AshIcons.Coins,
+                            contentDescription = null,
+                            tint = colors.warm,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = state.character.wallet.coins.toString(),
+                            style = AshTheme.type.headline,
+                            color = colors.warm
+                        )
                     }
-            ) {
-                PixelCharacter(
-                    layers = state.layers,
-                    reduceMotion = AshTheme.reduceMotion || state.character.profile.reduceMotion,
-                    modifier = Modifier.fillMaxSize()
-                )
-                // Кольцо прогресса появляется только вокруг аватара:
-                // на большой диораме оно смотрелось бы мишенью
-                if (collapse > 0f) {
-                    ProgressRing(
-                        progress = state.progress,
-                        alpha = collapse,
+                }
+
+                Box(
+                    Modifier
+                        .size(CharacterSize)
+                        .semantics {
+                            contentDescription =
+                                "Персонаж, выполнено ${state.doneCount} из ${state.totalCount} дел"
+                        }
+                ) {
+                    PixelCharacter(
+                        layers = state.layers,
+                        reduceMotion = AshTheme.reduceMotion ||
+                            state.character.profile.reduceMotion,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
             }
 
-            // Заголовок и «+» в компактной панели проявляются по мере схлопывания
-            if (collapse > 0f) {
-                Row(
+            DayProgress(
+                progress = progress,
+                done = state.doneCount,
+                total = state.totalCount
+            )
+        }
+    }
+}
+
+/**
+ * Полоса дня. Именно полоса, а не кольцо: у кольца читается только
+ * заполненность «на глаз», а здесь рядом стоят два числа, и полоса
+ * работает их иллюстрацией.
+ */
+@Composable
+private fun DayProgress(progress: Float, done: Int, total: Int) {
+    val colors = AshTheme.colors
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = if (total == 0) "На сегодня ничего не запланировано"
+                else "Сделано $done из $total",
+                style = AshTheme.type.footnote,
+                color = colors.text2,
+                modifier = Modifier.weight(1f)
+            )
+            if (total > 0) {
+                Text(
+                    text = "${(progress * 100).toInt()}%",
+                    style = AshTheme.type.footnote,
+                    color = colors.text2
+                )
+            }
+        }
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .background(colors.surface3, AshShapes.pill)
+        ) {
+            if (progress > 0f) {
+                Box(
                     Modifier
-                        .fillMaxWidth()
-                        .height(CompactBarHeight)
-                        .alpha(collapse)
-                        .padding(horizontal = ScreenPadding),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(Modifier.size(AvatarSize))
-                    Text(
-                        text = stringResource(R.string.calendar_segodnya),
-                        style = AshTheme.type.headline,
-                        color = colors.text,
-                        modifier = Modifier.weight(1f),
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                    IconAction(
-                        icon = AshIcons.Add,
-                        contentDescription = null,
-                        onClick = onCreateTask
-                    )
-                }
+                        .fillMaxWidth(progress.coerceIn(0f, 1f))
+                        .height(6.dp)
+                        .background(colors.accentGradient, AshShapes.pill)
+                )
             }
         }
     }
 }
 
-/** Кольцо прогресса дня вокруг аватара. Тонкое, без подложки-«пилюли». */
-@Composable
-private fun ProgressRing(
-    progress: Float,
-    alpha: Float,
-    modifier: Modifier = Modifier
-) {
-    val colors = AshTheme.colors
-    Canvas(modifier) {
-        val stroke = 2.5.dp.toPx()
-        val inset = stroke / 2f
-        val arcSize = Size(size.width - stroke, size.height - stroke)
-
-        drawArc(
-            color = colors.surface3.copy(alpha = alpha),
-            startAngle = -90f,
-            sweepAngle = 360f,
-            useCenter = false,
-            topLeft = Offset(inset, inset),
-            size = arcSize,
-            style = Stroke(width = stroke, cap = StrokeCap.Round)
-        )
-        drawArc(
-            color = colors.warm.copy(alpha = alpha),
-            startAngle = -90f,
-            sweepAngle = 360f * progress.coerceIn(0f, 1f),
-            useCenter = false,
-            topLeft = Offset(inset, inset),
-            size = arcSize,
-            style = Stroke(width = stroke, cap = StrokeCap.Round)
-        )
-    }
-}
+private val DateFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, d MMMM")

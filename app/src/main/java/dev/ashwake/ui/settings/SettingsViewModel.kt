@@ -4,8 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.DEFAULT_DAY_START_HOUR
+import dev.ashwake.data.settings.Appearance
 import dev.ashwake.data.settings.AppSettings
 import dev.ashwake.domain.model.tasks.TimeboxSettings
+import dev.ashwake.ui.theme.AccentColor
+import dev.ashwake.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -26,6 +29,17 @@ class SettingsViewModel @Inject constructor(
 
     val useCalendar: StateFlow<Boolean> = settings.useSystemCalendar
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
+
+    val appearance: StateFlow<Appearance> = settings.appearance
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Appearance())
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { settings.setThemeMode(mode) }
+    }
+
+    fun setAccent(accent: AccentColor) {
+        viewModelScope.launch { settings.setAccent(accent) }
+    }
 
     fun setDayStartHour(hour: Int) {
         viewModelScope.launch { settings.setDayStartHour(hour) }

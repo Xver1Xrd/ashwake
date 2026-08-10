@@ -27,12 +27,16 @@ import androidx.compose.ui.unit.dp
 import dev.ashwake.R
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
-import dev.ashwake.core.model.Priority
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.EmojiBadge
 import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
-import dev.ashwake.ui.theme.priorityColors
+import dev.ashwake.ui.theme.hasMark
+import dev.ashwake.ui.theme.meaning
+import dev.ashwake.ui.theme.priorityColor
 import java.time.format.DateTimeFormatter
 
 /**
@@ -44,6 +48,7 @@ import java.time.format.DateTimeFormatter
  */
 
 private val TimeFormat = DateTimeFormatter.ofPattern("HH:mm")
+private val DateFormat = DateTimeFormatter.ofPattern("d MMM")
 
 /** Доля заливки фона строки: 12% от акцента на полном выполнении. */
 private const val FILL_ALPHA = 0.12f
@@ -196,41 +201,60 @@ private fun HabitMark(
 }
 
 /**
- * Строка задачи: круглый чекбокс 24dp, название, метаданные одной строкой.
- * Приоритет дублируется словом «Важно» для P1 — ни одно состояние
- * не передаётся только цветом (раздел 9).
+ * Строка задачи: круглый чекбокс, значок, название, метаданные одной строкой.
+ *
+ * Приоритет дублируется словом («срочно», «важно») — ни одно состояние
+ * не передаётся только цветом.
  */
 @Composable
 fun TaskTodayRow(
     task: Task,
+    today: java.time.LocalDate,
     onToggle: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = AshTheme.colors
+    val overdue = task.isOverdue(today)
 
     Row(
         modifier
             .fillMaxWidth()
             .tappable(onClick = onOpen)
-            .defaultMinSize(minHeight = 44.dp)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
+            .defaultMinSize(minHeight = 56.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         TaskCheckbox(done = task.isDone, onClick = onToggle)
 
-        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+        task.emoji?.let { emoji ->
+            EmojiBadge(
+                emoji = emoji,
+                size = 30.dp,
+                background = if (task.priority.hasMark) {
+                    colors.priorityColor(task.priority).copy(alpha = 0.16f)
+                } else {
+                    colors.surface2
+                }
+            )
+        }
+
+        androidx.compose.foundation.layout.Column(
+            Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(1.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                if (task.priority != Priority.P4) {
+                // Точка приоритета не нужна, когда цвет уже несёт подложка значка
+                if (task.priority.hasMark && task.emoji == null) {
                     Box(
                         Modifier
-                            .size(6.dp)
+                            .size(7.dp)
                             .background(
-                                colors.priorityColors[task.priority.ordinal],
+                                colors.priorityColor(task.priority),
                                 androidx.compose.foundation.shape.CircleShape
                             )
                     )
@@ -244,12 +268,12 @@ fun TaskTodayRow(
                     modifier = Modifier.weight(1f, fill = false)
                 )
             }
-            val meta = taskMeta(task)
+            val meta = taskMeta(task, today)
             if (meta.isNotEmpty()) {
                 Text(
                     text = meta,
                     style = AshTheme.type.subhead,
-                    color = colors.text2,
+                    color = if (overdue) colors.danger else colors.text2,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -258,12 +282,79 @@ fun TaskTodayRow(
     }
 }
 
-private fun taskMeta(task: Task): String = buildList {
-    if (task.priority == Priority.P1) add("Важно")
+private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList {
+    task.dueDate?.let { date ->
+        if (date < today) add(if (date == today.minusDays(1)) "вчера" else date.format(DateFormat))
+    }
+    if (task.priority.hasMark) add(task.priority.meaning)
     task.dueTime?.let { add(it.format(TimeFormat)) }
-    task.estimateMinutes?.let { add("${it}м") }
+    task.estimateMinutes?.let { add("${it} мин") }
     task.tags.take(2).forEach { add("#${it.name}") }
 }.joinToString(" · ")
+
+/**
+ * Строка отказа: название, счётчик дней и рекорд.
+ *
+ * Крупная цифра здесь ни к чему — на главном экране это одна из четырёх
+ * групп, а не отдельный экран. Цифра набрана тем же шрифтом счётчиков,
+ * чтобы связь с экраном отказа читалась.
+ */
+@Composable
+fun AbstinenceTodayRow(
+    item: AbstinenceWithStats,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = AshTheme.colors
+    val days = item.stats.currentDays
+
+    Row(
+        modifier
+            .fillMaxWidth()
+            .tappable(onClick = onOpen)
+            .defaultMinSize(minHeight = 60.dp)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
+            Modifier
+                .size(34.dp)
+                .background(colors.cold.copy(alpha = 0.16f), AshShapes.squircle(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = AshIcons.Prohibit,
+                contentDescription = null,
+                tint = colors.cold,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+
+        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+            Text(
+                text = item.abstinence.name,
+                style = AshTheme.type.headline,
+                color = colors.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = pluralStringResource(R.plurals.streak_days, days.toInt(), days.toInt()) +
+                    " · рекорд ${item.stats.record.toDays()}",
+                style = AshTheme.type.subhead,
+                color = colors.text2
+            )
+        }
+
+        Icon(
+            imageVector = AshIcons.ChevronRight,
+            contentDescription = null,
+            tint = colors.text3,
+            modifier = Modifier.size(14.dp)
+        )
+    }
+}
 
 @Composable
 private fun TaskCheckbox(done: Boolean, onClick: () -> Unit) {

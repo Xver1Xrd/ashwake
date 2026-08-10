@@ -11,6 +11,8 @@ import dev.ashwake.domain.model.habits.Habit
 import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
+import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
 import dev.ashwake.domain.repository.habits.HabitRepository
@@ -20,10 +22,13 @@ import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.ui.character.render.CharacterLayer
 import dev.ashwake.ui.character.render.buildCharacterLayers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -32,18 +37,25 @@ import javax.inject.Inject
 /**
  * Состояние главного экрана.
  *
- * Экран собирает три источника — привычки на сегодня, задачи на сегодня
- * и персонажа — потому что смысл экрана именно в том, чтобы держать их
- * рядом: диорама сверху и список дел под ней это один непрерывный жест,
- * а не три раздела.
+ * Экран собирает четыре источника — персонажа, задачи на сегодня, привычки
+ * и отказы — потому что смысл экрана именно в том, чтобы держать их рядом.
+ * Раньше отказы жили только на своём экране, и человек, который бросает
+ * курить, видел свой счётчик, только если специально за ним ходил.
  */
 data class TodayUiState(
     val today: LocalDate = LocalDate.EPOCH,
-    val habits: List<HabitWithProgress> = emptyList(),
     val tasks: List<Task> = emptyList(),
+    val habits: List<HabitWithProgress> = emptyList(),
+    val abstinences: List<AbstinenceWithStats> = emptyList(),
     val character: CharacterState = CharacterState(),
     val layers: List<CharacterLayer> = emptyList()
 ) {
+    /** Задачи, у которых срок раньше сегодняшнего. Показываются отдельной группой. */
+    val overdueTasks: List<Task> get() = tasks.filter { it.isOverdue(today) }
+
+    /** Всё, что относится к сегодняшнему дню, без просрочки. */
+    val todayTasks: List<Task> get() = tasks.filterNot { it.isOverdue(today) }
+
     /** Сделано дел за день: привычки плюс задачи, одним числом на обложке. */
     val doneCount: Int
         get() = habits.count { it.doneToday } + tasks.count { it.isDone }
@@ -54,14 +66,20 @@ data class TodayUiState(
     val progress: Float
         get() = if (totalCount == 0) 0f else doneCount.toFloat() / totalCount
 
+    /** Пусто ли на экране совсем: тогда вместо списков показывается объяснение. */
+    val isEmpty: Boolean
+        get() = tasks.isEmpty() && habits.isEmpty() && abstinences.isEmpty()
+
     val pendingHabits: List<HabitWithProgress> get() = habits.filterNot { it.doneToday }
     val pendingTasks: List<Task> get() = tasks.filterNot { it.isDone }
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TodayViewModel @Inject constructor(
     private val habits: HabitRepository,
     private val tasks: TaskRepository,
+    private val abstinences: AbstinenceRepository,
     private val character: CharacterRepository,
     private val catalogLoader: CatalogLoader,
     private val markHabit: MarkHabitUseCase,
@@ -72,18 +90,27 @@ class TodayViewModel @Inject constructor(
 
     private val catalog = MutableStateFlow(Catalog.EMPTY)
 
+    /**
+     * «Сейчас» для счётчиков отказов. Тикает раз в минуту, а не раз в секунду:
+     * на главном экране показаны дни, и обновлять их чаще — значит пересобирать
+     * весь список ради цифры, которая не меняется.
+     */
+    private val minuteTicker = MutableStateFlow(clock.now())
+
     val state: StateFlow<TodayUiState> = combine(
         habits.observeHabitsWithProgress(clock.today()),
-        tasks.observeTasksInRange(clock.today(), clock.today(), includeDone = true),
+        tasks.observeTasksForDay(clock.today()),
+        minuteTicker.flatMapLatest { now -> abstinences.observeAll(now) },
         character.observeState(),
         catalog
-    ) { habitList, taskList, characterState, loadedCatalog ->
+    ) { habitList, taskList, abstinenceList, characterState, loadedCatalog ->
         TodayUiState(
             today = clock.today(),
+            tasks = taskList,
             // На главном экране только то, что сегодня действительно требуется:
             // приостановленные привычки не должны занимать место и портить счёт
             habits = habitList.filter { it.dueToday && !it.paused },
-            tasks = taskList.filterNot { it.isTemplate },
+            abstinences = abstinenceList.filterNot { it.abstinence.archived },
             character = characterState,
             layers = buildCharacterLayers(
                 characterState.equipped.values,
@@ -97,7 +124,19 @@ class TodayViewModel @Inject constructor(
     )
 
     init {
-        viewModelScope.launch { catalog.value = catalogLoader.load() }
+        viewModelScope.launch {
+            // Персонаж должен быть одет и до первого захода в магазин, иначе
+            // главный экран встречает пустой фигурой
+            character.ensureBuiltinData()
+            abstinences.ensureBuiltinData()
+            catalog.value = catalogLoader.load()
+        }
+        viewModelScope.launch {
+            while (true) {
+                delay(TICK_MILLIS)
+                minuteTicker.value = clock.now()
+            }
+        }
     }
 
     /**
@@ -143,5 +182,9 @@ class TodayViewModel @Inject constructor(
             habit.hasMinimum && value >= (habit.minimumValue ?: 0f) -> EntryStatus.MINIMUM
             else -> EntryStatus.SKIPPED
         }
+    }
+
+    private companion object {
+        const val TICK_MILLIS = 60_000L
     }
 }

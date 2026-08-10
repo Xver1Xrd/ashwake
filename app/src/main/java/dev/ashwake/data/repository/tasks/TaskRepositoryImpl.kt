@@ -60,6 +60,10 @@ class TaskRepositoryImpl @Inject constructor(
             includeDone = if (includeDone) 1 else 0
         ).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeTasksForDay(today: LocalDate): Flow<List<Task>> =
+        dao.observeTasksForDay(today.toEpochDayInt())
+            .map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun tasksWithReminders(): List<Task> =
         dao.tasksWithReminders().map { it.toDomain() }
 

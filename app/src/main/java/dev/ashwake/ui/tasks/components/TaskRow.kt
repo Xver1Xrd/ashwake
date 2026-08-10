@@ -1,7 +1,6 @@
 package dev.ashwake.ui.tasks.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,19 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EventRepeat
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
@@ -34,20 +21,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.tasks.StaleLevel
 import dev.ashwake.domain.model.tasks.Task
-import dev.ashwake.ui.theme.Blood
-import dev.ashwake.ui.theme.Gold
-import dev.ashwake.ui.theme.Moss
-import dev.ashwake.ui.theme.PriorityColors
-import dev.ashwake.ui.theme.Steel
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.EmojiBadge
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AshShapes
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.hasMark
+import dev.ashwake.ui.theme.priorityColor
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.res.stringResource
-import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -94,24 +82,29 @@ fun TaskRow(
 
 @Composable
 private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
+    val colors = AshTheme.colors
     val (color, icon, alignment) = when (direction) {
         SwipeToDismissBoxValue.StartToEnd ->
-            Triple(Moss, Icons.Filled.Check, Alignment.CenterStart)
+            Triple(colors.success, AshIcons.Check, Alignment.CenterStart)
         SwipeToDismissBoxValue.EndToStart ->
-            Triple(Steel, Icons.Filled.EventRepeat, Alignment.CenterEnd)
+            Triple(colors.cold, AshIcons.EventRepeat, Alignment.CenterEnd)
         SwipeToDismissBoxValue.Settled ->
-            Triple(Color.Transparent, Icons.Filled.Check, Alignment.Center)
+            Triple(Color.Transparent, AshIcons.Check, Alignment.Center)
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(AshShapes.card)
             .background(color)
-            .padding(horizontal = 20.dp),
+            .padding(horizontal = 24.dp),
         contentAlignment = alignment
     ) {
         if (direction != SwipeToDismissBoxValue.Settled) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+            Icon(
+                icon,
+                contentDescription = null,
+                tint = if (colors.isDark) Color.Black else Color.White
+            )
         }
     }
 }
@@ -124,85 +117,109 @@ private fun TaskRowContent(
     expanded: Boolean,
     onExpandToggle: (() -> Unit)?
 ) {
+    val colors = AshTheme.colors
+    val priorityColor = colors.priorityColor(task.priority)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface)
-            .clickable(onClick = onClick)
+            .background(colors.surface1, AshShapes.card)
+            .tappable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Цвет по приоритету — тот же, что в матрице Эйзенхауэра
-        Box(
-            modifier = Modifier
-                .size(width = 4.dp, height = 36.dp)
-                .clip(RoundedCornerShape(2.dp))
-                .background(PriorityColors[task.priority.ordinal])
-        )
+        // Значок задачи, а если его нет — цветной кружок приоритета. Место
+        // под ведущий элемент занято всегда, иначе названия в списке
+        // разъезжаются по левому краю в зависимости от того, у кого есть эмодзи
+        if (task.emoji != null) {
+            EmojiBadge(
+                emoji = task.emoji,
+                size = 38.dp,
+                background = if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
+                else colors.surface2
+            )
+        } else {
+            Box(
+                Modifier
+                    .size(38.dp)
+                    .background(
+                        if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
+                        else colors.surface2,
+                        AshShapes.squircle(13.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .background(
+                            if (task.priority.hasMark) priorityColor else colors.text3,
+                            AshShapes.pill
+                        )
+                )
+            }
+        }
 
-        Column(modifier = Modifier.weight(1f)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = task.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = AshTheme.type.body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
-                color = if (task.isDone) MaterialTheme.colorScheme.onSurfaceVariant
-                else MaterialTheme.colorScheme.onSurface
+                color = if (task.isDone) colors.text3 else colors.text
             )
             val meta = buildMeta(task, today)
             if (meta.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = if (task.isOverdue(today)) Blood
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                Text(
+                    text = meta,
+                    style = AshTheme.type.footnote,
+                    color = if (task.isOverdue(today)) colors.danger else colors.text2
+                )
             }
             if (task.tags.isNotEmpty()) {
                 Text(
                     text = task.tags.joinToString(" ") { "#${it.name}" },
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.caption,
+                    color = colors.text3,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
             }
         }
 
-        if (task.recurrence != null) {
-            Icon(
-                Icons.Filled.Repeat,
-                contentDescription = stringResource(R.string.components_povtoryaetsya),
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (task.sourceLink != null) {
-            Icon(
-                Icons.Filled.Link,
-                contentDescription = stringResource(R.string.components_est_ssylka),
-                modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        MetaIcon(task.recurrence?.let { AshIcons.Repeat })
+        MetaIcon(task.sourceLink?.let { AshIcons.Link })
         StaleBadge(task)
 
         if (task.subtasks.isNotEmpty() && onExpandToggle != null) {
-            IconButton(onClick = onExpandToggle, modifier = Modifier.size(24.dp)) {
+            Box(
+                Modifier.size(28.dp).tappable(onClick = onExpandToggle),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    if (expanded) AshIcons.ExpandLess else AshIcons.ExpandMore,
                     contentDescription = if (expanded) "Свернуть подзадачи"
                     else "Показать подзадачи",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = colors.text3,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
     }
+}
+
+/** Значок-признак в конце строки: повтор, ссылка. Ничего не делает по нажатию. */
+@Composable
+private fun MetaIcon(icon: ImageVector?) {
+    if (icon == null) return
+    Icon(
+        icon,
+        contentDescription = null,
+        modifier = Modifier.size(15.dp),
+        tint = AshTheme.colors.text3
+    )
 }
 
 /** Подзадачи под строкой. Отдельно от [TaskRow], чтобы свайп не задевал их. */
@@ -212,29 +229,29 @@ fun SubtaskList(
     onToggle: (Task) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier.padding(start = 28.dp, top = 2.dp)) {
+    val colors = AshTheme.colors
+    Column(modifier = modifier.padding(start = 30.dp, top = 2.dp)) {
         task.subtasks.forEach { subtask ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onToggle(subtask) }
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .clip(AshShapes.small)
+                    .tappable(onClick = { onToggle(subtask) })
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    if (subtask.isDone) Icons.Filled.CheckCircle
-                    else Icons.Filled.RadioButtonUnchecked,
+                    if (subtask.isDone) AshIcons.CheckCircle else AshIcons.Circle,
                     contentDescription = null,
                     modifier = Modifier.size(16.dp),
-                    tint = if (subtask.isDone) Moss else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (subtask.isDone) colors.success else colors.text3
                 )
                 Text(
-                    text = "  ${subtask.title}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = subtask.title,
+                    style = AshTheme.type.subhead,
                     textDecoration = if (subtask.isDone) TextDecoration.LineThrough else null,
-                    color = if (subtask.isDone) MaterialTheme.colorScheme.onSurfaceVariant
-                    else MaterialTheme.colorScheme.onSurface,
+                    color = if (subtask.isDone) colors.text3 else colors.text2,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -243,25 +260,21 @@ fun SubtaskList(
     }
 }
 
-/** Жёлтая метка с 3 переносов, красная с 5 (п. 1). */
+/** Метка переносов: жёлтая с 3, красная с 5 (п. 1). */
 @Composable
 private fun StaleBadge(task: Task) {
+    val colors = AshTheme.colors
     val color = when (task.staleLevel) {
         StaleLevel.NONE -> return
-        StaleLevel.WARNING -> Gold
-        StaleLevel.CRITICAL -> Blood
+        StaleLevel.WARNING -> colors.warm
+        StaleLevel.CRITICAL -> colors.danger
     }
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.18f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .background(color.copy(alpha = 0.18f), AshShapes.pill)
+            .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
-        Text(
-            text = "×${task.postponeCount}",
-            style = MaterialTheme.typography.labelSmall,
-            color = color
-        )
+        Text(text = "×${task.postponeCount}", style = AshTheme.type.caption, color = color)
     }
 }
 

@@ -107,24 +107,46 @@ private fun Path.corner(
 }
 
 /**
- * Радиусы из раздела 4. Больше в приложении не появляется никаких:
- * если понадобился новый радиус — это признак, что компонент придуман мимо системы.
+ * Радиусы приложения. Больше никаких не появляется: если понадобился новый —
+ * это признак, что компонент придуман мимо системы.
+ *
+ * Шкала намеренно крупная. Прямой угол в интерфейсе выглядит как «форма по
+ * умолчанию, которую никто не выбирал»; чем крупнее блок, тем больше у него
+ * радиус, и тогда группа, карточка и лист читаются как один язык форм.
  */
 object AshShapes {
-    /** Группы сгруппированных списков. */
-    val group = SquircleShape(10.dp)
+    /** Мелкое: значки, метки, вложенные плашки. */
+    val small = SquircleShape(12.dp)
+    /** Группы сгруппированных списков и поля ввода. */
+    val group = SquircleShape(18.dp)
     /** Карточки и плитки. */
-    val card = SquircleShape(16.dp)
-    /** Обложка и модальные листы сверху. */
-    val sheet = SquircleShape(20.dp)
-    /** Alert — единственное место с круговым скруглением: он и в iOS такой. */
-    val alert = RoundedCornerShape(14.dp)
-    /** Кнопки-таблетки, чипы, аватары. */
+    val card = SquircleShape(24.dp)
+    /** Обложка, герой-блок, модальные листы. */
+    val sheet = SquircleShape(30.dp)
+    /** Alert: круговое скругление, потому что блок маленький и почти квадратный. */
+    val alert = RoundedCornerShape(26.dp)
+    /** Кнопки-таблетки, чипы, аватары, панель вкладок. */
     val pill = RoundedCornerShape(percent = 50)
 
     /** Верхние углы модального листа: низ прижат к краю экрана. */
-    val sheetTop = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
+    val sheetTop = RoundedCornerShape(topStart = 30.dp, topEnd = 30.dp)
 
-    /** Скругление только сверху у обложки, когда она схлопывается. */
+    /** Скругление под конкретный размер: обложка при схлопывании, аватар задачи. */
     fun squircle(radius: Dp) = SquircleShape(radius)
 }
+
+/**
+ * Те же радиусы для Material-компонентов.
+ *
+ * Пока не все экраны переписаны на компоненты дизайн-системы, чипы, диалоги
+ * и поля на них берут форму отсюда. Без этого моста половина приложения
+ * осталась бы с материаловскими 4–12dp, и разница бросалась бы в глаза
+ * на каждом переходе.
+ */
+val AshMaterialShapes: androidx.compose.material3.Shapes = androidx.compose.material3.Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(14.dp),
+    medium = RoundedCornerShape(18.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(30.dp)
+)

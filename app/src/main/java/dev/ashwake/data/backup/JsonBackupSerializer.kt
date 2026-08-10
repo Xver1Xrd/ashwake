@@ -317,6 +317,7 @@ class JsonBackupSerializer @Inject constructor(
     private fun JSONObject.toTaskEntity() = TaskEntity(
         id = optLong("id"),
         title = optString("title"),
+        emoji = optStringOrNull("emoji"),
         note = optStringOrNull("note"),
         priority = optString("priority", "P4"),
         dueDate = optIntOrNull("dueDate"),
@@ -406,6 +407,7 @@ class JsonBackupSerializer @Inject constructor(
     private fun TaskEntity.toJson() = JSONObject().apply {
         put("id", id)
         put("title", title)
+        put("emoji", emoji)
         put("note", note)
         put("priority", priority)
         put("dueDate", dueDate)

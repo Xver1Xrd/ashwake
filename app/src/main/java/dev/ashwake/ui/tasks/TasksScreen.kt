@@ -44,6 +44,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.tasks.calendar.TaskCalendar
 import dev.ashwake.ui.timebox.TimeboxScreen
 import dev.ashwake.ui.tasks.components.ProjectsDialog
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshLargeTitle
+import dev.ashwake.ui.components.IconAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.tasks.components.QuickAddBar
 import dev.ashwake.ui.tasks.components.StaleTaskDialog
 import dev.ashwake.ui.tasks.components.SubtaskList
@@ -73,35 +77,41 @@ fun TasksScreen(
     val context = LocalContext.current
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.tasks_zadachi)) },
+            AshLargeTitle(
+                title = stringResource(R.string.tasks_zadachi),
                 actions = {
-                    IconButton(onClick = onOpenRitual) {
-                        Icon(Icons.Filled.NightsStay, contentDescription = stringResource(R.string.ritual_vecherniy_ritual))
-                    }
-                    IconButton(onClick = onOpenStats) {
-                        Icon(Icons.Filled.BarChart, contentDescription = stringResource(R.string.stats_statistika))
-                    }
-                    IconButton(onClick = viewModel::toggleStaleFilter) {
-                        Icon(
-                            Icons.Filled.HourglassBottom,
-                            contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
-                            tint = if (state.filter.onlyStale) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }) {
-                        Icon(
-                            when (state.viewMode) {
-                                TasksViewMode.LIST -> Icons.Filled.GridView
-                                TasksViewMode.MATRIX -> Icons.Filled.CalendarMonth
-                                TasksViewMode.CALENDAR -> Icons.Filled.ViewTimeline
-                                TasksViewMode.TIMEBOX -> Icons.AutoMirrored.Filled.List
-                            },
-                            contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya)
-                        )
-                    }
+                    IconAction(
+                        icon = AshIcons.Moon,
+                        contentDescription = stringResource(R.string.ritual_vecherniy_ritual),
+                        tint = AshTheme.colors.text2,
+                        onClick = onOpenRitual
+                    )
+                    IconAction(
+                        icon = AshIcons.BarChart,
+                        contentDescription = stringResource(R.string.stats_statistika),
+                        tint = AshTheme.colors.text2,
+                        onClick = onOpenStats
+                    )
+                    IconAction(
+                        icon = AshIcons.Hourglass,
+                        contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
+                        tint = if (state.filter.onlyStale) AshTheme.colors.accent
+                        else AshTheme.colors.text2,
+                        onClick = viewModel::toggleStaleFilter
+                    )
+                    IconAction(
+                        icon = when (state.viewMode) {
+                            TasksViewMode.LIST -> AshIcons.GridView
+                            TasksViewMode.MATRIX -> AshIcons.CalendarMonth
+                            TasksViewMode.CALENDAR -> AshIcons.ViewTimeline
+                            TasksViewMode.TIMEBOX -> AshIcons.ListIcon
+                        },
+                        contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya),
+                        tint = AshTheme.colors.text2,
+                        onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }
+                    )
                 }
             )
         },

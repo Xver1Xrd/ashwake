@@ -74,6 +74,8 @@ data class RecurrenceRuleEntity(
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
+    /** Значок задачи: одна эмодзи или null. */
+    val emoji: String? = null,
     val note: String? = null,
     val projectId: Long? = null,
     val parentTaskId: Long? = null,

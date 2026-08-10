@@ -81,6 +81,7 @@ fun AshwakeTheme(
         MaterialTheme(
             colorScheme = colors.toMaterialScheme(),
             typography = materialTypography(typography),
+            shapes = AshMaterialShapes,
             content = content
         )
     }
@@ -98,13 +99,13 @@ private fun AshColors.toMaterialScheme(): ColorScheme {
     val base = if (isDark) darkColorScheme() else lightColorScheme()
     return base.copy(
         primary = accent,
-        onPrimary = if (isDark) Color.Black else Color.White,
+        onPrimary = onAccent,
         primaryContainer = surface2,
         onPrimaryContainer = text,
         secondary = warm,
-        onSecondary = Color.Black,
+        onSecondary = onAccent,
         tertiary = cold,
-        onTertiary = Color.White,
+        onTertiary = onAccent,
         background = background,
         onBackground = text,
         surface = surface1,

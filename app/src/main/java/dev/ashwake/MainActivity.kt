@@ -11,7 +11,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.data.settings.Appearance
+import dev.ashwake.data.settings.AppSettings
 import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
@@ -31,6 +35,7 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var parser: QuickInputParser
     @Inject lateinit var clock: AppClock
     @Inject lateinit var tasks: TaskRepository
+    @Inject lateinit var settings: AppSettings
 
     /**
      * Куда открыться при запуске из виджета, плитки или шортката.
@@ -51,7 +56,12 @@ class MainActivity : ComponentActivity() {
         handleRoute(intent)
 
         setContent {
-            AshwakeTheme {
+            // Тема читается из настроек прямо здесь: она нужна раньше любого
+            // экрана, и прокидывать её через навигацию было бы дороже
+            val appearance by settings.appearance
+                .collectAsStateWithLifecycle(initialValue = Appearance())
+
+            AshwakeTheme(themeMode = appearance.themeMode, accent = appearance.accent) {
                 AshwakeRoot(pendingRoute = pendingRoute)
             }
         }

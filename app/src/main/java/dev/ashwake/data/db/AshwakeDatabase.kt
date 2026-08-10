@@ -122,7 +122,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -156,6 +156,13 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        /** 2 → 3: у задачи появился значок-эмодзи. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN emoji TEXT")
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
     }
 }

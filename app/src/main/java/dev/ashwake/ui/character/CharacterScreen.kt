@@ -460,7 +460,7 @@ private fun effectTitle(key: String): String = when (EffectKeys.baseKey(key)) {
     EffectKeys.CRAVING_WARD -> "за переждённую тягу"
     EffectKeys.FOCUS_COIN -> "за помодоро"
     EffectKeys.ROUTINE_BONUS -> "за рутину"
-    EffectKeys.TASK_PRIORITY_BONUS -> "за P1-задачи"
+    EffectKeys.TASK_PRIORITY_BONUS -> "за срочные задачи"
     EffectKeys.LOOT_LUCK -> "удача в наградах"
     EffectKeys.REROLL_CHEST -> "перебросы награды"
     EffectKeys.OVERDUE_RELIEF -> "смягчение просрочки"

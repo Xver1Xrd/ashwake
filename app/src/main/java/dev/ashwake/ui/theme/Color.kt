@@ -1,14 +1,20 @@
 package dev.ashwake.ui.theme
 
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
- * Токены цвета из дизайн-системы, раздел 2.
+ * Токены цвета.
  *
  * Иерархия строится светлотой поверхности, а не тенями: поэтому здесь не
  * «фон и карточка», а фон и три уровня поднятия. Тени в приложении есть
  * только под модальным листом.
+ *
+ * Палитра не серая: у фона и поверхностей есть общий холодный подтон
+ * (синева с уходом в фиолетовый). Нейтрально-серый интерфейс на телефоне
+ * выглядит выцветшим, а один и тот же подтон на всех уровнях связывает
+ * экраны в одно целое и даёт акцентам, которых мало, звучать ярче.
  *
  * Material-схема собирается из этих же токенов в [AshwakeTheme], чтобы
  * экраны, написанные на `MaterialTheme.colorScheme`, получали те же цвета,
@@ -16,7 +22,7 @@ import androidx.compose.ui.graphics.Color
  */
 @Immutable
 data class AshColors(
-    /** Базовый фон приложения. В тёмной теме — чистый чёрный ради OLED. */
+    /** Базовый фон приложения. */
     val background: Color,
     /** Группы списков, карточки. */
     val surface1: Color,
@@ -37,58 +43,98 @@ data class AshColors(
     val cold: Color,
     /** Срыв, удаление, просрочка. */
     val danger: Color,
-    /** Только подтверждение бэкапа. */
+    /** Подтверждение: бэкап, выполненная привычка. */
     val success: Color,
-    /** Выбранный пользователем акцент. По умолчанию совпадает с [warm]. */
+    /** Выбранный пользователем акцент. */
     val accent: Color,
+    /**
+     * Второй цвет акцентного градиента. Заливка «в одну краску» на больших
+     * плоскостях выглядит плоско, поэтому герой-блоки и главная кнопка
+     * тонируются переходом между двумя близкими тонами, а не одним цветом.
+     */
+    val accentAlt: Color,
     /** Тонировка полупрозрачных панелей поверх размытия. */
     val materialTint: Color,
     val isDark: Boolean
-)
+) {
+    /** Градиент акцента: слева направо и сверху вниз, всегда в одну сторону. */
+    val accentGradient: Brush
+        get() = Brush.linearGradient(listOf(accent, accentAlt))
+}
 
-// Тёмная тема — основная.
-private val DarkBackground = Color(0xFF000000)
-private val DarkSurface1 = Color(0xFF1C1C1E)
-private val DarkSurface2 = Color(0xFF2C2C2E)
-private val DarkSurface3 = Color(0xFF3A3A3C)
-private val DarkText = Color(0xFFFFFFFF)
-private val DarkText2 = Color(0x99EBEBF5)   // rgba(235,235,245,0.60)
-private val DarkText3 = Color(0x4DEBEBF5)   // rgba(235,235,245,0.30)
-private val DarkSeparator = Color(0xA6545458) // rgba(84,84,88,0.65)
+// ---------------------------------------------------------------------------
+// Тёмная тема — основная
+//
+// Фон не чистый чёрный: на OLED он экономит батарею, но карточки на нём
+// висят в пустоте, а границы поверхностей приходится рисовать линиями.
+// Почти-чёрный с синевой оставляет запас, чтобы уровни различались светлотой.
+// ---------------------------------------------------------------------------
+private val DarkBackground = Color(0xFF0A0A10)
+private val DarkSurface1 = Color(0xFF14141D)
+private val DarkSurface2 = Color(0xFF1D1D28)
+private val DarkSurface3 = Color(0xFF282836)
+private val DarkText = Color(0xFFF4F4F8)
+private val DarkText2 = Color(0xA3E4E4F2)   // 64%
+private val DarkText3 = Color(0x59E4E4F2)   // 35%
+private val DarkSeparator = Color(0x2E9A9AC0)
 
-// Светлая тема — вторая.
-private val LightBackground = Color(0xFFF2F2F7)
+// Светлая тема — вторая. Тот же подтон, только светлотой наоборот.
+private val LightBackground = Color(0xFFF4F4F8)
 private val LightSurface1 = Color(0xFFFFFFFF)
-private val LightSurface2 = Color(0xFFF2F2F7)
-private val LightSurface3 = Color(0xFFE5E5EA)
-private val LightText = Color(0xFF000000)
-private val LightText2 = Color(0x993C3C43)
-private val LightText3 = Color(0x4D3C3C43)
-private val LightSeparator = Color(0x5C3C3C43)
+private val LightSurface2 = Color(0xFFEDEDF4)
+private val LightSurface3 = Color(0xFFE1E1EC)
+private val LightText = Color(0xFF14141B)
+private val LightText2 = Color(0xA31B1B2E)
+private val LightText3 = Color(0x591B1B2E)
+private val LightSeparator = Color(0x2E4A4A70)
+
+// Семантика. Одни и те же роли в обеих темах, разной светлоты: на тёмном
+// фоне нужны более светлые тона, иначе контраст проваливается.
+private val WarmDark = Color(0xFFFFB84D)
+private val WarmLight = Color(0xFFE8890B)
+private val ColdDark = Color(0xFF4CC9F0)
+private val ColdLight = Color(0xFF0E92C4)
+private val DangerDark = Color(0xFFFF6B6B)
+private val DangerLight = Color(0xFFE03131)
+private val SuccessDark = Color(0xFF3FDC9A)
+private val SuccessLight = Color(0xFF12A06A)
 
 /**
- * Системная палитра Apple: восемь цветов, из которых пользователь выбирает
- * акцент (раздел 2). Тёмные и светлые варианты одного цвета различаются —
- * на чёрном фоне нужны более светлые тона, иначе контраст проваливается.
+ * Акценты, из которых пользователь выбирает свой.
+ *
+ * Каждый — пара близких тонов: второй нужен градиенту. Пары подобраны так,
+ * чтобы переход читался как один цвет с подсветкой, а не как двухцветная
+ * заливка: разница по тону не больше 30°.
  */
 enum class AccentColor(
     val title: String,
-    val dark: Color,
-    val light: Color
+    private val darkFrom: Color,
+    private val darkTo: Color,
+    private val lightFrom: Color,
+    private val lightTo: Color
 ) {
-    ORANGE("Оранжевый", Color(0xFFFF9F0A), Color(0xFFFF9500)),
-    RED("Красный", Color(0xFFFF453A), Color(0xFFFF3B30)),
-    YELLOW("Жёлтый", Color(0xFFFFD60A), Color(0xFFFFCC00)),
-    GREEN("Зелёный", Color(0xFF30D158), Color(0xFF34C759)),
-    CYAN("Голубой", Color(0xFF64D2FF), Color(0xFF32ADE6)),
-    BLUE("Синий", Color(0xFF0A84FF), Color(0xFF007AFF)),
-    INDIGO("Индиго", Color(0xFF5E5CE6), Color(0xFF5856D6)),
-    PURPLE("Фиолетовый", Color(0xFFBF5AF2), Color(0xFFAF52DE));
+    VIOLET("Фиалковый", Color(0xFF8B7CFF), Color(0xFFB07CFF), Color(0xFF6A4CF0), Color(0xFF9A4CF0)),
+    EMBER("Угольный жар", Color(0xFFFF8A4C), Color(0xFFFF5E7A), Color(0xFFE8620F), Color(0xFFE03A5C)),
+    AMBER("Янтарь", Color(0xFFFFC24D), Color(0xFFFF9A3D), Color(0xFFDD9500), Color(0xFFDD6E00)),
+    MINT("Мята", Color(0xFF3FDC9A), Color(0xFF3FD0C8), Color(0xFF0E9E68), Color(0xFF0E9490)),
+    AZURE("Лазурь", Color(0xFF4CC9F0), Color(0xFF4C9BF0), Color(0xFF0E8CC0), Color(0xFF1367CE)),
+    INDIGO("Индиго", Color(0xFF6C7BFF), Color(0xFF8B62F5), Color(0xFF4453EE), Color(0xFF6B36DE)),
+    ROSE("Роза", Color(0xFFFF6FA5), Color(0xFFFF7BD0), Color(0xFFE0407D), Color(0xFFDB4BAF)),
+    LIME("Лайм", Color(0xFFA8DC3F), Color(0xFF5FD86B), Color(0xFF6F9C10), Color(0xFF23A03A));
 
-    fun resolve(isDark: Boolean): Color = if (isDark) dark else light
+    fun resolve(isDark: Boolean): Color = if (isDark) darkFrom else lightFrom
+
+    fun resolveAlt(isDark: Boolean): Color = if (isDark) darkTo else lightTo
 
     companion object {
-        val DEFAULT = ORANGE
+        val DEFAULT = VIOLET
+
+        /**
+         * Разбор сохранённого значения. Возвращает [DEFAULT], если имени нет:
+         * настройки старых сборок не должны ронять запуск.
+         */
+        fun of(name: String?): AccentColor =
+            entries.firstOrNull { it.name == name } ?: DEFAULT
     }
 }
 
@@ -101,12 +147,13 @@ fun darkAshColors(accent: AccentColor = AccentColor.DEFAULT): AshColors = AshCol
     text2 = DarkText2,
     text3 = DarkText3,
     separator = DarkSeparator,
-    warm = Color(0xFFFF9F0A),
-    cold = Color(0xFF5E5CE6),
-    danger = Color(0xFFFF453A),
-    success = Color(0xFF30D158),
+    warm = WarmDark,
+    cold = ColdDark,
+    danger = DangerDark,
+    success = SuccessDark,
     accent = accent.resolve(isDark = true),
-    materialTint = DarkSurface1.copy(alpha = 0.70f),
+    accentAlt = accent.resolveAlt(isDark = true),
+    materialTint = DarkSurface1.copy(alpha = 0.72f),
     isDark = true
 )
 
@@ -119,35 +166,31 @@ fun lightAshColors(accent: AccentColor = AccentColor.DEFAULT): AshColors = AshCo
     text2 = LightText2,
     text3 = LightText3,
     separator = LightSeparator,
-    warm = Color(0xFFFF9500),
-    cold = Color(0xFF5856D6),
-    danger = Color(0xFFFF3B30),
-    success = Color(0xFF34C759),
+    warm = WarmLight,
+    cold = ColdLight,
+    danger = DangerLight,
+    success = SuccessLight,
     accent = accent.resolve(isDark = false),
-    materialTint = LightSurface1.copy(alpha = 0.70f),
+    accentAlt = accent.resolveAlt(isDark = false),
+    materialTint = LightSurface1.copy(alpha = 0.72f),
     isDark = false
 )
 
-/**
- * Цвета меток приоритета P1–P4. Дублируются словом в интерфейсе:
- * ни одно состояние не передаётся только цветом (раздел 9).
- */
-val AshColors.priorityColors: List<Color>
-    get() = listOf(danger, warm, cold, text2)
+/** Цвет текста на заливке акцентом. Считается один раз, а не подбирается на месте. */
+val AshColors.onAccent: Color
+    get() = if (isDark) Color(0xFF0A0A10) else Color.White
 
 // ---------------------------------------------------------------------------
 // Совместимость со старой палитрой
 //
-// До перехода на дизайн-систему у проекта была своя фэнтезийная палитра
-// (Gold, Ember, Steel, Moss, Blood, Ash*). На неё ссылается два десятка
-// экранов. Названия сохранены как псевдонимы новых токенов, чтобы смена
-// палитры прошла по всему приложению сразу, а не превратилась в один
-// гигантский коммит, который нечем проверить.
+// До дизайн-системы у проекта была своя фэнтезийная палитра (Gold, Ember,
+// Steel, Moss, Blood, Ash*). На неё ссылается ещё несколько экранов. Имена
+// сохранены как псевдонимы новых токенов, чтобы смена палитры прошла по
+// всему приложению сразу.
 //
 // Значения здесь — тёмной темы: это константы времени компиляции, они не
 // умеют реагировать на смену темы. Каждый экран, переписанный на
-// `AshTheme.colors`, убирает по одной такой ссылке; пока они есть,
-// светлая тема на непереписанных экранах будет неполной.
+// `AshTheme.colors`, убирает по одной такой ссылке.
 // ---------------------------------------------------------------------------
 
 @Deprecated("Использовать AshTheme.colors.background", ReplaceWith("AshTheme.colors.background"))
@@ -170,34 +213,18 @@ val AshMuted = DarkText2
 
 /** Награды, монеты, стрик, выполнено. */
 @Deprecated("Использовать AshTheme.colors.warm", ReplaceWith("AshTheme.colors.warm"))
-val Gold = Color(0xFFFF9F0A)
+val Gold = WarmDark
 
-/**
- * Второй тёплый цвет старой палитры. Отображается в тот же тёплый акцент:
- * по разделу 10 двух тёплых акцентов в приложении быть не должно.
- */
 @Deprecated("Использовать AshTheme.colors.warm", ReplaceWith("AshTheme.colors.warm"))
-val Ember = Color(0xFFFF9F0A)
+val Ember = WarmDark
 
 /** Фокус, таймеры, счётчики отказов. */
 @Deprecated("Использовать AshTheme.colors.cold", ReplaceWith("AshTheme.colors.cold"))
-val Steel = Color(0xFF5E5CE6)
+val Steel = ColdDark
 
-/** Подтверждение бэкапа. */
 @Deprecated("Использовать AshTheme.colors.success", ReplaceWith("AshTheme.colors.success"))
-val Moss = Color(0xFF30D158)
+val Moss = SuccessDark
 
 /** Срыв, удаление, просрочка. */
 @Deprecated("Использовать AshTheme.colors.danger", ReplaceWith("AshTheme.colors.danger"))
-val Blood = Color(0xFFFF453A)
-
-/**
- * Метки приоритета P1–P4 для экранов, ещё не переписанных на токены.
- * Порядок совпадает с [priorityColors].
- */
-val PriorityColors: List<Color> = listOf(
-    Color(0xFFFF453A),
-    Color(0xFFFF9F0A),
-    Color(0xFF5E5CE6),
-    DarkText2
-)
+val Blood = DangerDark

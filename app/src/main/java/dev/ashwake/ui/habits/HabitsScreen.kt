@@ -35,6 +35,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.habits.components.HabitActionsSheet
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshLargeTitle
+import dev.ashwake.ui.components.IconAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.habits.components.HabitCard
 import dev.ashwake.ui.habits.components.HabitCatalogDialog
 import kotlinx.coroutines.launch
@@ -57,27 +61,27 @@ fun HabitsScreen(
     var showCatalog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.habits_privychki)) },
+            AshLargeTitle(
+                title = stringResource(R.string.habits_privychki),
                 actions = {
-                    IconButton(onClick = viewModel::toggleVacation) {
-                        Icon(
-                            Icons.Filled.BeachAccess,
-                            contentDescription = stringResource(R.string.habits_rezhim_otpuska),
-                            tint = if (state.vacationMode) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    IconAction(
+                        icon = AshIcons.BeachAccess,
+                        contentDescription = stringResource(R.string.habits_rezhim_otpuska),
+                        tint = if (state.vacationMode) AshTheme.colors.accent
+                        else AshTheme.colors.text2,
+                        onClick = viewModel::toggleVacation
+                    )
+                    IconAction(
+                        icon = AshIcons.Add,
+                        contentDescription = stringResource(R.string.habits_dobavit_privychku),
+                        onClick = { showCatalog = true }
+                    )
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCatalog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.habits_dobavit_privychku))
-            }
-        }
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         if (state.habits.isEmpty()) {
             EmptyState(Modifier.padding(padding))

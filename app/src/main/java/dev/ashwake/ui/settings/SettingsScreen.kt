@@ -1,6 +1,11 @@
 package dev.ashwake.ui.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -31,7 +36,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import dev.ashwake.R
+import dev.ashwake.data.settings.Appearance
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.theme.AccentColor
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.ThemeMode
 import android.content.Intent
 import android.os.Build
 import android.os.PowerManager
@@ -50,6 +62,7 @@ fun SettingsScreen(
     val timebox by viewModel.timebox.collectAsStateWithLifecycle()
     val dayStart by viewModel.dayStartHour.collectAsStateWithLifecycle()
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
+    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -71,6 +84,13 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            AppearanceSection(
+                appearance = appearance,
+                onThemeMode = viewModel::setThemeMode,
+                onAccent = viewModel::setAccent
+            )
+
+            HorizontalDivider()
             Text(stringResource(R.string.settings_nachalo_sutok), style = MaterialTheme.typography.titleSmall)
             Text(
                 "Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, счётчики отказов и статистику",
@@ -167,6 +187,79 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+/**
+ * Оформление: тема и акцент.
+ *
+ * Акценты показаны кружками, а не названиями: выбирают всё равно глазами,
+ * а подпись под каждым цветом превратила бы ряд в список из восьми строк.
+ * Выбранный отмечен галочкой — не только обводкой, иначе на монохромном
+ * экране выбор не читается.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppearanceSection(
+    appearance: Appearance,
+    onThemeMode: (ThemeMode) -> Unit,
+    onAccent: (AccentColor) -> Unit
+) {
+    val colors = AshTheme.colors
+
+    Text("Оформление", style = MaterialTheme.typography.titleSmall)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        ThemeMode.entries.forEach { mode ->
+            FilterChip(
+                selected = appearance.themeMode == mode,
+                onClick = { onThemeMode(mode) },
+                label = { Text(mode.title) }
+            )
+        }
+    }
+
+    Text(
+        "Акцент",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp)
+    )
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AccentColor.entries.forEach { accent ->
+            val selected = appearance.accent == accent
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .background(
+                        Brush.linearGradient(
+                            listOf(
+                                accent.resolve(colors.isDark),
+                                accent.resolveAlt(colors.isDark)
+                            )
+                        ),
+                        CircleShape
+                    )
+                    .border(
+                        width = if (selected) 2.dp else 0.dp,
+                        color = if (selected) colors.text else Color.Transparent,
+                        shape = CircleShape
+                    )
+                    .clickable { onAccent(accent) },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) {
+                    Icon(
+                        AshIcons.Check,
+                        contentDescription = accent.title,
+                        tint = if (colors.isDark) Color.Black else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }

@@ -111,7 +111,9 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                 TodayScreen(
                     onOpenHabit = { id -> navController.navigate("habit/$id") },
                     onOpenTask = { id -> navController.navigate("task?taskId=$id") },
-                    onCreateTask = { navController.navigate("task?taskId=0") }
+                    onCreateTask = { navController.navigate("task?taskId=0") },
+                    onOpenCharacter = { navController.navigate(Destination.Character.route) },
+                    onOpenAbstinence = { id -> navController.navigate("abstinence/$id") }
                 )
             }
 

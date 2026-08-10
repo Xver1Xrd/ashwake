@@ -40,6 +40,7 @@ data class EditableSubtask(
 data class TaskEditorState(
     val taskId: Long = 0,
     val title: String = "",
+    val emoji: String? = null,
     val note: String = "",
     val projectId: Long? = null,
     val priority: Priority = Priority.P4,
@@ -92,7 +93,10 @@ class TaskEditorViewModel @Inject constructor(
 
     init {
         if (taskId == 0L) {
-            _state.update { it.copy(loading = false, dueDate = null) }
+            // Новая задача заводится на сегодня. Задача без даты не попадает
+            // ни в один список дня, и человек, создавший её с главного экрана,
+            // просто не находит её там, куда смотрел.
+            _state.update { it.copy(loading = false, dueDate = clock.today()) }
         } else {
             viewModelScope.launch { load(taskId) }
         }
@@ -108,6 +112,7 @@ class TaskEditorViewModel @Inject constructor(
         _state.value = TaskEditorState(
             taskId = task.id,
             title = task.title,
+            emoji = task.emoji,
             note = task.note.orEmpty(),
             projectId = task.projectId,
             priority = task.priority,
@@ -134,6 +139,12 @@ class TaskEditorViewModel @Inject constructor(
     // --- правки полей ------------------------------------------------------
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
+
+    /** Повторный выбор той же эмодзи снимает её: отдельная кнопка «убрать» не нужна. */
+    fun setEmoji(value: String?) = _state.update {
+        it.copy(emoji = if (it.emoji == value) null else value)
+    }
+
     fun setNote(value: String) = _state.update { it.copy(note = value) }
     fun setProject(id: Long?) = _state.update { it.copy(projectId = id) }
     fun setPriority(value: Priority) = _state.update { it.copy(priority = value) }
@@ -207,6 +218,7 @@ class TaskEditorViewModel @Inject constructor(
             val task = (existing ?: Task(title = "")).copy(
                 id = current.taskId,
                 title = current.title.trim(),
+                emoji = current.emoji,
                 note = current.note.takeIf { it.isNotBlank() },
                 projectId = current.projectId,
                 priority = current.priority,

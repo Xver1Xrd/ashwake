@@ -1,34 +1,31 @@
 package dev.ashwake.ui.tasks.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.Mic
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.engine.nlp.ParsedQuickInput
-import dev.ashwake.ui.theme.PriorityColors
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.ui.theme.AshShapes
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.colorTitle
+import dev.ashwake.ui.theme.priorityColor
 import java.time.format.DateTimeFormatter
-import androidx.compose.ui.res.stringResource
-import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
@@ -38,6 +35,8 @@ private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm"
  *
  * Под полем показываются чипы того, что распозналось: без них пользователь
  * не понимает, сработал парсер или «завтра» осталось частью названия.
+ * Приоритет в чипе называется цветом, а не «P2»: в поле его по-прежнему
+ * можно задать как `p2`, но обратная связь идёт на языке интерфейса.
  */
 @Composable
 fun QuickAddBar(
@@ -49,79 +48,97 @@ fun QuickAddBar(
     modifier: Modifier = Modifier,
     listening: Boolean = false
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        tonalElevation = 3.dp
+    val colors = AshTheme.colors
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.surface1, AshShapes.sheetTop)
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            if (parsed != null && parsed.hasAnyMarkup) {
-                ParsedChips(parsed)
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text(stringResource(R.string.components_kupit_moloko_zavtra_18_00_p2_dom_30m)) },
-                    singleLine = true,
-                    trailingIcon = {
-                        IconButton(onClick = onVoiceClick) {
-                            Icon(
-                                Icons.Filled.Mic,
-                                contentDescription = stringResource(R.string.components_golosovoy_vvod),
-                                // Во время записи микрофон подсвечен: иначе непонятно,
-                                // слушает приложение или нет
-                                tint = if (listening) MaterialTheme.colorScheme.error
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        imeAction = ImeAction.Done
-                    ),
-                    keyboardActions = androidx.compose.foundation.text.KeyboardActions(
-                        onDone = { onSubmit() }
-                    )
-                )
-                FilledIconButton(onClick = onSubmit, enabled = value.isNotBlank()) {
-                    Icon(Icons.Filled.ArrowUpward, contentDescription = stringResource(R.string.routines_dobavit))
-                }
-            }
+        if (parsed != null && parsed.hasAnyMarkup) {
+            ParsedChips(parsed)
         }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            AshTextField(
+                value = value,
+                onValueChange = onValueChange,
+                placeholder = "Купить молоко завтра 18:00 p2 #дом 30м",
+                modifier = Modifier.weight(1f)
+            )
+            RoundAction(
+                icon = AshIcons.Mic,
+                description = "Голосовой ввод",
+                // Во время записи микрофон подсвечен: иначе непонятно,
+                // слушает приложение или нет
+                tint = if (listening) colors.danger else colors.text2,
+                background = colors.surface2,
+                onClick = onVoiceClick
+            )
+            RoundAction(
+                icon = AshIcons.ArrowUpward,
+                description = "Добавить",
+                tint = if (value.isBlank()) colors.text3
+                else if (colors.isDark) Color.Black else Color.White,
+                background = if (value.isBlank()) colors.surface2 else colors.accent,
+                enabled = value.isNotBlank(),
+                onClick = onSubmit
+            )
+        }
+    }
+}
+
+@Composable
+private fun RoundAction(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    description: String,
+    tint: Color,
+    background: Color,
+    onClick: () -> Unit,
+    enabled: Boolean = true
+) {
+    Box(
+        Modifier
+            .size(44.dp)
+            .background(background, AshShapes.pill)
+            .tappable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(icon, contentDescription = description, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
 
 @Composable
 private fun ParsedChips(parsed: ParsedQuickInput) {
+    val colors = AshTheme.colors
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(bottom = 6.dp),
+            .padding(bottom = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         parsed.date?.let { Chip(it.format(DATE_FORMAT)) }
         parsed.time?.let { Chip(it.format(TIME_FORMAT)) }
-        parsed.priority?.let {
-            Chip(it.name, PriorityColors[it.ordinal])
-        }
-        parsed.estimateMinutes?.let { Chip("~${it}м") }
+        parsed.priority?.let { Chip(it.colorTitle, colors.priorityColor(it)) }
+        parsed.estimateMinutes?.let { Chip("~${it} мин") }
         parsed.tagNames.forEach { Chip("#$it") }
     }
 }
 
 @Composable
-private fun Chip(label: String, color: androidx.compose.ui.graphics.Color? = null) {
-    AssistChip(
-        onClick = {},
-        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-        colors = if (color != null) {
-            AssistChipDefaults.assistChipColors(labelColor = color)
-        } else {
-            AssistChipDefaults.assistChipColors()
-        }
+private fun Chip(label: String, color: Color? = null) {
+    val colors = AshTheme.colors
+    val tint = color ?: colors.text2
+    Text(
+        text = label,
+        style = AshTheme.type.caption,
+        color = tint,
+        modifier = Modifier
+            .background(tint.copy(alpha = 0.14f), AshShapes.pill)
+            .padding(horizontal = 10.dp, vertical = 5.dp)
     )
 }

@@ -49,6 +49,12 @@ data class RecurrenceRule(
 data class Task(
     val id: Long = 0,
     val title: String,
+    /**
+     * Значок задачи: одна эмодзи. Список из десятка одинаковых строк
+     * читается плохо, а картинка ловится глазом раньше текста — поэтому
+     * значок и стоит в начале строки вместо ещё одной подписи.
+     */
+    val emoji: String? = null,
     val note: String? = null,
     val projectId: Long? = null,
     val parentTaskId: Long? = null,

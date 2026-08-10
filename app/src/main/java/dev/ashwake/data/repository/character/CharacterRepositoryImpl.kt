@@ -237,14 +237,45 @@ class CharacterRepositoryImpl @Inject constructor(
 
     override suspend fun ensureBuiltinData() {
         db.withTransaction {
-            if (dao.profile() == null) dao.upsertProfile(CharacterProfileEntity())
+            val firstRun = dao.profile() == null
+            if (firstRun) dao.upsertProfile(CharacterProfileEntity())
             walletOrCreate()
             Stat.entries.forEach { stat ->
                 if (dao.stat(stat.name) == null) {
                     dao.upsertStat(CharacterStatEntity(stat = stat.name))
                 }
             }
+            if (firstRun) grantStarterKit()
         }
+    }
+
+    /**
+     * Стартовый комплект.
+     *
+     * Голая фигура на главном экране — плохая первая встреча: непонятно, что
+     * это вообще персонаж и зачем он тут. Поэтому при первом запуске человек
+     * получает одетого героя и небольшой кошелёк — хватает на пару вещей из
+     * магазина, чтобы попробовать, как работает покупка, но не настолько,
+     * чтобы обесценить всё, что зарабатывается делами.
+     *
+     * Предметы кладутся во владение с источником `STARTER`: по нему видно,
+     * что они не куплены и не выданы за достижение.
+     */
+    private suspend fun grantStarterKit() {
+        val catalog = catalogLoader.load()
+        val now = clock.now().toEpochMilli()
+
+        STARTER_ITEMS.forEach { itemId ->
+            val item = catalog.item(itemId) ?: return@forEach
+            if (dao.owned(itemId) == null) {
+                dao.insertOwned(
+                    OwnedItemEntity(itemId = itemId, acquiredAt = now, source = "STARTER")
+                )
+            }
+            dao.equip(EquippedItemEntity(slot = item.slot.name, itemId = itemId))
+        }
+
+        applyCoins(STARTER_COINS, "STARTER", null, 1f)
     }
 
     // --- вспомогательное ----------------------------------------------------
@@ -319,5 +350,23 @@ class CharacterRepositoryImpl @Inject constructor(
 
     private companion object {
         const val MAX_UPGRADE = 10
+
+        /**
+         * Комплект первого запуска: волосы, лицо и повседневная одежда.
+         * Ни доспехов, ни оружия — их человек должен захотеть сам, иначе
+         * магазину нечего предложить.
+         */
+        val STARTER_ITEMS = listOf(
+            "hair_short",
+            "face_clean",
+            "under_shirt",
+            "chest_hoodie",
+            "legs_jeans",
+            "boots_sneakers",
+            "main_mug"
+        )
+
+        /** Стартовый кошелёк: примерно две недорогие вещи. */
+        const val STARTER_COINS = 400L
     }
 }

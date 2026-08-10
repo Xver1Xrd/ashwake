@@ -71,6 +71,30 @@ interface TaskDao {
     )
     fun observeTasksInRange(from: Int, to: Int, includeDone: Int): Flow<List<TaskWithRelations>>
 
+    /**
+     * Задачи для главного экрана.
+     *
+     * Ровно `dueDate = сегодня` — не то, что человек считает списком на день:
+     * вчерашняя несделанная задача никуда не делась, и если её не показать,
+     * она пропадёт из виду насовсем. Поэтому берутся все активные с датой
+     * не позже сегодняшней плюс закрытые сегодня — последние нужны, чтобы
+     * отметка не стирала строку из-под пальца.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND dueDate IS NOT NULL
+          AND dueDate <= :today
+          AND status != 'DROPPED'
+          AND (status = 'ACTIVE' OR dueDate = :today)
+        ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
+        """
+    )
+    fun observeTasksForDay(today: Int): Flow<List<TaskWithRelations>>
+
     /** Активные задачи с точным временем — их будильники переживают перезагрузку. */
     @Transaction
     @Query(

@@ -32,6 +32,13 @@ interface TaskRepository {
         includeDone: Boolean = true
     ): Flow<List<Task>>
 
+    /**
+     * Список дня для главного экрана: активные задачи с датой не позже
+     * сегодняшней плюс закрытые сегодня. Просроченные включены намеренно —
+     * они и есть первое, что нужно увидеть утром.
+     */
+    fun observeTasksForDay(today: LocalDate): Flow<List<Task>>
+
     /** Активные задачи с датой и временем — для перепланирования будильников после перезагрузки. */
     suspend fun tasksWithReminders(): List<Task>
 

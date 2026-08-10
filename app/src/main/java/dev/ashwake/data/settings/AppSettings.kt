@@ -11,12 +11,20 @@ import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.ashwake.core.time.DEFAULT_DAY_START_HOUR
 import dev.ashwake.domain.model.tasks.TimeboxSettings
+import dev.ashwake.ui.theme.AccentColor
+import dev.ashwake.ui.theme.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ashwake")
+
+/** Оформление приложения: то, что выбирается в настройках и применяется к теме. */
+data class Appearance(
+    val themeMode: ThemeMode = ThemeMode.DEFAULT,
+    val accent: AccentColor = AccentColor.DEFAULT
+)
 
 /**
  * Настройки приложения.
@@ -95,6 +103,29 @@ class AppSettings @Inject constructor(
         context.dataStore.edit { it[DAY_START_HOUR] = hour.coerceIn(0, 12) }
     }
 
+    /**
+     * Оформление: режим темы и акцент.
+     *
+     * Хранятся именами enum, а не индексами: при добавлении нового акцента
+     * индексы разъехались бы и у людей поменялся бы цвет приложения.
+     * Разбор неизвестного имени даёт значение по умолчанию.
+     */
+    val appearance: Flow<Appearance> = context.dataStore.data.map { prefs ->
+        Appearance(
+            themeMode = ThemeMode.entries.firstOrNull { it.name == prefs[THEME_MODE] }
+                ?: ThemeMode.DEFAULT,
+            accent = AccentColor.of(prefs[ACCENT])
+        )
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.dataStore.edit { it[THEME_MODE] = mode.name }
+    }
+
+    suspend fun setAccent(accent: AccentColor) {
+        context.dataStore.edit { it[ACCENT] = accent.name }
+    }
+
     private companion object {
         val WORK_START = intPreferencesKey("work_start_minute")
         val WORK_END = intPreferencesKey("work_end_minute")
@@ -106,6 +137,8 @@ class AppSettings @Inject constructor(
         val DAY_START_HOUR = intPreferencesKey("day_start_hour")
         val BACKUP_FOLDER = stringPreferencesKey("backup_folder_uri")
         val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
+        val THEME_MODE = stringPreferencesKey("theme_mode")
+        val ACCENT = stringPreferencesKey("accent_color")
 
         const val DEFAULT_WORK_START = 9 * 60
         const val DEFAULT_WORK_END = 19 * 60
