@@ -18,11 +18,17 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -35,7 +41,11 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.DrawnCheck
 import dev.ashwake.ui.components.EntityIcon
+import dev.ashwake.ui.components.QUICK_MS
+import dev.ashwake.ui.components.motionTween
+import dev.ashwake.ui.components.responseSpring
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -61,10 +71,11 @@ private const val FILL_ALPHA = 0.12f
 @Composable
 fun HabitTodayRow(
     progress: HabitWithProgress,
-    onToggle: () -> Unit,
+    onToggle: (from: Offset) -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var markCenter by remember { mutableStateOf(Offset.Zero) }
     val colors = AshTheme.colors
     val habit = progress.habit
 
@@ -80,7 +91,16 @@ fun HabitTodayRow(
     Box(
         modifier
             .fillMaxWidth()
-            .background(colors.warm.copy(alpha = FILL_ALPHA * fill))
+            // Заливка расходится от отметки вправо, а не появляется всей
+            // строкой сразу: видно, что закрасило её именно нажатие
+            .background(
+                Brush.horizontalGradient(
+                    0f to colors.warm.copy(alpha = FILL_ALPHA * fill),
+                    (fill * 1.15f).coerceIn(0.001f, 1f) to
+                        colors.warm.copy(alpha = FILL_ALPHA * fill),
+                    ((fill * 1.15f) + 0.12f).coerceIn(0.002f, 1f) to Color.Transparent
+                )
+            )
     ) {
         Row(
             Modifier
@@ -95,7 +115,8 @@ fun HabitTodayRow(
                 done = progress.doneToday,
                 share = fill,
                 negative = habit.type == HabitType.NEGATIVE,
-                onClick = onToggle
+                onClick = { onToggle(markCenter) },
+                onPositioned = { markCenter = it }
             )
 
             EntityIcon(
@@ -164,59 +185,65 @@ private fun HabitMark(
     done: Boolean,
     share: Float,
     negative: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onPositioned: (Offset) -> Unit = {}
 ) {
     val colors = AshTheme.colors
     val accent = if (negative) colors.danger else colors.warm
 
+    val fill by animateFloatAsState(
+        targetValue = if (done) 1f else 0f,
+        animationSpec = responseSpring(),
+        label = "mark-fill"
+    )
+    val stroke by animateFloatAsState(
+        targetValue = if (done) 1f else 0f,
+        animationSpec = motionTween(QUICK_MS, delayMillis = if (done) 60 else 0),
+        label = "mark-stroke"
+    )
+
     Box(
         Modifier
             .size(28.dp)
+            .onGloballyPositioned { onPositioned(it.boundsInRoot().center) }
             .tappable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Canvas(Modifier.fillMaxWidth().size(28.dp)) {
-            val stroke = 2.dp.toPx()
-            val inset = stroke / 2f
-            val arcSize = Size(size.width - stroke, size.height - stroke)
+        Canvas(Modifier.size(28.dp)) {
+            val width = 2.dp.toPx()
+            val inset = width / 2f
+            val arcSize = Size(size.width - width, size.height - width)
 
-            if (done) {
-                drawCircle(color = accent)
-            } else {
-                drawCircle(
-                    color = colors.text3,
-                    style = Stroke(width = stroke)
+            drawCircle(
+                color = colors.text3,
+                style = Stroke(width = width),
+                alpha = 1f - fill
+            )
+            if (share > 0f && fill < 1f) {
+                drawArc(
+                    color = accent,
+                    startAngle = -90f,
+                    sweepAngle = 360f * share,
+                    useCenter = false,
+                    topLeft = Offset(inset, inset),
+                    size = arcSize,
+                    style = Stroke(width = width, cap = StrokeCap.Round),
+                    alpha = 1f - fill
                 )
-                if (share > 0f) {
-                    drawArc(
-                        color = accent,
-                        startAngle = -90f,
-                        sweepAngle = 360f * share,
-                        useCenter = false,
-                        topLeft = Offset(inset, inset),
-                        size = arcSize,
-                        style = Stroke(width = stroke, cap = StrokeCap.Round)
-                    )
-                }
+            }
+            if (fill > 0f) {
+                drawCircle(color = accent, radius = size.minDimension / 2f * fill)
             }
         }
-        if (done) {
-            Icon(
-                imageVector = AshIcons.Check,
-                contentDescription = null,
-                tint = if (colors.isDark) Color.Black else Color.White,
-                modifier = Modifier.size(16.dp)
-            )
-        }
+        DrawnCheck(
+            progress = stroke,
+            color = if (colors.isDark) Color.Black else Color.White,
+            modifier = Modifier.size(28.dp),
+            strokeWidth = 2.2.dp
+        )
     }
 }
 
-/**
- * Строка задачи: круглый чекбокс, значок, название, метаданные одной строкой.
- *
- * Приоритет дублируется словом («срочно», «важно») — ни одно состояние
- * не передаётся только цветом.
- */
 /**
  * Строка задачи со свайпами: вправо — выполнено, влево — на завтра.
  *
@@ -229,12 +256,15 @@ private fun HabitMark(
 fun TaskTodayRow(
     task: Task,
     today: java.time.LocalDate,
-    onToggle: () -> Unit,
+    onToggle: (from: Offset) -> Unit,
     onPostpone: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val complete by rememberUpdatedState(onToggle)
+    // Точка, из которой вылетает монета. Свайп тоже закрывает задачу,
+    // поэтому запоминаем место чекбокса, а не место касания
+    var markCenter by remember { mutableStateOf(Offset.Zero) }
+    val complete by rememberUpdatedState { onToggle(markCenter) }
     val postpone by rememberUpdatedState(onPostpone)
 
     val dismissState = rememberSwipeToDismissBoxState(
@@ -252,7 +282,15 @@ fun TaskTodayRow(
         state = dismissState,
         modifier = modifier,
         backgroundContent = { SwipeHint(dismissState.dismissDirection) },
-        content = { TaskTodayRowContent(task, today, onToggle, onOpen) }
+        content = {
+            TaskTodayRowContent(
+                task = task,
+                today = today,
+                onToggle = { onToggle(markCenter) },
+                onMarkPositioned = { markCenter = it },
+                onOpen = onOpen
+            )
+        }
     )
 }
 
@@ -295,6 +333,7 @@ private fun TaskTodayRowContent(
     task: Task,
     today: java.time.LocalDate,
     onToggle: () -> Unit,
+    onMarkPositioned: (Offset) -> Unit,
     onOpen: () -> Unit
 ) {
     val colors = AshTheme.colors
@@ -310,7 +349,11 @@ private fun TaskTodayRowContent(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        TaskCheckbox(done = task.isDone, onClick = onToggle)
+        TaskCheckbox(
+            done = task.isDone,
+            onClick = onToggle,
+            onPositioned = onMarkPositioned
+        )
 
         EntityIcon(
             emoji = task.emoji,
@@ -447,27 +490,56 @@ fun AbstinenceTodayRow(
     }
 }
 
+/**
+ * Чекбокс задачи.
+ *
+ * Круг заливается из центра, галочка прочерчивается штрихом следом. Пустой
+ * контур сжимается — так отметка выглядит одним движением, а не сменой
+ * двух картинок.
+ */
 @Composable
-private fun TaskCheckbox(done: Boolean, onClick: () -> Unit) {
+private fun TaskCheckbox(
+    done: Boolean,
+    onClick: () -> Unit,
+    onPositioned: (Offset) -> Unit = {}
+) {
     val colors = AshTheme.colors
+    val fill by animateFloatAsState(
+        targetValue = if (done) 1f else 0f,
+        animationSpec = responseSpring(),
+        label = "check-fill"
+    )
+    // Галочка идёт следом за заливкой, а не вместе с ней: сначала круг
+    // становится своим цветом, потом по нему пишут
+    val stroke by animateFloatAsState(
+        targetValue = if (done) 1f else 0f,
+        animationSpec = motionTween(QUICK_MS, delayMillis = if (done) 60 else 0),
+        label = "check-stroke"
+    )
+
     Box(
         Modifier
             .size(24.dp)
+            .onGloballyPositioned { onPositioned(it.boundsInRoot().center) }
             .tappable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Canvas(Modifier.size(24.dp)) {
-            val stroke = 2.dp.toPx()
-            if (done) drawCircle(color = colors.accent)
-            else drawCircle(color = colors.text3, style = Stroke(width = stroke))
-        }
-        if (done) {
-            Icon(
-                imageVector = AshIcons.Check,
-                contentDescription = null,
-                tint = if (colors.isDark) Color.Black else Color.White,
-                modifier = Modifier.size(14.dp)
+            val strokeWidth = 2.dp.toPx()
+            drawCircle(
+                color = colors.text3,
+                style = Stroke(width = strokeWidth),
+                alpha = 1f - fill
             )
+            if (fill > 0f) {
+                drawCircle(color = colors.accent, radius = size.minDimension / 2f * fill)
+            }
         }
+        DrawnCheck(
+            progress = stroke,
+            color = if (colors.isDark) Color.Black else Color.White,
+            modifier = Modifier.size(24.dp),
+            strokeWidth = 2.dp
+        )
     }
 }

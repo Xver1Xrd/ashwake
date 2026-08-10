@@ -20,7 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.animation.core.tween
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -30,10 +37,20 @@ import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 import dev.ashwake.ui.character.render.PixelCharacter
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.CELEBRATION_MS
+import dev.ashwake.ui.components.CoinFlightHost
+import dev.ashwake.ui.components.CoinFlightState
+import dev.ashwake.ui.components.NORMAL_MS
+import dev.ashwake.ui.components.RollingNumber
+import dev.ashwake.ui.components.coinFlightTarget
+import dev.ashwake.ui.components.motionTween
+import dev.ashwake.ui.components.rememberCoinFlightState
+import dev.ashwake.ui.components.responseSpring
 import dev.ashwake.ui.components.EmptyState
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ListGroup
 import dev.ashwake.ui.components.ScreenPadding
+import dev.ashwake.ui.components.SkeletonList
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
@@ -66,7 +83,9 @@ fun TodayScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
+    val coins = rememberCoinFlightState()
 
+    Box(Modifier.fillMaxSize()) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -107,12 +126,17 @@ fun TodayScreen(
         item {
             HeroCard(
                 state = state,
+                coins = coins,
                 onClick = onOpenCharacter,
                 modifier = Modifier.padding(horizontal = ScreenPadding)
             )
         }
 
-        if (state.isEmpty) {
+        if (state.loading) {
+            item { SkeletonList(count = 4) }
+        }
+
+        if (!state.loading && state.isEmpty) {
             item {
                 EmptyState(
                     icon = AshIcons.Sun,
@@ -130,72 +154,131 @@ fun TodayScreen(
         // один раз забыл, и в общем списке она затеряется второй раз
         if (state.overdueTasks.isNotEmpty()) {
             item {
-                ListGroup(
-                    items = state.overdueTasks,
-                    header = "Просрочено",
-                    dividerInset = 62.dp
-                ) { task ->
-                    TaskTodayRow(
-                        task = task,
-                        today = state.today,
-                        onToggle = { viewModel.toggleTask(task) },
-                        onPostpone = { viewModel.postponeTask(task) },
-                        onOpen = { onOpenTask(task.id) }
-                    )
+                AppearingGroup(order = 0) {
+                    ListGroup(
+                        items = state.overdueTasks,
+                        header = "Просрочено",
+                        dividerInset = 62.dp
+                    ) { task ->
+                        TaskTodayRow(
+                            task = task,
+                            today = state.today,
+                            onToggle = { from ->
+                                viewModel.toggleTask(task)
+                                // Монета летит только при закрытии задачи:
+                                // возврат в работу её и так забирает обратно
+                                if (!task.isDone) coins.launch(from)
+                            },
+                            onPostpone = { viewModel.postponeTask(task) },
+                            onOpen = { onOpenTask(task.id) }
+                        )
+                    }
                 }
             }
         }
 
         if (state.todayTasks.isNotEmpty()) {
             item {
-                ListGroup(
-                    items = state.todayTasks,
-                    header = "Задачи · ${state.todayTasks.count { it.isDone }} из ${state.todayTasks.size}",
-                    dividerInset = 62.dp
-                ) { task ->
-                    TaskTodayRow(
-                        task = task,
-                        today = state.today,
-                        onToggle = { viewModel.toggleTask(task) },
-                        onPostpone = { viewModel.postponeTask(task) },
-                        onOpen = { onOpenTask(task.id) }
-                    )
+                AppearingGroup(order = 1) {
+                    ListGroup(
+                        items = state.todayTasks,
+                        header = "Задачи · ${state.todayTasks.count { it.isDone }} из ${state.todayTasks.size}",
+                        dividerInset = 62.dp
+                    ) { task ->
+                        TaskTodayRow(
+                            task = task,
+                            today = state.today,
+                            onToggle = { from ->
+                                viewModel.toggleTask(task)
+                                // Монета летит только при закрытии задачи:
+                                // возврат в работу её и так забирает обратно
+                                if (!task.isDone) coins.launch(from)
+                            },
+                            onPostpone = { viewModel.postponeTask(task) },
+                            onOpen = { onOpenTask(task.id) }
+                        )
+                    }
                 }
             }
         }
 
         if (state.habits.isNotEmpty()) {
             item {
-                ListGroup(
-                    items = state.habits,
-                    header = "Привычки · ${state.habits.count { it.doneToday }} из ${state.habits.size}",
-                    dividerInset = 56.dp
-                ) { progress ->
-                    HabitTodayRow(
-                        progress = progress,
-                        onToggle = { viewModel.toggleHabit(progress) },
-                        onOpen = { onOpenHabit(progress.habit.id) }
-                    )
+                AppearingGroup(order = 2) {
+                    ListGroup(
+                        items = state.habits,
+                        header = "Привычки · ${state.habits.count { it.doneToday }} из ${state.habits.size}",
+                        dividerInset = 56.dp
+                    ) { progress ->
+                        HabitTodayRow(
+                            progress = progress,
+                            onToggle = { from ->
+                                viewModel.toggleHabit(progress)
+                                if (!progress.doneToday) coins.launch(from)
+                            },
+                            onOpen = { onOpenHabit(progress.habit.id) }
+                        )
+                    }
                 }
             }
         }
 
         if (state.abstinences.isNotEmpty()) {
             item {
-                ListGroup(
-                    items = state.abstinences,
-                    header = stringResource(R.string.abstinence_otkazy),
-                    dividerInset = 16.dp
-                ) { item ->
-                    AbstinenceTodayRow(
-                        item = item,
-                        onOpen = { onOpenAbstinence(item.abstinence.id) }
-                    )
+                AppearingGroup(order = 3) {
+                    ListGroup(
+                        items = state.abstinences,
+                        header = stringResource(R.string.abstinence_otkazy),
+                        dividerInset = 16.dp
+                    ) { item ->
+                        AbstinenceTodayRow(
+                            item = item,
+                            onOpen = { onOpenAbstinence(item.abstinence.id) }
+                        )
+                    }
                 }
             }
         }
     }
+
+        CoinFlightHost(coins)
+    }
 }
+
+/**
+ * Каскад появления групп.
+ *
+ * Группы проявляются друг за другом с задержкой в [STAGGER_MS]: экран
+ * собирается на глазах, а не возникает целиком. Только при первом входе —
+ * повторять это при каждой перерисовке значило бы мигать списком на каждую
+ * отметку.
+ */
+@Composable
+private fun AppearingGroup(order: Int, content: @Composable () -> Unit) {
+    val reduceMotion = AshTheme.reduceMotion
+    var shown by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) { shown = true }
+
+    val appear by animateFloatAsState(
+        targetValue = if (shown || reduceMotion) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = if (reduceMotion) 0 else NORMAL_MS,
+            delayMillis = if (reduceMotion) 0 else order * STAGGER_MS
+        ),
+        label = "group-appear"
+    )
+
+    Box(
+        Modifier.graphicsLayer {
+            alpha = appear
+            translationY = (1f - appear) * 24.dp.toPx()
+        }
+    ) { content() }
+}
+
+/** Задержка между соседними группами. Больше — и каскад читается как тормоза. */
+private const val STAGGER_MS = 55
 
 /**
  * Герой-блок с персонажем.
@@ -207,11 +290,20 @@ fun TodayScreen(
 @Composable
 private fun HeroCard(
     state: TodayUiState,
+    coins: CoinFlightState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = AshTheme.colors
     val progress by animateFloatAsState(state.progress, label = "day-progress")
+
+    // Кошелёк дёргается, когда в него прилетает монета: без этого полёт
+    // заканчивается в никуда и не читается как зачисление
+    val walletBump by animateFloatAsState(
+        targetValue = if (coins.landing) 1.25f else 1f,
+        animationSpec = responseSpring(),
+        label = "wallet-bump"
+    )
 
     Box(
         modifier
@@ -247,7 +339,14 @@ private fun HeroCard(
                     )
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier
+                            .coinFlightTarget(coins)
+                            .graphicsLayer {
+                                scaleX = walletBump
+                                scaleY = walletBump
+                                transformOrigin = TransformOrigin(0f, 0.5f)
+                            }
                     ) {
                         Icon(
                             AshIcons.Coins,
@@ -255,17 +354,38 @@ private fun HeroCard(
                             tint = colors.warm,
                             modifier = Modifier.size(16.dp)
                         )
-                        Text(
-                            text = state.character.wallet.coins.toString(),
+                        RollingNumber(
+                            value = state.character.wallet.coins,
                             style = AshTheme.type.headline,
                             color = colors.warm
                         )
                     }
                 }
 
+                // Осанка по прогрессу дня: при нуле фигура чуть осела и
+                // наклонена, к сотне выпрямляется. Это не отдельная анимация,
+                // а связь картинки с тем, что человек сделал за день
+                val posture by animateFloatAsState(
+                    targetValue = state.progress,
+                    animationSpec = motionTween(CELEBRATION_MS),
+                    label = "posture"
+                )
+                val nod by animateFloatAsState(
+                    targetValue = if (coins.landing) 1f else 0f,
+                    animationSpec = responseSpring(),
+                    label = "nod"
+                )
+
                 Box(
                     Modifier
                         .size(CharacterSize)
+                        .graphicsLayer {
+                            val slouch = (1f - posture) * 4.dp.toPx()
+                            translationY = slouch - nod * 8.dp.toPx()
+                            rotationZ = (1f - posture) * -2.5f
+                            scaleX = 1f + nod * 0.04f
+                            scaleY = 1f + nod * 0.04f
+                        }
                         .semantics {
                             contentDescription =
                                 "Персонаж, выполнено ${state.doneCount} из ${state.totalCount} дел"

@@ -1,5 +1,11 @@
 package dev.ashwake.ui.navigation
 
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -10,6 +16,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlin.math.abs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -25,6 +33,7 @@ import dev.ashwake.ui.backup.BackupScreen
 import dev.ashwake.ui.blocking.BlockingScreen
 import dev.ashwake.ui.character.CharacterScreen
 import dev.ashwake.ui.components.AshTabBar
+import dev.ashwake.ui.components.NORMAL_MS
 import dev.ashwake.ui.components.LocalHazeState
 import dev.ashwake.ui.components.TabItem
 import dev.ashwake.ui.components.rememberHazeState
@@ -73,6 +82,7 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
         pageCount = { Destination.bottomBar.size }
     )
 
+    val reduceMotion = AshTheme.reduceMotion
     val backStack by navController.currentBackStackEntryAsState()
     val currentRoute = backStack?.destination?.route
     val onTabs = currentRoute == null || currentRoute == TABS_ROUTE
@@ -128,7 +138,15 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             NavHost(
                 navController = navController,
                 startDestination = TABS_ROUTE,
-                modifier = Modifier.padding(bottom = padding.calculateBottomPadding())
+                modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
+                // Экран поверх вкладок вырастает из содержимого и слегка
+                // отодвигает то, что под ним: видно, что он лёг сверху,
+                // а не заменил собой всё. Стандартный сдвиг сбоку тут врёт —
+                // сбоку в приложении лежат соседние вкладки
+                enterTransition = { screenEnter(reduceMotion) },
+                exitTransition = { screenExit(reduceMotion) },
+                popEnterTransition = { screenPopEnter(reduceMotion) },
+                popExitTransition = { screenPopExit(reduceMotion) }
             ) {
                 composable(TABS_ROUTE) {
                     HorizontalPager(
@@ -137,7 +155,22 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                         // пальцем открывает пустоту и достраивается на ходу
                         beyondViewportPageCount = 1
                     ) { page ->
-                        TabPage(Destination.bottomBar[page], navController)
+                        // Уезжающая страница отстаёт и мельчает. Без этого
+                        // переключение вкладок — подмена картинки; с ним видно,
+                        // что страницы лежат рядом, а не поверх друг друга
+                        val offset = pagerState.pageOffset(page)
+                        TabPage(
+                            destination = Destination.bottomBar[page],
+                            navController = navController,
+                            modifier = Modifier.graphicsLayer {
+                                if (reduceMotion) return@graphicsLayer
+                                translationX = -offset * size.width * PARALLAX_SHARE
+                                val scale = 1f - PARALLAX_SCALE * minOf(abs(offset), 1f)
+                                scaleX = scale
+                                scaleY = scale
+                                alpha = 1f - 0.25f * minOf(abs(offset), 1f)
+                            }
+                        )
                     }
                 }
 
@@ -238,7 +271,12 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
  * страницы, и переход между ними не должен попадать в историю переходов.
  */
 @Composable
-private fun TabPage(destination: Destination, navController: NavHostController) {
+private fun TabPage(
+    destination: Destination,
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier) {
     when (destination) {
         Destination.Today -> TodayScreen(
             onOpenHabit = { id -> navController.navigate("habit/$id") },
@@ -271,7 +309,45 @@ private fun TabPage(destination: Destination, navController: NavHostController) 
 
         else -> Unit
     }
+    }
 }
+
+/**
+ * Насколько страница смещена относительно текущей: 0 — по центру,
+ * ±1 — соседняя. Считается вручную, потому что `currentPageOffsetFraction`
+ * знает только про текущую страницу.
+ */
+private fun androidx.compose.foundation.pager.PagerState.pageOffset(page: Int): Float =
+    (currentPage - page) + currentPageOffsetFraction
+
+/** Доля ширины, на которую отстаёт уезжающая страница. */
+private const val PARALLAX_SHARE = 0.25f
+private const val PARALLAX_SCALE = 0.06f
+
+/**
+ * Переходы между экранами.
+ *
+ * Открытие — рост с прозрачностью, закрытие — обратный. При выключенном
+ * движении длительность нулевая: экран просто оказывается на месте, и это
+ * штатный путь, а не поломка.
+ */
+private fun screenDuration(reduceMotion: Boolean) = if (reduceMotion) 0 else NORMAL_MS
+
+private fun screenEnter(reduceMotion: Boolean) =
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 0.94f) +
+        fadeIn(tween(screenDuration(reduceMotion)))
+
+private fun screenExit(reduceMotion: Boolean) =
+    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 1.03f) +
+        fadeOut(tween(screenDuration(reduceMotion)))
+
+private fun screenPopEnter(reduceMotion: Boolean) =
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 1.03f) +
+        fadeIn(tween(screenDuration(reduceMotion)))
+
+private fun screenPopExit(reduceMotion: Boolean) =
+    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.94f) +
+        fadeOut(tween(screenDuration(reduceMotion)))
 
 /** Вкладки нижней панели. */
 private val TABS: List<TabItem> = Destination.bottomBar.map {

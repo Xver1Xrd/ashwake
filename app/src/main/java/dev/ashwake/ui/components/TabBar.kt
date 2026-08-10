@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -80,6 +81,7 @@ fun AshTabBar(
     onSelect: (TabItem) -> Unit
 ) {
     val colors = AshTheme.colors
+    val accentColor = colors.accent
     val haze = LocalHazeState.current
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
@@ -95,6 +97,24 @@ fun AshTabBar(
             .navigationBarsPadding()
             .padding(horizontal = TabBarInset, vertical = 10.dp)
     ) {
+        // Бегунок под вкладками: единый объект, который едет между ними.
+        // Раньше подсветка гасла у одной ячейки и загоралась у другой —
+        // это читается как две вспышки, а не как переход
+        val target = when {
+            pressedIndex >= 0 -> pressedIndex.toFloat()
+            else -> tabs.indexOfFirst { it.route == selectedRoute }
+                .takeIf { it >= 0 }?.toFloat() ?: -1f
+        }
+        val indicator by animateFloatAsState(
+            targetValue = target.coerceAtLeast(0f),
+            animationSpec = responseSpring(),
+            label = "tab-indicator"
+        )
+        val indicatorAlpha by animateFloatAsState(
+            targetValue = if (target < 0f) 0f else 1f,
+            label = "tab-indicator-alpha"
+        )
+
         Row(
             Modifier
                 .fillMaxWidth()
@@ -133,7 +153,26 @@ fun AshTabBar(
                         pressedIndex = -1
                     }
                 }
-                .padding(horizontal = 6.dp),
+                .padding(horizontal = 6.dp)
+                .drawBehind {
+                    if (tabs.isEmpty() || indicatorAlpha <= 0f) return@drawBehind
+                    val cell = size.width / tabs.size
+                    val inset = 3.dp.toPx()
+                    drawRoundRect(
+                        color = accentColor.copy(alpha = SELECTED_FILL_ALPHA * indicatorAlpha),
+                        topLeft = androidx.compose.ui.geometry.Offset(
+                            x = indicator * cell + inset,
+                            y = inset
+                        ),
+                        size = androidx.compose.ui.geometry.Size(
+                            width = cell - inset * 2,
+                            height = size.height - inset * 2
+                        ),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                            (size.height - inset * 2) / 2f
+                        )
+                    )
+                },
             verticalAlignment = Alignment.CenterVertically
         ) {
             tabs.forEachIndexed { index, tab ->
@@ -183,10 +222,6 @@ private fun TabCell(
         targetValue = if (selected) colors.accent else colors.text2,
         label = "tab-content"
     )
-    val fillAlpha by animateFloatAsState(
-        targetValue = if (selected) SELECTED_FILL_ALPHA else 0f,
-        label = "tab-fill"
-    )
     val iconScale by animateFloatAsState(
         targetValue = when {
             reduceMotion -> 1f
@@ -202,7 +237,6 @@ private fun TabCell(
         modifier = modifier
             .padding(vertical = 5.dp)
             .clip(AshShapes.pill)
-            .background(colors.accent.copy(alpha = fillAlpha), AshShapes.pill)
             // Жест живёт на панели целиком, поэтому у ячейки нет своего
             // обработчика нажатия — а озвучке нужно и то, что это вкладка,
             // и способ её активировать

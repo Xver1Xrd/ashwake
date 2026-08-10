@@ -1,6 +1,7 @@
 package dev.ashwake.ui.settings.theme
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -42,6 +43,7 @@ import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.ColorPicker
+import dev.ashwake.ui.components.responseSpring
 import dev.ashwake.ui.components.ColorSwatch
 import dev.ashwake.ui.components.FieldLabel
 import dev.ashwake.ui.components.ScreenPadding
@@ -518,6 +520,13 @@ private fun ToggleRow(title: String, checked: Boolean, onToggle: () -> Unit) {
 @Composable
 private fun ValueSlider(value: Float, enabled: Boolean, onChange: (Float) -> Unit) {
     val colors = AshTheme.colors
+    // Заполнение догоняет палец пружиной: при шаге в 5% голое значение
+    // прыгает ступеньками, и ползунок кажется сломанным
+    val shown by animateFloatAsState(
+        targetValue = value.coerceIn(0f, 1f),
+        animationSpec = responseSpring(),
+        label = "slider-fill"
+    )
     Box(
         Modifier
             .fillMaxWidth()
@@ -533,7 +542,7 @@ private fun ValueSlider(value: Float, enabled: Boolean, onChange: (Float) -> Uni
         )
         Box(
             Modifier
-                .fillMaxWidth(value.coerceIn(0f, 1f))
+                .fillMaxWidth(shown)
                 .height(8.dp)
                 .background(
                     if (enabled) colors.accent else colors.text3,

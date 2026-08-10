@@ -1,6 +1,8 @@
 package dev.ashwake.ui.theme
 
 import android.provider.Settings
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.LocalContentColor
@@ -9,6 +11,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
@@ -70,7 +73,7 @@ fun AshwakeTheme(
 ) {
     val systemDark = isSystemInDarkTheme()
 
-    val colors = remember(settings, systemDark) { settings.toColors(systemDark) }
+    val target = remember(settings, systemDark) { settings.toColors(systemDark) }
     val shapes = remember(settings) { settings.toShapes() }
     val typography = remember { AshTypography() }
 
@@ -79,6 +82,15 @@ fun AshwakeTheme(
     val reduceMotion = remember(inspection) {
         if (inspection) false else systemReduceMotion(context)
     }
+
+    // Цвета доезжают, а не подменяются: смена акцента или темы перекрашивает
+    // всё приложение сразу, и мгновенный скачок читается как перезагрузка
+    // экрана. Заодно это лучшая демонстрация редактора темы — там видно,
+    // как приложение переливается вслед за ползунком.
+    //
+    // Признак «уменьшить движение» передаётся параметром: сюда он ещё не
+    // положен в композицию, и читать его из темы было бы чтением умолчания
+    val colors = target.animated(reduceMotion)
 
     CompositionLocalProvider(
         LocalAshColors provides colors,
@@ -97,6 +109,56 @@ fun AshwakeTheme(
         )
     }
 }
+
+/**
+ * Та же палитра, но с доезжающими цветами.
+ *
+ * Анимируются только те токены, которые действительно меняются от настроек;
+ * текст и разделители заданы прозрачностью поверх фона и доезжают вместе
+ * с ним. Каждая анимация — отдельное состояние, поэтому смена одного цвета
+ * не дёргает остальные.
+ */
+@Composable
+private fun AshColors.animated(reduceMotion: Boolean): AshColors {
+    if (reduceMotion) return this
+    val spec = tween<Color>(durationMillis = COLOR_FADE_MS)
+
+    val background by animateColorAsState(background, spec, label = "c-bg")
+    val surface1 by animateColorAsState(surface1, spec, label = "c-s1")
+    val surface2 by animateColorAsState(surface2, spec, label = "c-s2")
+    val surface3 by animateColorAsState(surface3, spec, label = "c-s3")
+    val text by animateColorAsState(text, spec, label = "c-text")
+    val text2 by animateColorAsState(text2, spec, label = "c-text2")
+    val text3 by animateColorAsState(text3, spec, label = "c-text3")
+    val separator by animateColorAsState(separator, spec, label = "c-sep")
+    val warm by animateColorAsState(warm, spec, label = "c-warm")
+    val cold by animateColorAsState(cold, spec, label = "c-cold")
+    val danger by animateColorAsState(danger, spec, label = "c-danger")
+    val success by animateColorAsState(success, spec, label = "c-success")
+    val accent by animateColorAsState(accent, spec, label = "c-accent")
+    val accentAlt by animateColorAsState(accentAlt, spec, label = "c-accent-alt")
+
+    return copy(
+        background = background,
+        surface1 = surface1,
+        surface2 = surface2,
+        surface3 = surface3,
+        text = text,
+        text2 = text2,
+        text3 = text3,
+        separator = separator,
+        warm = warm,
+        cold = cold,
+        danger = danger,
+        success = success,
+        accent = accent,
+        accentAlt = accentAlt,
+        materialTint = surface1.copy(alpha = 0.72f)
+    )
+}
+
+/** Сколько переливается перекраска. Дольше — и смена темы начинает тормозить. */
+private const val COLOR_FADE_MS = 320
 
 /**
  * Мост в Material: экраны, написанные на `MaterialTheme.colorScheme`,

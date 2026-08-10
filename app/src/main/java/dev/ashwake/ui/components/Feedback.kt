@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -120,11 +123,19 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Значок еле заметно дышит: пустой экран без единого движения
+        // выглядит сломанным, а заметная пульсация — навязчивой
+        val breath = rememberBreath()
         Icon(
             imageVector = icon,
             contentDescription = null,
             tint = colors.text3,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier
+                .size(48.dp)
+                .graphicsLayer {
+                    scaleX = breath
+                    scaleY = breath
+                }
         )
         Text(
             text = title,
@@ -144,5 +155,72 @@ fun EmptyState(
         if (actionText != null && onAction != null) {
             TextAction(text = actionText, onClick = onAction)
         }
+    }
+}
+
+/**
+ * Скелетон: серая плашка на месте будущего содержимого.
+ *
+ * Показывается на первом кадре, пока идёт первый запрос к базе. Пустой экран
+ * в этот момент читается как «ничего нет» — то есть врёт, и человек успевает
+ * решить, что данные потерялись.
+ *
+ * Блик пробегает слева направо: неподвижная серая плашка неотличима от
+ * сломанной вёрстки.
+ */
+@Composable
+fun Skeleton(
+    modifier: Modifier = Modifier,
+    height: androidx.compose.ui.unit.Dp = 56.dp
+) {
+    val colors = AshTheme.colors
+    val reduceMotion = AshTheme.reduceMotion
+
+    val shimmer = if (reduceMotion) {
+        0.5f
+    } else {
+        val transition = androidx.compose.animation.core.rememberInfiniteTransition(
+            label = "skeleton"
+        )
+        val value by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 1f,
+            animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                animation = androidx.compose.animation.core.tween(1400),
+                repeatMode = androidx.compose.animation.core.RepeatMode.Restart
+            ),
+            label = "skeleton-shimmer"
+        )
+        value
+    }
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    0f to colors.surface1,
+                    (shimmer - 0.15f).coerceIn(0f, 1f) to colors.surface1,
+                    shimmer.coerceIn(0f, 1f) to colors.surface2,
+                    (shimmer + 0.15f).coerceIn(0f, 1f) to colors.surface1,
+                    1f to colors.surface1
+                ),
+                AshShapes.card
+            )
+    )
+}
+
+/** Несколько скелетонов подряд: заготовка списка на время загрузки. */
+@Composable
+fun SkeletonList(
+    count: Int = 3,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier.fillMaxWidth().padding(horizontal = ScreenPadding),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        repeat(count) { Skeleton() }
     }
 }

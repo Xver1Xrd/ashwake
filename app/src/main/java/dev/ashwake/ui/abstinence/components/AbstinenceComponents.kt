@@ -14,7 +14,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import dev.ashwake.ui.components.CELEBRATION_MS
+import dev.ashwake.ui.components.NORMAL_MS
+import dev.ashwake.ui.components.RollingNumber
+import dev.ashwake.ui.components.motionTween
+import dev.ashwake.ui.theme.AshTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,28 +61,69 @@ fun LiveCounter(duration: Duration, modifier: Modifier = Modifier) {
     val minutes = duration.toMinutesPart()
     val seconds = duration.toSecondsPart()
 
+    // Дни доезжают, а не подменяются: срыв обнуляет счётчик, и мгновенный
+    // прыжок с 94 на 0 читается как сбой, а скручивание — как то, что
+    // произошло. Наверх работает так же: новый день приходит перекатом
+    val shownDays by animateIntAsState(
+        targetValue = days.toInt(),
+        animationSpec = motionTween(UNWIND_MS),
+        label = "counter-days"
+    )
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(days.toString(), style = CounterLarge)
+            RollingNumber(
+                value = shownDays.toLong(),
+                style = CounterLarge,
+                color = AshTheme.colors.text
+            )
             Text(
-                "  ${dayWord(days)}",
+                "  ${dayWord(shownDays.toLong())}",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        Text(
-            text = "%02d:%02d:%02d".format(hours, minutes, seconds),
-            style = CounterSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Часы, минуты и секунды тикают каждую секунду: перекат разрядов
+        // здесь и есть то, ради чего на счётчик смотрят
+        Row {
+            RollingUnit(hours, AshTheme.colors.text2)
+            CounterSeparator()
+            RollingUnit(minutes, AshTheme.colors.text2)
+            CounterSeparator()
+            RollingUnit(seconds, AshTheme.colors.text2)
+        }
     }
 }
 
-/** Кольцо прогресса до ближайшей вехи. */
+@Composable
+private fun RollingUnit(value: Int, color: androidx.compose.ui.graphics.Color) {
+    RollingNumber(
+        value = value.toLong(),
+        style = CounterSmall,
+        color = color,
+        minDigits = 2
+    )
+}
+
+@Composable
+private fun CounterSeparator() {
+    Text(":", style = CounterSmall, color = AshTheme.colors.text3)
+}
+
+/** Сколько длится скручивание счётчика при срыве. */
+private const val UNWIND_MS = 900
+
+/**
+ * Кольцо прогресса до ближайшей вехи.
+ *
+ * Когда кольцо замыкается, от него расходится волна: веха — единственное
+ * событие в этой части приложения, которое стоит отпраздновать, и до сих пор
+ * оно проходило совершенно молча.
+ */
 @Composable
 fun MilestoneRing(
     progress: Float,
@@ -78,7 +131,25 @@ fun MilestoneRing(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val colors = AshTheme.colors
+    val track = colors.surface2
+
+    val shown by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = motionTween(NORMAL_MS),
+        label = "milestone-progress"
+    )
+
+    // Волна запускается на переходе через единицу, а не при каждом
+    // значении рядом с ней: иначе на границе она мигала бы без остановки
+    val reached = progress >= 1f
+    val wave = remember { Animatable(0f) }
+    LaunchedEffect(reached) {
+        if (reached) {
+            wave.snapTo(0f)
+            wave.animateTo(1f, tween(CELEBRATION_MS))
+        }
+    }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
@@ -95,11 +166,21 @@ fun MilestoneRing(
                     style = Stroke(width = stroke)
                 )
                 drawArc(
-                    color = Gold, startAngle = -90f,
-                    sweepAngle = 360f * progress.coerceIn(0f, 1f), useCenter = false,
+                    color = colors.warm, startAngle = -90f,
+                    sweepAngle = 360f * shown, useCenter = false,
                     topLeft = topLeft, size = Size(diameter, diameter),
                     style = Stroke(width = stroke)
                 )
+
+                val ripple = wave.value
+                if (ripple > 0f && ripple < 1f) {
+                    drawCircle(
+                        color = colors.warm,
+                        radius = diameter / 2f + stroke + ripple * 44.dp.toPx(),
+                        style = Stroke(width = stroke * (1f - ripple)),
+                        alpha = (1f - ripple) * 0.7f
+                    )
+                }
             }
             content()
         }

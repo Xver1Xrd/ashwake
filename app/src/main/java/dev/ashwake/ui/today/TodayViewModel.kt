@@ -50,7 +50,9 @@ data class TodayUiState(
     val habits: List<HabitWithProgress> = emptyList(),
     val abstinences: List<AbstinenceWithStats> = emptyList(),
     val character: CharacterState = CharacterState(),
-    val layers: List<CharacterLayer> = emptyList()
+    val layers: List<CharacterLayer> = emptyList(),
+    /** Первый запрос к базе ещё не вернулся: показываем заготовку, а не пустоту. */
+    val loading: Boolean = true
 ) {
     /** Задачи, у которых срок раньше сегодняшнего. Показываются отдельной группой. */
     val overdueTasks: List<Task> get() = tasks.filter { it.isOverdue(today) }
@@ -109,6 +111,7 @@ class TodayViewModel @Inject constructor(
         catalog
     ) { habitList, taskList, abstinenceList, characterState, loadedCatalog ->
         TodayUiState(
+            loading = false,
             today = clock.today(),
             tasks = taskList,
             // На главном экране только то, что сегодня действительно требуется:

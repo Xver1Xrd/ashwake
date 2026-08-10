@@ -23,7 +23,12 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import dev.ashwake.ui.theme.AshTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -294,18 +299,25 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
     val inhaling = phase < PHASE_SECONDS
     val holding = phase in PHASE_SECONDS until PHASE_SECONDS * 2
 
-    val targetScale = when {
-        !running -> 0.6f
-        inhaling -> 1f
-        holding -> 1f
-        else -> 0.6f
+    // Круг движется по синусоиде, а не линейно между двумя размерами.
+    // Дыхание само по себе синусоидально: линейное расширение с рывком на
+    // границе фазы сбивает с ритма ровно того, кому за ним надо следовать.
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(running, phase) {
+        if (!running) {
+            progress.animateTo(0f, tween(600))
+            return@LaunchedEffect
+        }
+        when {
+            inhaling -> progress.animateTo(1f, tween(PHASE_SECONDS * 1000, easing = EaseInOutSine))
+            holding -> progress.animateTo(1f, tween(200))
+            else -> progress.animateTo(0f, tween(PHASE_SECONDS * 1000, easing = EaseInOutSine))
+        }
     }
-    val scale by animateFloatAsState(
-        targetValue = targetScale,
-        animationSpec = tween(durationMillis = PHASE_SECONDS * 1000),
-        label = "breathing"
-    )
-    val color = MaterialTheme.colorScheme.primary
+
+    val colors = AshTheme.colors
+    val color = colors.cold
+    val scale = 0.55f + 0.45f * progress.value
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -313,9 +325,24 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(140.dp)) {
-                drawCircle(color = color.copy(alpha = 0.2f), radius = size.minDimension / 2f)
-                drawCircle(color = color, radius = size.minDimension / 2f * scale)
+            Canvas(modifier = Modifier.size(160.dp)) {
+                val radius = size.minDimension / 2f
+
+                // Подсветка на задержке дыхания: круг замер, и без свечения
+                // непонятно, идёт ли ещё отсчёт
+                val glow = if (holding && running) 1f else 0f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            color.copy(alpha = 0.35f + 0.25f * glow),
+                            color.copy(alpha = 0f)
+                        ),
+                        radius = radius * scale * 1.6f
+                    ),
+                    radius = radius * scale * 1.6f
+                )
+                drawCircle(color = color.copy(alpha = 0.18f), radius = radius)
+                drawCircle(color = color, radius = radius * scale)
             }
             Text(
                 text = if (!running) "старт" else when {
@@ -324,7 +351,7 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
                     else -> "выдох"
                 },
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary
+                color = if (colors.isDark) Color.Black else Color.White
             )
         }
         Text(
