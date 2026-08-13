@@ -76,7 +76,7 @@ fun RitualScreen(
         topBar = {
             AshNavBar(
                 title = stringResource(R.string.ritual_vecherniy_ritual),
-                subtitle = if (state.isCatchUp) "за ${date.format(DATE_FORMAT)}"
+                subtitle = if (state.isCatchUp) stringResource(R.string.ritual_za_1_s, date.format(DATE_FORMAT))
                 else date.format(DATE_FORMAT),
                 onBack = { if (stepIndex == 0) onDone() else viewModel.back() }
             )
@@ -116,7 +116,7 @@ fun RitualScreen(
                     ChipButton(text = stringResource(R.string.detail_nazad), onClick = viewModel::back)
                 }
                 PrimaryButton(
-                    text = if (step == RitualStep.NOTE) "Закончить" else "Дальше",
+                    text = if (step == RitualStep.NOTE) stringResource(R.string.routines_zakonchit) else stringResource(R.string.onboarding_dalshe),
                     modifier = Modifier.weight(1f),
                     onClick = viewModel::next
                 )
@@ -128,16 +128,16 @@ fun RitualScreen(
 @Composable
 private fun ScalesStep(form: RitualForm, viewModel: RitualViewModel) {
     Text(stringResource(R.string.ritual_kak_proshel_den), style = AshTheme.type.title3)
-    ScaleRow("Оценка дня", form.dayRating, viewModel::setDayRating)
+    ScaleRow(stringResource(R.string.ritual_ocenka_dnya), form.dayRating, viewModel::setDayRating)
 
     HorizontalDivider()
     Text(
-        "Настроение и энергия — отдельно: связи с привычками ищутся по ним",
+        stringResource(R.string.ritual_nastroenie_i_energiya_otdelno_svyazi_s_privy),
         style = AshTheme.type.footnote,
         color = AshTheme.colors.text2
     )
-    ScaleRow("Настроение", form.mood, viewModel::setMood)
-    ScaleRow("Энергия", form.energy, viewModel::setEnergy)
+    ScaleRow(stringResource(R.string.ritual_nastroenie), form.mood, viewModel::setMood)
+    ScaleRow(stringResource(R.string.ritual_energiya), form.energy, viewModel::setEnergy)
 }
 
 @Composable
@@ -161,7 +161,7 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
     Text(stringResource(R.string.ritual_nezakrytye_zadachi), style = AshTheme.type.title3)
 
     if (tasks.isEmpty()) {
-        EmptyHint("Всё закрыто")
+        EmptyHint(stringResource(R.string.ritual_vse_zakryto))
         return
     }
 
@@ -203,7 +203,7 @@ private fun HabitsStep(habits: List<HabitWithProgress>, viewModel: RitualViewMod
     Text(stringResource(R.string.ritual_neprostavlennye_privychki), style = AshTheme.type.title3)
 
     if (habits.isEmpty()) {
-        EmptyHint("Все привычки отмечены")
+        EmptyHint(stringResource(R.string.ritual_vse_privychki_otmecheny))
         return
     }
 
@@ -241,7 +241,7 @@ private fun TomorrowStep(
 ) {
     Text(stringResource(R.string.ritual_tri_glavnye_zadachi_na_zavtra), style = AshTheme.type.title3)
     Text(
-        "Выбрано ${form.topTaskIds.size} из 3",
+        stringResource(R.string.ritual_vybrano_1_s_iz_3, form.topTaskIds.size),
         style = AshTheme.type.footnote,
         color = AshTheme.colors.text2
     )
@@ -277,7 +277,7 @@ private fun TomorrowStep(
         Column(Modifier.weight(1f)) {
             Text(stringResource(R.string.ritual_razlozhit_zavtrashniy_den), style = AshTheme.type.callout)
             Text(
-                "Сразу после ритуала расставит задачи по слотам",
+                stringResource(R.string.ritual_srazu_posle_rituala_rasstavit_zadachi_po_slo),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )

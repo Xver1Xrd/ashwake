@@ -107,7 +107,7 @@ fun HabitCard(
 
         if (habit.hasMinimum && !progress.doneToday && !progress.paused) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextAction(text = "Минимум · ${formatValue(habit.minimumValue ?: 0f)}", onClick = onMinimum)
+                TextAction(text = stringResource(R.string.components_minimum_1_s, formatValue(habit.minimumValue ?: 0f)), onClick = onMinimum)
             }
         }
     }
@@ -178,16 +178,17 @@ private fun ScoreRing(score: Float, done: Boolean, modifier: Modifier = Modifier
     }
 }
 
+@Composable
 private fun subtitle(progress: HabitWithProgress): String {
     val parts = mutableListOf<String>()
-    parts += "серия ${progress.currentStreak}"
+    parts += stringResource(R.string.components_seriya_1_s, progress.currentStreak)
     if (progress.recordStreak > progress.currentStreak) {
-        parts += "рекорд ${progress.recordStreak}"
+        parts += stringResource(R.string.abstinence_rekord_1_s, progress.recordStreak)
     }
     if (progress.freezesLeftThisMonth > 0) {
-        parts += "заморозки ${progress.freezesLeftThisMonth}"
+        parts += stringResource(R.string.components_zamorozki_1_s, progress.freezesLeftThisMonth)
     }
-    if (progress.paused) parts += "пауза"
+    if (progress.paused) parts += stringResource(R.string.components_pauza)
     return parts.joinToString(" · ")
 }
 

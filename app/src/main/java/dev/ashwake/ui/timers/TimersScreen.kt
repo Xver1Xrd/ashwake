@@ -1,5 +1,7 @@
 package dev.ashwake.ui.timers
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +32,7 @@ import dev.ashwake.ui.theme.AshTheme
 @Composable
 fun TimersScreen(onRunRoutine: () -> Unit, onBack: () -> Unit = {}) {
     var tab by rememberSaveable { mutableIntStateOf(0) }
-    val tabs = listOf("Рутины", "Фокус")
+    val tabs = listOf(stringResource(R.string.routines_rutiny), stringResource(R.string.focus_fokus))
 
     Column(
         Modifier

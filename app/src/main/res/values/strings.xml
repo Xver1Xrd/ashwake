@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ashwake</string>
     <string name="shortcut_new_task">Новая задача</string>
     <string name="shortcut_today">Сегодня</string>
     <string name="shortcut_routine">Рутина</string>
     <string name="shortcut_pomodoro">Помодоро</string>
-    <string name="widget_tasks">Задачи на сегодня</string>
-    <string name="widget_habits">Привычки</string>
-    <string name="widget_heatmap">Календарь привычки</string>
-    <string name="widget_abstinence">Счётчик отказа</string>
     <string name="widget_character">Персонаж</string>
-    <string name="widget_quick">Быстрые действия</string>
     <string name="tile_add_task">Задача</string>
-    <string name="tile_pomodoro">Помодоро</string>
 
     <!-- Тексты интерфейса. Вынесены из Compose, чтобы правки формулировок
          не требовали пересборки экранов и чтобы перевод был возможен. -->
@@ -38,8 +31,6 @@
     <string name="detail_mozhno_sdelat_vmesto">Можно сделать вместо</string>
     <string name="detail_naskolko_silno">Насколько сильно</string>
     <string name="detail_chto_podtolknulo">Что подтолкнуло</string>
-    <string name="detail_perezhdal">Переждал</string>
-    <string name="detail_ne_pomoglo">Не помогло</string>
     <string name="detail_odno_zamechanie">Одно замечание</string>
     <string name="detail_ponyatno">Понятно</string>
     <string name="detail_otmetit_sryv_2">Отметить срыв</string>
@@ -191,7 +182,6 @@
     <string name="tasks_rezhim_otobrazheniya">Режим отображения</string>
     <string name="calendar_vpered">Вперёд</string>
     <string name="calendar_segodnya">Сегодня</string>
-    <string name="components_kupit_moloko_zavtra_18_00_p2_dom_30m">купить молоко завтра 18:00 !p2 #дом ~30м</string>
     <string name="components_golosovoy_vvod">Голосовой ввод</string>
     <string name="components_komu_delegirovat">Кому делегировать</string>
     <string name="components_podzadachi_po_odnoy_v_stroke">Подзадачи, по одной в строке</string>
@@ -201,13 +191,9 @@
     <string name="components_vypolnennye">Выполненные</string>
     <string name="components_proekty">Проекты</string>
     <string name="components_novyy_proekt">Новый проект</string>
-    <string name="components_povtoryaetsya">Повторяется</string>
-    <string name="components_est_ssylka">Есть ссылка</string>
-    <string name="editor_ubrat_srok">Убрать срок</string>
     <string name="editor_tegi">Теги</string>
     <string name="editor_dom_srochnoe">#дом #срочное</string>
     <string name="editor_ubrat_podzadachu">Убрать подзадачу</string>
-    <string name="editor_novaya_podzadacha">Новая подзадача</string>
     <string name="editor_dobavit_podzadachu">Добавить подзадачу</string>
     <string name="editor_vykl">Выкл</string>
     <string name="editor_povtoryat">Повторять</string>
@@ -249,4 +235,484 @@
     <string name="settings_battery_warning">Система экономит батарею за счёт приложения. Напоминания о привычках, будильники рутин и настойчивые напоминания могут прийти с опозданием или не прийти совсем.</string>
     <string name="settings_battery_action">Исключить из экономии батареи</string>
     <string name="settings_battery_action_hint">Откроется системный список. Найдите Ashwake и выберите «Без ограничений»</string>
+
+    <!-- Вынесено из кода tools/strings/extract.py -->
+    <string name="abstinence_otkaz_ne_nado_delat_nado_ne_delat_schetchik">Отказ не надо делать — надо не делать. Счётчик идёт сам, вмешиваться нужно только при срыве</string>
+    <string name="abstinence_rekord_1_s">рекорд %1$s</string>
+    <string name="abstinence_popytka_1_s">попытка №%1$s</string>
+    <string name="abstinence_ne_1_s_2_s"> · не %1$s %2$s</string>
+    <string name="components_do_vehi_1_s">до вехи: %1$s</string>
+    <string name="components_rekord">рекорд</string>
+    <string name="components_vsego_chistyh">всего чистых</string>
+    <string name="components_popytka">попытка</string>
+    <string name="components_ne_1_s_2_s">не %1$s %2$s</string>
+    <string name="components_pn">пн</string>
+    <string name="components_vt">вт</string>
+    <string name="components_sr">ср</string>
+    <string name="components_cht">чт</string>
+    <string name="components_pt">пт</string>
+    <string name="components_sb">сб</string>
+    <string name="components_vs">вс</string>
+    <string name="detail_otkaz">Отказ</string>
+    <string name="detail_sryv">Срыв</string>
+    <string name="detail_tyazhelo_otmetka_o_tom_chto_nakrylo_no_vy_ud">«Тяжело» — отметка о том, что накрыло, но вы удержались: счётчик продолжает идти. Сбрасывает его только «Срыв»</string>
+    <string name="detail_epizodov">эпизодов</string>
+    <string name="detail_perezhdano">переждано</string>
+    <string name="detail_srednyaya_sila">средняя сила</string>
+    <string name="detail_schetchik_nachnet_novuyu_popytku_istoriya_ni">Счётчик начнёт новую попытку. История никуда не денется: рекорд и общее число чистых дней сохранятся.</string>
+    <string name="detail_seychas">сейчас</string>
+    <string name="detail_1_s_ch_nazad">%1$s ч назад</string>
+    <string name="detail_spravilsya">Справился</string>
+    <string name="detail_otpustilo_samo">Отпустило само</string>
+    <string name="detail_ne_spravilsya_otmetit_sryv">Не справился — отметить срыв</string>
+    <string name="detail_poka_vy_ne_otmetili_sryv_schetchik_idet_dals">Пока вы не отметили срыв, счётчик идёт дальше</string>
+    <string name="detail_start">старт</string>
+    <string name="detail_vdoh">вдох</string>
+    <string name="detail_derzhim">держим</string>
+    <string name="detail_vydoh">выдох</string>
+    <string name="detail_dve_pyat_minut_obychno_dostatochno_chtoby_vo">Две–пять минут обычно достаточно, чтобы волна прошла</string>
+    <string name="detail_pauza">Пауза</string>
+    <string name="detail_nachat_dyshat">Начать дышать</string>
+    <string name="detail_rezkiy_otkaz_ot_alkogolya_ili_veschestv_mozh">Резкий отказ от алкоголя или веществ может быть небезопасен. Имеет смысл обсудить это с врачом.\n\nПриложение считает дни и ведёт историю. Медицинских рекомендаций оно не даёт.</string>
+    <string name="editor_myagkiy">мягкий</string>
+    <string name="editor_strogiy">строгий</string>
+    <string name="editor_sryv_otnimaet_sem_dney_no_ne_obnulyaet_schet">Срыв отнимает семь дней, но не обнуляет счётчик</string>
+    <string name="editor_sryv_obnulyaet_schetchik_kak_v_klassicheskih">Срыв обнуляет счётчик, как в классических трекерах</string>
+    <string name="editor_1_s_dn_nazad">%1$s дн. назад</string>
+    <string name="editor_bez_etih_cifr_blok_ekonomii_prosto_ne_pokazy">Без этих цифр блок экономии просто не показывается</string>
+    <string name="backup_kopiya_pishetsya_v_vybrannuyu_papku_raz_v_su">Копия пишется в выбранную папку раз в сутки. Положите её туда, где работает ваша синхронизация — приложение само никуда ничего не отправляет</string>
+    <string name="backup_papka_vybrana">Папка выбрана</string>
+    <string name="backup_papka_ne_vybrana">Папка не выбрана</string>
+    <string name="backup_vybrat_papku">Выбрать папку</string>
+    <string name="backup_smenit_papku">Сменить папку</string>
+    <string name="backup_bez_parolya_kopiya_sohranyaetsya_otkrytym_te">Без пароля копия сохраняется открытым текстом — её сможет прочитать всё, что имеет доступ к папке</string>
+    <string name="backup_parol_nigde_ne_hranitsya_zabytyy_parol_oznac">Пароль нигде не хранится. Забытый пароль означает потерянный архив</string>
+    <string name="backup_razbor_pokazyvaetsya_do_primeneniya_nichego">Разбор показывается до применения: ничего не меняется, пока вы не нажмёте «Применить»</string>
+    <string name="backup_importiruetsya_1_s_propuscheno_2_s">Импортируется %1$s, пропущено %2$s</string>
+    <string name="backup_zadach_1_s">Задач: %1$s</string>
+    <string name="backup_privychek_1_s_otmetok_2_s">Привычек: %1$s, отметок: %2$s</string>
+    <string name="backup_otkazov_1_s">Отказов: %1$s</string>
+    <string name="backup_zapisey_rituala_1_s">Записей ритуала: %1$s</string>
+    <string name="backup_vosstanovlenie_zamenit_tekuschie_dannye_celi">Восстановление заменит текущие данные целиком: задачи, привычки с историей отметок, отказы, персонажа и монеты. Отменить это нельзя</string>
+    <string name="backup_vosstanovlenie">Восстановление…</string>
+    <string name="backup_zamenit_dannye">Заменить данные</string>
+    <string name="blocking_pravil_net_pravilo_opisyvaet_kakie_prilozhen">Правил нет. Правило описывает, какие приложения закрыты и что нужно сделать, чтобы они открылись</string>
+    <string name="blocking_obhod_vsegda_vozmozhen_zapirat_sebya_v_sobst">Обход всегда возможен — запирать себя в собственном телефоне нельзя. Но он остаётся в логе, и по нему видно, работает правило или стало формальностью</string>
+    <string name="blocking_nuzhen_chtoby_ponyat_kakoe_prilozhenie_otkry">Нужен, чтобы понять, какое приложение открыто прямо сейчас. Ashwake читает только имя приложения на переднем плане и никуда его не отправляет</string>
+    <string name="blocking_nuzhen_chtoby_pokazat_ekran_s_napominaniem_c">Нужен, чтобы показать экран с напоминанием, что осталось сделать</string>
+    <string name="blocking_bez_oboih_razresheniy_blokirovka_ne_vklyucha">Без обоих разрешений блокировка не включается</string>
+    <string name="character_nadente_chto_nibud_iz_magazina_nizhe">Наденьте что-нибудь из магазина ниже</string>
+    <string name="character_po_etim_filtram_nichego_net">По этим фильтрам ничего нет</string>
+    <string name="character_uroven_1_s">Уровень %1$s</string>
+    <string name="character_rastut_ot_povedeniya_a_ne_za_monety">Растут от поведения, а не за монеты</string>
+    <string name="character_ne_rabotayut_iz_za_trebovaniy">Не работают из-за требований: </string>
+    <string name="character_nadeto">надето</string>
+    <string name="character_za_dostizhenie">за достижение</string>
+    <string name="character_nuzhno">нужно: </string>
+    <string name="character_uluchshit_1_s">Улучшить · %1$s ◈</string>
+    <string name="components_ton_1_s_nasyschennost_2_s_yarkost_3_s">тон %1$s° · насыщенность %2$s% · яркость %3$s%</string>
+    <string name="components_ubrat_znachok">Убрать значок</string>
+    <string name="components_iz_galerei">Из галереи</string>
+    <string name="components_pokazyvaetsya_kartinka_uberite_ee_chtoby_ver">Показывается картинка. Уберите её, чтобы вернуть эмодзи</string>
+    <string name="components_vybrat_znachok">Выбрать значок</string>
+    <string name="focus_pomidor_1_s"> · помидор %1$s</string>
+    <string name="focus_prodolzhit">Продолжить</string>
+    <string name="focus_pomidorov_za_sessiyu_1_s">Помидоров за сессию: %1$s</string>
+    <string name="focus_dlinnyy_pereryv_1_s_min_kazhdye_2_s_pomidora">Длинный перерыв %1$s мин каждые %2$s помидора</string>
+    <string name="focus_vsego">всего</string>
+    <string name="focus_sessiy">сессий</string>
+    <string name="focus_v_srednem">в среднем</string>
+    <string name="habits_rezhim_otpuska_dni_ne_schitayutsya_propuskam">Режим отпуска: дни не считаются пропусками</string>
+    <string name="habits_ne_na_segodnya">Не на сегодня</string>
+    <string name="habits_vozmite_gotovuyu_iz_kataloga_ili_zavedite_sv">Возьмите готовую из каталога или заведите свою. Score растёт постепенно и не обнуляется от пары пропусков</string>
+    <string name="components_score_1_s_seriya_2_s_rekord_3_s">score %1$s% · серия %2$s · рекорд %3$s</string>
+    <string name="components_segodnya_1_s_iz_2_s">Сегодня: %1$s из %2$s</string>
+    <string name="components_zamorozit_1_s">  Заморозить (%1$s)</string>
+    <string name="components_snyat_pauzu">Снять паузу</string>
+    <string name="components_minimum_1_s">Минимум · %1$s</string>
+    <string name="detail_vypolneno">выполнено</string>
+    <string name="detail_minimum">минимум</string>
+    <string name="detail_propusk">пропуск</string>
+    <string name="detail_zamorozka">заморозка</string>
+    <string name="detail_dannyh_poka_malo_dlya_grafika">Данных пока мало для графика</string>
+    <string name="detail_privychka">Привычка</string>
+    <string name="detail_seriya">серия</string>
+    <string name="detail_zamorozki">заморозки</string>
+    <string name="detail_punktir_80_znachenie_k_kotoromu_prihodit_ide" formatted="false">Пунктир — 80%: значение, к которому приходит идеально выполняемая привычка примерно за месяц</string>
+    <string name="detail_tap_po_dnyu_menyaet_otmetku_zadnim_chislom">Тап по дню меняет отметку задним числом</string>
+    <string name="detail_po_minimumu">по минимуму</string>
+    <string name="detail_propuscheno">пропущено</string>
+    <string name="detail_dolya_dney_po_minimumu_1_s">Доля дней по минимуму: %1$s%</string>
+    <string name="editor_novaya_privychka">Новая привычка</string>
+    <string name="editor_uspeh_eto_otsutstvie_otmetki_otmechat_nuzhno">Успех — это отсутствие отметки. Отмечать нужно срывы, а не выполнение</string>
+    <string name="editor_cel_na_plohoy_den_derzhit_seriyu_i_daet_polo">Цель на плохой день. Держит серию и даёт половину вклада в score</string>
+    <string name="editor_sfera_opredelyaet_kakaya_harakteristika_pers">Сфера определяет, какая характеристика персонажа растёт от этой привычки</string>
+    <string name="editor_vremya">Время</string>
+    <string name="editor_privyazka_k_sobytiyu_vmesto_chasov_cepochka">Привязка к событию вместо часов: цепочка привычек одна за другой</string>
+    <string name="more_taymery_i_rutiny">Таймеры и рутины</string>
+    <string name="onboarding_propustit">Пропустить</string>
+    <string name="onboarding_nachat">Начать</string>
+    <string name="onboarding_nachat_s_1_s">Начать с %1$s</string>
+    <string name="onboarding_dalshe">Дальше</string>
+    <string name="onboarding_eto_ne_esche_odin_spisok_del_zadachi_privych">Это не ещё один список дел. Задачи, привычки и отказы живут в одном месте, а за сделанное растёт персонаж — чтобы у усилий был видимый след, а не только галочка.</string>
+    <string name="onboarding_personazh_rastet_ot_del">Персонаж растёт от дел</string>
+    <string name="onboarding_monety_prihodyat_za_vypolnennoe_harakteristi">Монеты приходят за выполненное, характеристики — за поведение: силу нельзя купить, её надо натренировать. Одежду и снаряжение можно купить в магазине на заработанное.</string>
+    <string name="onboarding_s_chego_nachnem">С чего начнём?</string>
+    <string name="onboarding_vyberite_odnu_dve_bolshe_soblazn_kotoryy_che">Выберите одну-две. Больше — соблазн, который через неделю превращается в список невыполненного</string>
+    <string name="ritual_za_1_s">за %1$s</string>
+    <string name="ritual_ocenka_dnya">Оценка дня</string>
+    <string name="ritual_nastroenie_i_energiya_otdelno_svyazi_s_privy">Настроение и энергия — отдельно: связи с привычками ищутся по ним</string>
+    <string name="ritual_nastroenie">Настроение</string>
+    <string name="ritual_energiya">Энергия</string>
+    <string name="ritual_vse_zakryto">Всё закрыто</string>
+    <string name="ritual_vse_privychki_otmecheny">Все привычки отмечены</string>
+    <string name="ritual_vybrano_1_s_iz_3">Выбрано %1$s из 3</string>
+    <string name="ritual_srazu_posle_rituala_rasstavit_zadachi_po_slo">Сразу после ритуала расставит задачи по слотам</string>
+    <string name="routines_shag_1_s_iz_2_s">Шаг %1$s из %2$s</string>
+    <string name="routines_ostalos_vsego_1_s">Осталось всего: %1$s</string>
+    <string name="routines_plan_1_s_fakt_2_s">План %1$s · факт %2$s</string>
+    <string name="routines_dolshe_plana_na_1_s">Дольше плана на %1$s</string>
+    <string name="routines_bystree_plana_na_1_s">Быстрее плана на %1$s</string>
+    <string name="routines_propuscheno_shagov_1_s">Пропущено шагов: %1$s</string>
+    <string name="routines_bez_propuskov">Без пропусков</string>
+    <string name="routines_1_s_plan_2_s_fakt_3_s">%1$s: план %2$s, факт %3$s</string>
+    <string name="routines_rutina_eto_spisok_shagov_s_taymerom_zapustil">Рутина — это список шагов с таймером: запустил и не думаешь, что дальше</string>
+    <string name="routines_1_s_shagov_2_s">%1$s шагов · %2$s</string>
+    <string name="routines_v_1_s"> · в %1$s</string>
+    <string name="settings_otmetka_v_chas_nochi_popadet_v_predyduschiy">Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, счётчики отказов и статистику</string>
+    <string name="settings_v_etom_okne_raskladyvaetsya_den">В этом окне раскладывается день</string>
+    <string name="settings_zazor_mezhdu_sosednimi_blokami_bez_nego_den">Зазор между соседними блоками: без него день раскладывается впритык и рассыпается от первой задержки</string>
+    <string name="settings_1_s_min">%1$s мин</string>
+    <string name="settings_dannye_i_sistema">Данные и система</string>
+    <string name="settings_sobytiya_uchityvayutsya_pri_raskladke_dnya">События учитываются при раскладке дня</string>
+    <string name="settings_sobytiya_kalendarya_ne_uchityvayutsya">События календаря не учитываются</string>
+    <string name="settings_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo">Приложение работает офлайн: ни одного сетевого вызова, ни аналитики, ни сторонних SDK</string>
+    <string name="settings_oformlenie">Оформление</string>
+    <string name="settings_redaktor_temy">Редактор темы</string>
+    <string name="settings_svoy_cvet_forma_uglov_skruglenie_plotnost_ef">Свой цвет, форма углов, скругление, плотность, эффекты</string>
+    <string name="theme_sbros">Сброс</string>
+    <string name="theme_tema">Тема</string>
+    <string name="theme_fon">Фон</string>
+    <string name="theme_forma_uglov">Форма углов</string>
+    <string name="theme_krivizna_narastaet_plavno_kak_v_ios">Кривизна нарастает плавно, как в iOS</string>
+    <string name="theme_obychnaya_duga_okruzhnosti">Обычная дуга окружности</string>
+    <string name="theme_sovsem_bez_skrugleniy">Совсем без скруглений</string>
+    <string name="theme_skruglenie_1_s">Скругление · %1$s%</string>
+    <string name="theme_mnozhitel_vseh_radiusov_srazu_kartochek_pole">Множитель всех радиусов сразу: карточек, полей, листов</string>
+    <string name="theme_plotnost_spiskov">Плотность списков</string>
+    <string name="theme_vysota_stroki_i_vozduh_mezhdu_gruppami">Высота строки и воздух между группами</string>
+    <string name="theme_effekty">Эффекты</string>
+    <string name="theme_razmytie_rabotaet_s_android_12_nizhe_paneli">Размытие работает с Android 12; ниже панели просто заливаются</string>
+    <string name="theme_razmytie_pod_panelyami">Размытие под панелями</string>
+    <string name="theme_gradient_akcenta">Градиент акцента</string>
+    <string name="theme_vernut_ishodnoe_oformlenie">Вернуть исходное оформление</string>
+    <string name="theme_akcent">Акцент</string>
+    <string name="theme_cvet_knopok_otmetok_i_aktivnoy_vkladki">Цвет кнопок, отметок и активной вкладки</string>
+    <string name="theme_svoy_cvet">Свой цвет</string>
+    <string name="theme_cveta_sostoyaniy">Цвета состояний</string>
+    <string name="theme_nagrada_schetchiki_sryv_i_podtverzhdenie">Награда, счётчики, срыв и подтверждение</string>
+    <string name="theme_vernut_ishodnyy">Вернуть исходный</string>
+    <string name="theme_tak_eto_vyglyadit">Так это выглядит</string>
+    <string name="theme_zadacha_s_metkoy">Задача с меткой</string>
+    <string name="theme_srochno_30_min">срочно · 30 мин</string>
+    <string name="theme_knopka">Кнопка</string>
+    <string name="theme_vtoraya">Вторая</string>
+    <string name="stats_nedelya">Неделя</string>
+    <string name="stats_svyazi">Связи</string>
+    <string name="stats_god">Год</string>
+    <string name="stats_zadachi_zakryty">Задачи закрыты</string>
+    <string name="stats_otmetki_privychek">Отметки привычек</string>
+    <string name="stats_ritual_proyden_1_s_iz_7_dney">Ритуал пройден %1$s из 7 дней</string>
+    <string name="stats_srednee_nastroenie_1f" formatted="false">Среднее настроение %.1f</string>
+    <string name="stats_1_s_2_s_dn">%1$s — %2$s дн.</string>
+    <string name="stats_poka_malo_dannyh_svyazi_schitayutsya_ot_14_d">Пока мало данных: связи считаются от 14 дней с заполненным ритуалом. Сейчас %1$s</string>
+    <string name="stats_zametnyh_svyazey_ne_nashlos">Заметных связей не нашлось</string>
+    <string name="stats_koefficient_2f_vyborka_d_dney" formatted="false">коэффициент %.2f · выборка %d дней</string>
+    <string name="stats_god_1_s_v_cifrah">Год %1$s в цифрах</string>
+    <string name="stats_za_etot_god_dannyh_poka_net">За этот год данных пока нет</string>
+    <string name="stats_zadach">задач</string>
+    <string name="stats_otmetok">отметок</string>
+    <string name="stats_rekord_serii">рекорд серии</string>
+    <string name="stats_fokus">фокус</string>
+    <string name="stats_chistyh_dney">чистых дней</string>
+    <string name="stats_samaya_dlinnaya_seriya_1_s">Самая длинная серия: %1$s</string>
+    <string name="stats_samaya_stabilnaya_1_s">Самая стабильная: %1$s</string>
+    <string name="stats_samaya_problemnaya_1_s">Самая проблемная: %1$s</string>
+    <string name="stats_luchshiy_mesyac_1_s_2_s">Лучший месяц: %1$s.%2$s</string>
+    <string name="tasks_zalezhavshihsya_zadach_net">Залежавшихся задач нет</string>
+    <string name="tasks_pusto">Пусто</string>
+    <string name="tasks_syuda_popadayut_zadachi_posle_treh_perenosov">Сюда попадают задачи после трёх переносов</string>
+    <string name="tasks_dobavte_zadachu_strokoy_snizu_data_vremya_pr">Добавьте задачу строкой снизу — дата, время, приоритет и теги разберутся сами</string>
+    <string name="calendar_na_etot_den_zadach_net">На этот день задач нет</string>
+    <string name="calendar_bez_vremeni">Без времени</string>
+    <string name="components_kupit_moloko_zavtra_18_00_p2_dom_30m_2">Купить молоко завтра 18:00 p2 #дом 30м</string>
+    <string name="components_1_s_min">~%1$s мин</string>
+    <string name="components_zadacha_perenositsya_1_s_y_raz">Задача переносится %1$s-й раз</string>
+    <string name="components_pohozhe_v_tekuschem_vide_ona_ne_dvigaetsya_c">Похоже, в текущем виде она не двигается. Что с ней сделать?</string>
+    <string name="components_ostavit_kak_est">Оставить как есть</string>
+    <string name="components_poka_ni_odnogo_proekta">Пока ни одного проекта</string>
+    <string name="components_svernut_podzadachi">Свернуть подзадачи</string>
+    <string name="components_pokazat_podzadachi">Показать подзадачи</string>
+    <string name="editor_chto_nuzhno_sdelat">Что нужно сделать</string>
+    <string name="editor_prioritet">Приоритет</string>
+    <string name="editor_srok">Срок</string>
+    <string name="editor_ocenka_vremeni">Оценка времени</string>
+    <string name="editor_bez_ocenki_zadacha_ne_popadet_v_avtoraskladk">Без оценки задача не попадёт в автораскладку дня</string>
+    <string name="editor_podzadachi">Подзадачи</string>
+    <string name="editor_esche_shag">Ещё шаг</string>
+    <string name="editor_nastoychivoe_napominanie">Настойчивое напоминание</string>
+    <string name="editor_nuzhno_ukazat_vremya_bez_nego_napominat_ne_o">Нужно указать время: без него напоминать не от чего</string>
+    <string name="editor_povtoryat_uvedomlenie_poka_zadacha_ne_zakryt">Повторять уведомление, пока задача не закрыта</string>
+    <string name="editor_vernut_v_rabotu">Вернуть в работу</string>
+    <string name="editor_vypolneno">Выполнено</string>
+    <string name="editor_zavtra">Завтра</string>
+    <string name="editor_data">Дата</string>
+    <string name="editor_bez_sroka">Без срока</string>
+    <string name="editor_schitat_ot_fakta_vypolneniya_a_ne_ot_plana">Считать от факта выполнения, а не от плана</string>
+    <string name="timebox_raskladyvayu">Раскладываю…</string>
+    <string name="timebox_razlozhit_den">Разложить день</string>
+    <string name="timebox_1_s_00_2_s_00_bufer_3_s_min">%1$s:00–%2$s:00 · буфер %3$s мин</string>
+    <string name="timebox_bufer_1_s">буфер %1$s</string>
+    <string name="timebox_net_dostupa_k_kalendaryu_sobytiya_uchityvats">Нет доступа к календарю — события учитываться не будут. Разрешение запрашивается в настройках системы</string>
+    <string name="timebox_ne_vlezlo_1_s_chast_zadach_pridetsya_vynesti">Не влезло %1$s — часть задач придётся вынести на завтра</string>
+    <string name="timebox_den_razlozhen">День разложен</string>
+    <string name="timebox_den_ne_vmeschaet_vse">День не вмещает всё</string>
+    <string name="timebox_ne_hvataet_1_s">Не хватает %1$s</string>
+    <string name="timebox_bez_ocenki_vremeni_ne_raskladyvayutsya">Без оценки времени — не раскладываются:</string>
+    <string name="timebox_otkrepit">Открепить</string>
+    <string name="timebox_zakrepit_ne_dvigat">Закрепить: не двигать</string>
+    <string name="today_rekord_1_s"> · рекорд %1$s</string>
+    <string name="today_prosrocheno">Просрочено</string>
+    <string name="today_na_segodnya_nichego_ne_zaplanirovano">На сегодня ничего не запланировано</string>
+    <string name="today_sdelano_1_s_iz_2_s">Сделано %1$s из %2$s</string>
+    <string name="app_name">Ashwake</string>
+    <string name="widget_tasks">Задачи на сегодня</string>
+    <string name="widget_habits">Привычки</string>
+    <string name="widget_heatmap">Календарь привычки</string>
+    <string name="widget_abstinence">Счётчик отказа</string>
+    <string name="widget_quick">Быстрые действия</string>
+    <string name="tile_pomodoro">Помодоро</string>
+
+    <!-- Вынесено из кода tools/strings/extract.py -->
+    <string name="blocking_poka_ne_otmecheny_utrennie_privychki">Пока не отмечены утренние привычки</string>
+    <string name="blocking_poka_ne_proydena_rutina">Пока не пройдена рутина</string>
+    <string name="blocking_otkroetsya_v">Откроется в </string>
+    <string name="blocking_privychki">привычки</string>
+    <string name="blocking_rutina">рутина</string>
+    <string name="blocking_vremya">время</string>
+    <string name="character_monety">монеты</string>
+    <string name="character_monety_za_1_s">монеты за %1$s</string>
+    <string name="character_monety_utrom">монеты утром</string>
+    <string name="character_monety_nochyu">монеты ночью</string>
+    <string name="character_opyt">опыт</string>
+    <string name="character_stoykost_score">стойкость score</string>
+    <string name="character_schit_serii">щит серии</string>
+    <string name="character_za_punktualnost">за пунктуальность</string>
+    <string name="character_za_rannee_vypolnenie">за раннее выполнение</string>
+    <string name="character_za_kombo">за комбо</string>
+    <string name="character_za_den_otkaza">за день отказа</string>
+    <string name="character_za_perezhdennuyu_tyagu">за переждённую тягу</string>
+    <string name="character_za_pomodoro">за помодоро</string>
+    <string name="character_za_rutinu">за рутину</string>
+    <string name="character_za_srochnye_zadachi">за срочные задачи</string>
+    <string name="character_udacha_v_nagradah">удача в наградах</string>
+    <string name="character_perebrosy_nagrady">перебросы награды</string>
+    <string name="character_smyagchenie_prosrochki">смягчение просрочки</string>
+    <string name="components_seriya_1_s">серия %1$s</string>
+    <string name="components_zamorozki_1_s">заморозки %1$s</string>
+    <string name="components_pauza">пауза</string>
+    <string name="components_kazhdyy_den">каждый день</string>
+    <string name="components_1_s_raza_v_nedelyu">%1$s раза в неделю</string>
+    <string name="components_cherez_den">через день</string>
+    <string name="components_po_dnyam_nedeli">по дням недели</string>
+    <string name="components_raz_v_dve_nedeli">раз в две недели</string>
+    <string name="components_otkaz"> · отказ</string>
+    <string name="components_minimum_1_s_2"> · минимум %1$s</string>
+    <string name="editor_chekboks">чекбокс</string>
+    <string name="editor_schetchik">счётчик</string>
+    <string name="editor_negativnaya">негативная</string>
+    <string name="editor_n_raz_v_nedelyu">N раз в неделю</string>
+    <string name="editor_po_dnyam">по дням</string>
+    <string name="editor_raz_v_2_nedeli">раз в 2 недели</string>
+    <string name="editor_zdorove">здоровье</string>
+    <string name="editor_sport">спорт</string>
+    <string name="editor_ucheba">учёба</string>
+    <string name="editor_byt">быт</string>
+    <string name="editor_mentalnoe">ментальное</string>
+    <string name="editor_posle_privychki">после привычки</string>
+    <string name="editor_posle_rutiny">после рутины</string>
+    <string name="editor_pervaya_razblokirovka">первая разблокировка</string>
+    <string name="editor_posle_zadachi_s_tegom">после задачи с тегом</string>
+    <string name="editor_po_vremeni">по времени</string>
+    <string name="calendar_mesyac">Месяц</string>
+    <string name="calendar_den">День</string>
+    <string name="components_segodnya">сегодня</string>
+    <string name="components_vchera">вчера</string>
+    <string name="components_1_sm">%1$sм</string>
+    <string name="components_1_sch">%1$sч</string>
+    <string name="components_1_sch_2_sm">%1$sч %2$sм</string>
+    <string name="editor_kazhdye_n_dney_2">каждые N дней</string>
+    <string name="editor_n_e_chislo">N-е число</string>
+    <string name="editor_1_s_ch">%1$s ч</string>
+    <string name="editor_1_s_ch_2_s">%1$s ч %2$s</string>
+
+    <!-- Вынесено из кода tools/strings/extract.py -->
+
+    <!-- Названия акцентов -->
+    <string name="accent_violet">Фиалковый</string>
+    <string name="accent_ember">Угольный жар</string>
+    <string name="accent_amber">Янтарь</string>
+    <string name="accent_mint">Мята</string>
+    <string name="accent_azure">Лазурь</string>
+    <string name="accent_indigo">Индиго</string>
+    <string name="accent_rose">Роза</string>
+    <string name="accent_lime">Лайм</string>
+
+    <!-- Режимы темы -->
+    <string name="theme_mode_dark">Тёмная</string>
+    <string name="theme_mode_light">Светлая</string>
+    <string name="theme_mode_system">Как в системе</string>
+
+    <!-- Оформление: фон, углы, плотность -->
+    <string name="background_ink">Чернильный</string>
+    <string name="background_ink_note">Тёмный с холодным подтоном</string>
+    <string name="background_black">Чёрный</string>
+    <string name="background_black_note">Экономит батарею на OLED</string>
+    <string name="background_graphite">Графит</string>
+    <string name="background_graphite_note">Светлее, мягче контраст</string>
+    <string name="corner_continuous">Непрерывное</string>
+    <string name="corner_rounded">Обычное</string>
+    <string name="corner_sharp">Прямое</string>
+    <string name="density_compact">Плотно</string>
+    <string name="density_normal">Обычно</string>
+    <string name="density_spacious">Просторно</string>
+
+    <!-- Названия разделов -->
+    <string name="nav_today">Сегодня</string>
+    <string name="nav_tasks">Задачи</string>
+    <string name="nav_habits">Привычки</string>
+    <string name="nav_more">Ещё</string>
+    <string name="nav_abstinence">Отказы</string>
+    <string name="nav_character">Персонаж</string>
+    <string name="nav_timers">Таймеры</string>
+    <string name="nav_stats">Статистика</string>
+    <string name="nav_settings">Настройки</string>
+
+    <!-- Квадранты матрицы Эйзенхауэра -->
+    <string name="quadrant_urgent_important">Срочно и важно</string>
+    <string name="quadrant_urgent_important_action">сделать</string>
+    <string name="quadrant_important">Важно, не срочно</string>
+    <string name="quadrant_important_action">запланировать</string>
+    <string name="quadrant_urgent">Срочно, не важно</string>
+    <string name="quadrant_urgent_action">делегировать</string>
+    <string name="quadrant_neither">Не срочно, не важно</string>
+    <string name="quadrant_neither_action">удалить</string>
+
+    <!-- Сообщения вью-моделей -->
+    <string name="character_predmet_esche_ne_kuplen">Предмет ещё не куплен</string>
+    <string name="character_kupleno_1_s">Куплено: %1$s</string>
+    <string name="character_ne_hvataet_monet">Не хватает монет</string>
+    <string name="character_uzhe_est">Уже есть</string>
+    <string name="character_ne_prodaetsya_tolko_za_dostizhenie">Не продаётся: только за достижение</string>
+    <string name="character_ne_hvataet">Не хватает: </string>
+    <string name="character_uluchsheno">Улучшено</string>
+    <string name="character_uluchshit_nelzya">Улучшить нельзя</string>
+    <string name="character_obraz_1_s">Образ %1$s</string>
+    <string name="character_obraz_1_s_sohranen">Образ %1$s сохранён</string>
+    <string name="character_portret_sohranen_v_galereyu">Портрет сохранён в галерею</string>
+    <string name="character_ne_udalos_podgotovit_kartinku">Не удалось подготовить картинку</string>
+    <string name="character_podelitsya_portretom">Поделиться портретом</string>
+    <string name="character_sila">Сила</string>
+    <string name="character_lovkost">Ловкость</string>
+    <string name="character_vynoslivost">Выносливость</string>
+    <string name="character_intellekt">Интеллект</string>
+    <string name="character_volya">Воля</string>
+    <string name="character_udacha">Удача</string>
+    <string name="backup_papka_vybrana_kopiya_delaetsya_raz_v_sutki">Папка выбрана. Копия делается раз в сутки</string>
+    <string name="backup_sohraneno_1_s_2_s_zapisey">Сохранено: %1$s · %2$s записей</string>
+    <string name="backup_snachala_vyberite_papku">Сначала выберите папку</string>
+    <string name="backup_dannye_vosstanovleny_1_s_zapisey">Данные восстановлены: %1$s записей</string>
+    <string name="backup_arhiv_zashifrovan_nuzhen_parol">Архив зашифрован — нужен пароль</string>
+    <string name="backup_parol_ne_podoshel">Пароль не подошёл</string>
+    <string name="backup_fayl_ne_chitaetsya">Файл не читается</string>
+    <string name="backup_import_primenen">Импорт применён</string>
+    <string name="stats_podelitsya_itogami_goda">Поделиться итогами года</string>
+    <string name="stats_kartinka_sohranena_v_galereyu">Картинка сохранена в галерею</string>
+
+    <!-- Вынесено из кода tools/strings/extract.py -->
+    <string name="theme_krasnyy">Красный</string>
+    <string name="theme_oranzhevyy">Оранжевый</string>
+    <string name="theme_zelenyy">Зелёный</string>
+    <string name="theme_bez_metki">Без метки</string>
+    <string name="theme_srochno">срочно</string>
+    <string name="theme_vazhno">важно</string>
+    <string name="theme_obychnaya">обычная</string>
+    <string name="theme_potom">потом</string>
+    <string name="today_zadachi_1_s_iz_2_s">Задачи · %1$s из %2$s</string>
+    <string name="today_privychki_1_s_iz_2_s">Привычки · %1$s из %2$s</string>
+
+    <!-- Дни недели одной парой букв: календарь и выбор дней привычки -->
+    <string-array name="weekday_short">
+        <item>пн</item>
+        <item>вт</item>
+        <item>ср</item>
+        <item>чт</item>
+        <item>пт</item>
+        <item>сб</item>
+        <item>вс</item>
+    </string-array>
+
+    <!-- Роли цвета в редакторе темы -->
+    <string name="color_role_warm">Награда</string>
+    <string name="color_role_cold">Счётчик</string>
+    <string name="color_role_danger">Срыв</string>
+    <string name="color_role_success">Готово</string>
+
+    <!-- Длительность блока в шкале дня -->
+    <string name="duration_minutes">%1$s мин</string>
+    <string name="duration_hours">%1$s ч</string>
+    <string name="duration_hours_minutes">%1$s ч %2$s мин</string>
+
+    <!-- Тосты и сообщения, которые показывают из обработчиков -->
+    <string name="toast_postponed">Перенесено на завтра</string>
+    <string name="toast_undo">Отменить</string>
+    <string name="habits_freezes_spent">Заморозки на этот месяц закончились</string>
+
+    <!-- Сообщения вью-моделей -->
+    <string name="habitreminderrec_otmetit_za_segodnya">Отметить за сегодня</string>
+    <string name="habitreminderrec_cherez_chas">Через час</string>
+    <string name="blockingoverlay_prilozhenie_zablokirovano">Приложение заблокировано</string>
+    <string name="blockingoverlay_snachala_vot_eto">Сначала — вот это:</string>
+    <string name="blockingoverlay_otkryt_ashwake">Открыть Ashwake</string>
+    <string name="blockingoverlay_ekstrennyy_obhod_cherez_1_s">Экстренный обход через %1$s</string>
+    <string name="blockingoverlay_ekstrennyy_obhod">Экстренный обход</string>
+
+    <!-- Сообщения вью-моделей -->
+    <string name="ashwakenotificat_napominaniya_o_zadachah_v_tom_chisle_nastoyc">Напоминания о задачах, в том числе настойчивые</string>
+    <string name="ashwakenotificat_napominaniya_ob_otmetke_privychek">Напоминания об отметке привычек</string>
+    <string name="ashwakenotificat_vehi_i_podderzhka_pri_tyage">Вехи и поддержка при тяге</string>
+    <string name="ashwakenotificat_postoyannye_schetchiki">Постоянные счётчики</string>
+    <string name="ashwakenotificat_schetchiki_otkazov_taymery_fokusa_i_rutin">Счётчики отказов, таймеры фокуса и рутин</string>
+    <string name="sessionforegroun_taymer_zapuschen">Таймер запущен</string>
+    <string name="voiceinput_raspoznavanie_rechi_nedostupno">Распознавание речи недоступно</string>
+    <string name="voiceinput_nichego_ne_raspoznano">Ничего не распознано</string>
+    <string name="voiceinput_oshibka_zapisi_zvuka">Ошибка записи звука</string>
+    <string name="voiceinput_net_dostupa_k_mikrofonu">Нет доступа к микрофону</string>
+    <string name="voiceinput_raspoznavanie_trebuet_yazykovogo_paketa_na_u">Распознавание требует языкового пакета на устройстве</string>
+    <string name="voiceinput_ne_rasslyshal">Не расслышал</string>
+    <string name="voiceinput_raspoznavanie_uzhe_idet">Распознавание уже идёт</string>
+    <string name="voiceinput_ne_poluchilos_raspoznat">Не получилось распознать</string>
+
+    <!-- Сообщения вью-моделей -->
+    <string name="ritualworkers_dve_minuty_ocenit_den_razobrat_hvosty_nameti">Две минуты: оценить день, разобрать хвосты, наметить завтра</string>
+    <string name="ritualworkers_itogi_nedeli">Итоги недели</string>
+    <string name="ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7">Задачи %1$s, привычки %2$s%, ритуал %3$s из 7</string>
+
+    <!-- Надписи виджетов -->
+    <string name="abstinencewidget_schetchikov_net">Счётчиков нет</string>
+    <string name="abstinencewidget_zadacha">＋ Задача</string>
+    <string name="abstinencewidget_pomodoro">▶ Помодоро</string>
+    <string name="abstinencewidget_ritual">☾ Ритуал</string>
+    <string name="habitswidget_privychek_net">Привычек нет</string>
+    <string name="taskswidget_zadach_na_segodnya_net">Задач на сегодня нет</string>
 </resources>

@@ -1,5 +1,6 @@
 package dev.ashwake.ui.tasks.calendar
 
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,8 +57,6 @@ import dev.ashwake.R
 private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy")
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-private val WEEKDAY_LABELS = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
 
 /** Высота часа в сетке дня. Из неё же считаются высоты блоков по оценке времени. */
 private val HOUR_HEIGHT = 56.dp
@@ -201,7 +200,7 @@ private fun WeekStrip(
 @Composable
 private fun WeekdayHeader() {
     Row(Modifier.fillMaxWidth()) {
-        WEEKDAY_LABELS.forEach { label ->
+        stringArrayResource(R.array.weekday_short).forEach { label ->
             Text(
                 text = label,
                 style = AshTheme.type.footnote,
@@ -276,7 +275,7 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     if (tasks.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(
-                "На этот день задач нет",
+                stringResource(R.string.calendar_na_etot_den_zadach_net),
                 style = AshTheme.type.callout,
                 color = AshTheme.colors.text2
             )
@@ -329,7 +328,7 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         if (untimed.isNotEmpty()) {
             Text(
-                "Без времени",
+                stringResource(R.string.calendar_bez_vremeni),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2,
                 modifier = Modifier.padding(start = 12.dp, top = 8.dp)
@@ -401,10 +400,11 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     }
 }
 
+@Composable
 private fun scaleLabel(scale: CalendarScale): String = when (scale) {
-    CalendarScale.MONTH -> "Месяц"
-    CalendarScale.WEEK -> "Неделя"
-    CalendarScale.DAY -> "День"
+    CalendarScale.MONTH -> stringResource(R.string.calendar_mesyac)
+    CalendarScale.WEEK -> stringResource(R.string.stats_nedelya)
+    CalendarScale.DAY -> stringResource(R.string.calendar_den)
 }
 
 /** Локализованное имя дня недели — пригодится подписям в других экранах. */

@@ -45,7 +45,7 @@ fun HabitDetailScreen(
         containerColor = AshTheme.colors.background,
         topBar = {
             AshNavBar(
-                title = detail?.progress?.habit?.name ?: "Привычка",
+                title = detail?.progress?.habit?.name ?: stringResource(R.string.detail_privychka),
                 onBack = onBack,
                 actions = {
                     detail?.let { data ->
@@ -78,9 +78,9 @@ fun HabitDetailScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Metric("${(data.progress.score * 100).roundToInt()}%", "score")
-                Metric("${data.progress.currentStreak}", "серия")
-                Metric("${data.progress.recordStreak}", "рекорд")
-                Metric("${data.progress.freezesLeftThisMonth}", "заморозки")
+                Metric("${data.progress.currentStreak}", stringResource(R.string.detail_seriya))
+                Metric("${data.progress.recordStreak}", stringResource(R.string.components_rekord))
+                Metric("${data.progress.freezesLeftThisMonth}", stringResource(R.string.detail_zamorozki))
             }
 
             HorizontalDivider()
@@ -88,7 +88,7 @@ fun HabitDetailScreen(
             Text(stringResource(R.string.detail_rost_score), style = AshTheme.type.headline)
             ScoreChart(series = data.scoreSeries)
             Text(
-                "Пунктир — 80%: значение, к которому приходит идеально выполняемая привычка примерно за месяц",
+                stringResource(R.string.detail_punktir_80_znachenie_k_kotoromu_prihodit_ide),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -105,7 +105,7 @@ fun HabitDetailScreen(
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                "Тап по дню меняет отметку задним числом",
+                stringResource(R.string.detail_tap_po_dnyu_menyaet_otmetku_zadnim_chislom),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -142,14 +142,14 @@ private fun Statistics(data: dev.ashwake.domain.repository.habits.HabitDetail) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Metric("$done", "выполнено")
-        Metric("$minimum", "по минимуму")
-        Metric("$skipped", "пропущено")
+        Metric("$done", stringResource(R.string.detail_vypolneno))
+        Metric("$minimum", stringResource(R.string.detail_po_minimumu))
+        Metric("$skipped", stringResource(R.string.detail_propuscheno))
     }
     if (marked > 0) {
         Text(
             // Доля дней, закрытых по минимальной планке (п. 5)
-            "Доля дней по минимуму: ${(minimum * 100 / marked)}%",
+            stringResource(R.string.detail_dolya_dney_po_minimumu_1_s, (minimum * 100 / marked)),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2,
             textAlign = TextAlign.Start

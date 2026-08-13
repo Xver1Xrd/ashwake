@@ -49,6 +49,9 @@ fun HabitsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val presets by viewModel.presets.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    // Текст читается в композиции: показывают его из корутины,
+    // а туда `stringResource` не дотянется
+    val freezesSpent = stringResource(R.string.habits_freezes_spent)
     val scope = rememberCoroutineScope()
 
     var sheetTarget by remember { mutableStateOf<HabitWithProgress?>(null) }
@@ -98,7 +101,7 @@ fun HabitsScreen(
             if (state.vacationMode) {
                 item {
                     Text(
-                        "Режим отпуска: дни не считаются пропусками",
+                        stringResource(R.string.habits_rezhim_otpuska_dni_ne_schitayutsya_propuskam),
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.warm
                     )
@@ -118,7 +121,7 @@ fun HabitsScreen(
             if (state.restToday.isNotEmpty()) {
                 item {
                     Text(
-                        "Не на сегодня",
+                        stringResource(R.string.habits_ne_na_segodnya),
                         style = AshTheme.type.subhead,
                         color = AshTheme.colors.text2,
                         modifier = Modifier.padding(top = 12.dp)
@@ -147,7 +150,7 @@ fun HabitsScreen(
                     scope.launch {
                         val ok = viewModel.freezeToday(target)
                         sheetTarget = null
-                        if (!ok) snackbar.showSnackbar("Заморозки на этот месяц закончились")
+                        if (!ok) snackbar.showSnackbar(freezesSpent)
                     }
                 },
                 onPause = { viewModel.pauseHabit(target, null); sheetTarget = null },
@@ -179,7 +182,7 @@ private fun EmptyState(modifier: Modifier = Modifier) {
     ) {
         Text(stringResource(R.string.habits_privychek_poka_net), style = AshTheme.type.title3)
         Text(
-            "Возьмите готовую из каталога или заведите свою. Score растёт постепенно и не обнуляется от пары пропусков",
+            stringResource(R.string.habits_vozmite_gotovuyu_iz_kataloga_ili_zavedite_sv),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2,
             textAlign = TextAlign.Center,

@@ -63,6 +63,8 @@ fun TasksScreen(
     val voice by viewModel.voiceState.collectAsStateWithLifecycle()
     var showProjects by remember { mutableStateOf(false) }
     val toast = rememberToastState()
+    val postponedText = stringResource(R.string.toast_postponed)
+    val undoText = stringResource(R.string.toast_undo)
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
@@ -171,7 +173,7 @@ fun TasksScreen(
                                     onComplete = { viewModel.complete(task) },
                                     onPostpone = {
                                         viewModel.postponeToTomorrow(task)
-                                        toast.show("Перенесено на завтра", "Отменить") {
+                                        toast.show(postponedText, undoText) {
                                             viewModel.undoPostpone(task.id)
                                         }
                                     },
@@ -238,12 +240,12 @@ private fun EmptyState(onlyStale: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            if (onlyStale) "Залежавшихся задач нет" else "Пусто",
+            if (onlyStale) stringResource(R.string.tasks_zalezhavshihsya_zadach_net) else stringResource(R.string.tasks_pusto),
             style = AshTheme.type.title3
         )
         Text(
-            if (onlyStale) "Сюда попадают задачи после трёх переносов"
-            else "Добавьте задачу строкой снизу — дата, время, приоритет и теги разберутся сами",
+            if (onlyStale) stringResource(R.string.tasks_syuda_popadayut_zadachi_posle_treh_perenosov)
+            else stringResource(R.string.tasks_dobavte_zadachu_strokoy_snizu_data_vremya_pr),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2,
             textAlign = TextAlign.Center

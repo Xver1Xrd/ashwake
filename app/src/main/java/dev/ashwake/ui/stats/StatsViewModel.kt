@@ -1,5 +1,6 @@
 package dev.ashwake.ui.stats
 
+import dev.ashwake.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -75,16 +76,16 @@ class StatsViewModel @Inject constructor(
             if (share) {
                 val intent = imageExporter.shareIntent(bitmap, name)
                 if (intent == null) {
-                    _message.value = "Не удалось подготовить картинку"
+                    _message.value = context.getString(R.string.character_ne_udalos_podgotovit_kartinku)
                     return@launch
                 }
                 context.startActivity(
-                    Intent.createChooser(intent, "Поделиться итогами года")
+                    Intent.createChooser(intent, context.getString(R.string.stats_podelitsya_itogami_goda))
                         .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 )
             } else {
                 _message.value = when (val result = imageExporter.saveToGallery(bitmap, name)) {
-                    is ExportResult.Saved -> "Картинка сохранена в галерею"
+                    is ExportResult.Saved -> context.getString(R.string.stats_kartinka_sohranena_v_galereyu)
                     is ExportResult.Failed -> result.reason
                 }
             }

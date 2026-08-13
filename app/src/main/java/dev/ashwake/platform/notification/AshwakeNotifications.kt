@@ -1,5 +1,6 @@
 package dev.ashwake.platform.notification
 
+import dev.ashwake.R
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
@@ -25,24 +26,24 @@ object AshwakeNotifications {
 
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_TASKS, "Задачи", NotificationManager.IMPORTANCE_HIGH
-            ).apply { description = "Напоминания о задачах, в том числе настойчивые" }
+                CHANNEL_TASKS, context.getString(R.string.tasks_zadachi), NotificationManager.IMPORTANCE_HIGH
+            ).apply { description = context.getString(R.string.ashwakenotificat_napominaniya_o_zadachah_v_tom_chisle_nastoyc) }
         )
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_HABITS, "Привычки", NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { description = "Напоминания об отметке привычек" }
+                CHANNEL_HABITS, context.getString(R.string.habits_privychki), NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = context.getString(R.string.ashwakenotificat_napominaniya_ob_otmetke_privychek) }
         )
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_ABSTINENCE, "Отказы", NotificationManager.IMPORTANCE_DEFAULT
-            ).apply { description = "Вехи и поддержка при тяге" }
+                CHANNEL_ABSTINENCE, context.getString(R.string.abstinence_otkazy), NotificationManager.IMPORTANCE_DEFAULT
+            ).apply { description = context.getString(R.string.ashwakenotificat_vehi_i_podderzhka_pri_tyage) }
         )
         // Низкий приоритет: липкие счётчики и foreground-сервисы не должны звенеть
         manager.createNotificationChannel(
             NotificationChannel(
-                CHANNEL_ONGOING, "Постоянные счётчики", NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Счётчики отказов, таймеры фокуса и рутин" }
+                CHANNEL_ONGOING, context.getString(R.string.ashwakenotificat_postoyannye_schetchiki), NotificationManager.IMPORTANCE_LOW
+            ).apply { description = context.getString(R.string.ashwakenotificat_schetchiki_otkazov_taymery_fokusa_i_rutin) }
         )
     }
 }

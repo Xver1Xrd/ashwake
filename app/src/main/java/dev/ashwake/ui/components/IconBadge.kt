@@ -1,5 +1,7 @@
 package dev.ashwake.ui.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -148,7 +150,7 @@ fun IconPicker(
             verticalAlignment = Alignment.CenterVertically
         ) {
             ChipButton(
-                text = "Из галереи",
+                text = stringResource(R.string.components_iz_galerei),
                 icon = AshIcons.Download,
                 onClick = {
                     picker.launch(
@@ -159,7 +161,7 @@ fun IconPicker(
             if (iconPath != null) {
                 ImageIcon(iconPath, size = 34.dp)
                 ChipButton(
-                    text = "Убрать",
+                    text = stringResource(R.string.editor_ubrat),
                     icon = AshIcons.Close,
                     onClick = {
                         store?.delete(iconPath)
@@ -178,7 +180,7 @@ fun IconPicker(
 
         if (iconPath != null && emoji != null) {
             Text(
-                "Показывается картинка. Уберите её, чтобы вернуть эмодзи",
+                stringResource(R.string.components_pokazyvaetsya_kartinka_uberite_ee_chtoby_ver),
                 style = AshTheme.type.footnote,
                 color = colors.text2,
                 modifier = Modifier.padding(start = 4.dp)
@@ -222,7 +224,7 @@ fun IconButtonSlot(
             fallback = {
                 Icon(
                     AshIcons.AutoAwesome,
-                    contentDescription = "Выбрать значок",
+                    contentDescription = stringResource(R.string.components_vybrat_znachok),
                     tint = colors.text3,
                     modifier = Modifier.size(22.dp)
                 )

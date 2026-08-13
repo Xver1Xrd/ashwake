@@ -72,7 +72,7 @@ fun StatsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                listOf("Неделя", "Связи", "Год").forEachIndexed { index, label ->
+                listOf(stringResource(R.string.stats_nedelya), stringResource(R.string.stats_svyazi), stringResource(R.string.stats_god)).forEachIndexed { index, label ->
                     SegmentedButton(
                         selected = tab == index,
                         onClick = { tab = index },
@@ -115,9 +115,9 @@ private fun WeeklyBlock(report: WeeklyReport) {
         style = AshTheme.type.headline
     )
 
-    TrendRow("Задачи закрыты", report.tasksCompleted) { it.toString() }
-    TrendRow("Отметки привычек", report.habitMarks) { it.toString() }
-    TrendRow("Фокус", report.focusSeconds) { formatTime(it.toInt()) }
+    TrendRow(stringResource(R.string.stats_zadachi_zakryty), report.tasksCompleted) { it.toString() }
+    TrendRow(stringResource(R.string.stats_otmetki_privychek), report.habitMarks) { it.toString() }
+    TrendRow(stringResource(R.string.focus_fokus), report.focusSeconds) { formatTime(it.toInt()) }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -132,14 +132,14 @@ private fun WeeklyBlock(report: WeeklyReport) {
     }
 
     Text(
-        "Ритуал пройден ${report.ritualDays} из 7 дней",
+        stringResource(R.string.stats_ritual_proyden_1_s_iz_7_dney, report.ritualDays),
         style = AshTheme.type.footnote,
         color = AshTheme.colors.text2
     )
 
     report.averageMood?.let {
         Text(
-            "Среднее настроение %.1f".format(it),
+            stringResource(R.string.stats_srednee_nastroenie_1f).format(it),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2
         )
@@ -149,7 +149,7 @@ private fun WeeklyBlock(report: WeeklyReport) {
         HorizontalDivider()
         Text(stringResource(R.string.stats_schetchiki_otkazov), style = AshTheme.type.subhead)
         report.abstinenceDays.forEach { (name, days) ->
-            Text("$name — $days дн.", style = AshTheme.type.subhead)
+            Text(stringResource(R.string.stats_1_s_2_s_dn, name, days), style = AshTheme.type.subhead)
         }
     }
 }
@@ -189,7 +189,7 @@ private fun CorrelationsBlock(
     if (!report.hasEnoughData) {
         // Меньше двух недель — выводов не делаем вовсе
         Text(
-            "Пока мало данных: связи считаются от 14 дней с заполненным ритуалом. Сейчас ${report.sampleDays}",
+            stringResource(R.string.stats_poka_malo_dannyh_svyazi_schitayutsya_ot_14_d, report.sampleDays),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2
         )
@@ -218,7 +218,7 @@ private fun CorrelationsBlock(
     }
     if (positive.isEmpty() && negative.isEmpty()) {
         Text(
-            "Заметных связей не нашлось",
+            stringResource(R.string.stats_zametnyh_svyazey_ne_nashlos),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2
         )
@@ -230,7 +230,7 @@ private fun PairRow(viewModel: StatsViewModel, pair: CorrelationPair) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(viewModel.describe(pair), style = AshTheme.type.callout)
         Text(
-            "коэффициент %.2f · выборка %d дней".format(pair.coefficient, pair.sampleSize),
+            stringResource(R.string.stats_koefficient_2f_vyborka_d_dney).format(pair.coefficient, pair.sampleSize),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2
         )
@@ -239,11 +239,11 @@ private fun PairRow(viewModel: StatsViewModel, pair: CorrelationPair) {
 
 @Composable
 private fun YearBlock(summary: YearSummary) {
-    Text("Год ${summary.year} в цифрах", style = AshTheme.type.headline)
+    Text(stringResource(R.string.stats_god_1_s_v_cifrah, summary.year), style = AshTheme.type.headline)
 
     if (!summary.hasData) {
         Text(
-            "За этот год данных пока нет",
+            stringResource(R.string.stats_za_etot_god_dannyh_poka_net),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2
         )
@@ -254,31 +254,31 @@ private fun YearBlock(summary: YearSummary) {
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Metric("${summary.tasksCompleted}", "задач")
-        Metric("${summary.habitMarks}", "отметок")
-        Metric("${summary.longestStreak}", "рекорд серии")
+        Metric("${summary.tasksCompleted}", stringResource(R.string.stats_zadach))
+        Metric("${summary.habitMarks}", stringResource(R.string.stats_otmetok))
+        Metric("${summary.longestStreak}", stringResource(R.string.stats_rekord_serii))
     }
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        Metric(formatTime(summary.focusSeconds.toInt()), "фокус")
-        Metric("${summary.cleanDays}", "чистых дней")
+        Metric(formatTime(summary.focusSeconds.toInt()), stringResource(R.string.stats_fokus))
+        Metric("${summary.cleanDays}", stringResource(R.string.stats_chistyh_dney))
     }
 
     HorizontalDivider()
     summary.longestStreakHabit?.let {
-        Text("Самая длинная серия: $it", style = AshTheme.type.callout)
+        Text(stringResource(R.string.stats_samaya_dlinnaya_seriya_1_s, it), style = AshTheme.type.callout)
     }
     summary.mostStableHabit?.let {
-        Text("Самая стабильная: $it", style = AshTheme.type.callout, color = Moss)
+        Text(stringResource(R.string.stats_samaya_stabilnaya_1_s, it), style = AshTheme.type.callout, color = Moss)
     }
     summary.mostProblematicHabit?.let {
-        Text("Самая проблемная: $it", style = AshTheme.type.callout, color = Ember)
+        Text(stringResource(R.string.stats_samaya_problemnaya_1_s, it), style = AshTheme.type.callout, color = Ember)
     }
     summary.bestMonth?.let {
         Text(
-            "Лучший месяц: ${it.month.value}.${it.year}",
+            stringResource(R.string.stats_luchshiy_mesyac_1_s_2_s, it.month.value, it.year),
             style = AshTheme.type.footnote,
             color = Gold
         )

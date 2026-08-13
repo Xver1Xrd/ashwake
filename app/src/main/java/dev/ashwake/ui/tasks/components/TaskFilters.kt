@@ -105,7 +105,7 @@ fun ProjectsDialog(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (projects.isEmpty()) {
                     Text(
-                        "Пока ни одного проекта",
+                        stringResource(R.string.components_poka_ni_odnogo_proekta),
                         style = AshTheme.type.callout,
                         color = AshTheme.colors.text2
                     )

@@ -1,5 +1,8 @@
 package dev.ashwake.ui.character
 
+import dev.ashwake.core.model.Stat
+import androidx.annotation.StringRes
+import dev.ashwake.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -112,7 +115,7 @@ class CharacterViewModel @Inject constructor(
 
     fun equip(item: EquipItem) {
         viewModelScope.launch {
-            if (!character.equip(item.id)) _message.value = "Предмет ещё не куплен"
+            if (!character.equip(item.id)) _message.value = context.getString(R.string.character_predmet_esche_ne_kuplen)
             else _preview.value = null
         }
     }
@@ -130,14 +133,14 @@ class CharacterViewModel @Inject constructor(
             _message.value = when (val result = character.buy(item.id)) {
                 PurchaseResult.Success -> {
                     character.equip(item.id)
-                    "Куплено: ${item.name}"
+                    context.getString(R.string.character_kupleno_1_s, item.name)
                 }
-                PurchaseResult.NotEnoughCoins -> "Не хватает монет"
-                PurchaseResult.AlreadyOwned -> "Уже есть"
-                PurchaseResult.NotForSale -> "Не продаётся: только за достижение"
+                PurchaseResult.NotEnoughCoins -> context.getString(R.string.character_ne_hvataet_monet)
+                PurchaseResult.AlreadyOwned -> context.getString(R.string.character_uzhe_est)
+                PurchaseResult.NotForSale -> context.getString(R.string.character_ne_prodaetsya_tolko_za_dostizhenie)
                 is PurchaseResult.RequirementsNotMet ->
-                    "Не хватает: " + result.missing.entries.joinToString {
-                        "${statTitle(it.key)} +${it.value}"
+                    context.getString(R.string.character_ne_hvataet) + result.missing.entries.joinToString {
+                        "${context.getString(it.key.titleRes)} +${it.value}"
                     }
             }
         }
@@ -156,9 +159,9 @@ class CharacterViewModel @Inject constructor(
     fun upgrade(item: EquipItem) {
         viewModelScope.launch {
             _message.value = when (character.upgrade(item.id, upgradeCost(item))) {
-                PurchaseResult.Success -> "Улучшено"
-                PurchaseResult.NotEnoughCoins -> "Не хватает монет"
-                else -> "Улучшить нельзя"
+                PurchaseResult.Success -> context.getString(R.string.character_uluchsheno)
+                PurchaseResult.NotEnoughCoins -> context.getString(R.string.character_ne_hvataet_monet)
+                else -> context.getString(R.string.character_uluchshit_nelzya)
             }
         }
     }
@@ -167,8 +170,8 @@ class CharacterViewModel @Inject constructor(
 
     fun savePreset(index: Int) {
         viewModelScope.launch {
-            character.savePreset(index, "Образ ${index + 1}")
-            _message.value = "Образ ${index + 1} сохранён"
+            character.savePreset(index, context.getString(R.string.character_obraz_1_s, index + 1))
+            _message.value = context.getString(R.string.character_obraz_1_s_sohranen, index + 1)
         }
     }
 
@@ -193,7 +196,7 @@ class CharacterViewModel @Inject constructor(
                 frame = true
             )
             _message.value = when (val result = imageExporter.saveToGallery(bitmap, portraitName())) {
-                is ExportResult.Saved -> "Портрет сохранён в галерею"
+                is ExportResult.Saved -> context.getString(R.string.character_portret_sohranen_v_galereyu)
                 is ExportResult.Failed -> result.reason
             }
         }
@@ -210,11 +213,11 @@ class CharacterViewModel @Inject constructor(
             )
             val intent = imageExporter.shareIntent(bitmap, portraitName())
             if (intent == null) {
-                _message.value = "Не удалось подготовить картинку"
+                _message.value = context.getString(R.string.character_ne_udalos_podgotovit_kartinku)
                 return@launch
             }
             context.startActivity(
-                Intent.createChooser(intent, "Поделиться портретом")
+                Intent.createChooser(intent, context.getString(R.string.character_podelitsya_portretom))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             )
         }
@@ -240,11 +243,20 @@ class CharacterViewModel @Inject constructor(
     }
 }
 
-internal fun statTitle(stat: dev.ashwake.core.model.Stat): String = when (stat) {
-    dev.ashwake.core.model.Stat.STRENGTH -> "Сила"
-    dev.ashwake.core.model.Stat.AGILITY -> "Ловкость"
-    dev.ashwake.core.model.Stat.ENDURANCE -> "Выносливость"
-    dev.ashwake.core.model.Stat.INTELLECT -> "Интеллект"
-    dev.ashwake.core.model.Stat.WILL -> "Воля"
-    dev.ashwake.core.model.Stat.LUCK -> "Удача"
-}
+/**
+ * Название характеристики — идентификатором ресурса, а не готовой строкой.
+ *
+ * Спрашивают его и вью-модель (для сообщения в тосте, где композиции нет), и
+ * экран. Отдавать текст значило бы протаскивать `Context` в композицию или
+ * заводить две функции с одинаковым смыслом.
+ */
+@get:StringRes
+internal val Stat.titleRes: Int
+    get() = when (this) {
+        Stat.STRENGTH -> R.string.character_sila
+        Stat.AGILITY -> R.string.character_lovkost
+        Stat.ENDURANCE -> R.string.character_vynoslivost
+        Stat.INTELLECT -> R.string.character_intellekt
+        Stat.WILL -> R.string.character_volya
+        Stat.LUCK -> R.string.character_udacha
+    }

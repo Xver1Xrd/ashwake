@@ -68,7 +68,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
             if (run.active) {
                 Text(
                     phaseTitle(run.phase) +
-                        if (run.mode == FocusMode.POMODORO) " · помидор ${run.pomodoroNumber}"
+                        if (run.mode == FocusMode.POMODORO) stringResource(R.string.focus_pomidor_1_s, run.pomodoroNumber)
                         else "",
                     style = AshTheme.type.title3,
                     color = if (run.phase == FocusPhase.WORK) Moss else Gold
@@ -103,7 +103,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     ) {
                         Icon(
                             if (run.running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                            contentDescription = if (run.running) "Пауза" else "Продолжить"
+                            contentDescription = if (run.running) stringResource(R.string.detail_pauza) else stringResource(R.string.focus_prodolzhit)
                         )
                     }
                     if (run.mode == FocusMode.POMODORO) {
@@ -122,7 +122,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
 
                 if (run.completedPomodoros > 0) {
                     Text(
-                        "Помидоров за сессию: ${run.completedPomodoros}",
+                        stringResource(R.string.focus_pomidorov_za_sessiyu_1_s, run.completedPomodoros),
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.text2
                     )
@@ -133,7 +133,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     style = AshTheme.type.title1
                 )
                 Text(
-                    "Длинный перерыв ${config.longBreakMinutes} мин каждые ${config.longBreakEvery} помидора",
+                    stringResource(R.string.focus_dlinnyy_pereryv_1_s_min_kazhdye_2_s_pomidora, config.longBreakMinutes, config.longBreakEvery),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -186,13 +186,13 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Metric(formatTime(stats.totalSeconds.toInt()), "всего")
-                Metric("${stats.sessions}", "сессий")
+                Metric(formatTime(stats.totalSeconds.toInt()), stringResource(R.string.focus_vsego))
+                Metric("${stats.sessions}", stringResource(R.string.focus_sessiy))
                 Metric(
                     if (stats.sessions > 0)
                         formatTime((stats.totalSeconds / stats.sessions).toInt())
                     else "—",
-                    "в среднем"
+                    stringResource(R.string.focus_v_srednem)
                 )
             }
 
@@ -237,7 +237,7 @@ private fun Metric(value: String, label: String) {
 /** Столбики по дням недели: где фокус проседает, видно сразу. */
 @Composable
 private fun WeekdayChart(byWeekday: Map<Int, Long>) {
-    val labels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
+    val labels = listOf(stringResource(R.string.components_pn), stringResource(R.string.components_vt), stringResource(R.string.components_sr), stringResource(R.string.components_cht), stringResource(R.string.components_pt), stringResource(R.string.components_sb), stringResource(R.string.components_vs))
     val max = byWeekday.values.maxOrNull() ?: 0L
     if (max == 0L) return
     val accent = AshTheme.colors.accent

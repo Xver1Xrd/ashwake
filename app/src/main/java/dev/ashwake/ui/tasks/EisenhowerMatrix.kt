@@ -1,5 +1,7 @@
 package dev.ashwake.ui.tasks
 
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,11 +46,16 @@ import dev.ashwake.ui.theme.PriorityColors
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
-private val QUADRANT_TITLES = mapOf(
-    EisenhowerQuadrant.URGENT_IMPORTANT to ("Срочно и важно" to "сделать"),
-    EisenhowerQuadrant.NOT_URGENT_IMPORTANT to ("Важно, не срочно" to "запланировать"),
-    EisenhowerQuadrant.URGENT_NOT_IMPORTANT to ("Срочно, не важно" to "делегировать"),
-    EisenhowerQuadrant.NOT_URGENT_NOT_IMPORTANT to ("Не срочно, не важно" to "удалить")
+/** Заголовок квадранта и глагол под ним — что с такими задачами делают. */
+private val QUADRANT_TITLES: Map<EisenhowerQuadrant, Pair<Int, Int>> = mapOf(
+    EisenhowerQuadrant.URGENT_IMPORTANT to
+        (R.string.quadrant_urgent_important to R.string.quadrant_urgent_important_action),
+    EisenhowerQuadrant.NOT_URGENT_IMPORTANT to
+        (R.string.quadrant_important to R.string.quadrant_important_action),
+    EisenhowerQuadrant.URGENT_NOT_IMPORTANT to
+        (R.string.quadrant_urgent to R.string.quadrant_urgent_action),
+    EisenhowerQuadrant.NOT_URGENT_NOT_IMPORTANT to
+        (R.string.quadrant_neither to R.string.quadrant_neither_action)
 )
 
 /**
@@ -145,7 +152,9 @@ private fun QuadrantCell(
     onDrag: (Offset) -> Unit,
     onDragEnd: () -> Unit
 ) {
-    val (title, action) = QUADRANT_TITLES.getValue(quadrant)
+    val (titleRes, actionRes) = QUADRANT_TITLES.getValue(quadrant)
+    val title = stringResource(titleRes)
+    val action = stringResource(actionRes)
     val accent = PriorityColors[quadrant.ordinal]
 
     Column(

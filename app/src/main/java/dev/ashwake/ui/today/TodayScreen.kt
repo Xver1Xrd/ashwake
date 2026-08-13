@@ -87,6 +87,8 @@ fun TodayScreen(
     val colors = AshTheme.colors
     val coins = rememberCoinFlightState()
     val toast = rememberToastState()
+    val postponedText = stringResource(R.string.toast_postponed)
+    val undoText = stringResource(R.string.toast_undo)
 
     Box(Modifier.fillMaxSize()) {
     LazyColumn(
@@ -160,7 +162,7 @@ fun TodayScreen(
                 AppearingGroup(order = 0) {
                     ListGroup(
                         items = state.overdueTasks,
-                        header = "Просрочено",
+                        header = stringResource(R.string.today_prosrocheno),
                         dividerInset = 62.dp
                     ) { task ->
                         TaskTodayRow(
@@ -177,7 +179,7 @@ fun TodayScreen(
                                 // Свайп применяется сразу, поэтому промах по
                                 // нему обязан лечиться одним нажатием, пока
                                 // человек ещё смотрит на экран
-                                toast.show("Перенесено на завтра", "Отменить") {
+                                toast.show(postponedText, undoText) {
                                     viewModel.undoPostpone(task.id)
                                 }
                             },
@@ -193,7 +195,7 @@ fun TodayScreen(
                 AppearingGroup(order = 1) {
                     ListGroup(
                         items = state.todayTasks,
-                        header = "Задачи · ${state.todayTasks.count { it.isDone }} из ${state.todayTasks.size}",
+                        header = stringResource(R.string.today_zadachi_1_s_iz_2_s, state.todayTasks.count { it.isDone }, state.todayTasks.size),
                         dividerInset = 62.dp
                     ) { task ->
                         TaskTodayRow(
@@ -210,7 +212,7 @@ fun TodayScreen(
                                 // Свайп применяется сразу, поэтому промах по
                                 // нему обязан лечиться одним нажатием, пока
                                 // человек ещё смотрит на экран
-                                toast.show("Перенесено на завтра", "Отменить") {
+                                toast.show(postponedText, undoText) {
                                     viewModel.undoPostpone(task.id)
                                 }
                             },
@@ -226,7 +228,7 @@ fun TodayScreen(
                 AppearingGroup(order = 2) {
                     ListGroup(
                         items = state.habits,
-                        header = "Привычки · ${state.habits.count { it.doneToday }} из ${state.habits.size}",
+                        header = stringResource(R.string.today_privychki_1_s_iz_2_s, state.habits.count { it.doneToday }, state.habits.size),
                         dividerInset = 56.dp
                     ) { progress ->
                         HabitTodayRow(
@@ -353,7 +355,7 @@ private fun HeroCard(
                         color = colors.text
                     )
                     Text(
-                        text = "Уровень ${state.character.level}",
+                        text = stringResource(R.string.character_uroven_1_s, state.character.level),
                         style = AshTheme.type.subhead,
                         color = colors.text2
                     )
@@ -441,8 +443,8 @@ private fun DayProgress(progress: Float, done: Int, total: Int) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = if (total == 0) "На сегодня ничего не запланировано"
-                else "Сделано $done из $total",
+                text = if (total == 0) stringResource(R.string.today_na_segodnya_nichego_ne_zaplanirovano)
+                else stringResource(R.string.today_sdelano_1_s_iz_2_s, done, total),
                 style = AshTheme.type.footnote,
                 color = colors.text2,
                 modifier = Modifier.weight(1f)

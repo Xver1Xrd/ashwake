@@ -14,6 +14,17 @@
         <item quantity="other">%d дня</item>
     </plurals>
 
+    <!--
+      Только слово, без числа: на счётчике отказа цифра рисуется отдельно
+      и с перекатом разрядов, поэтому подставлять её сюда нечего.
+    -->
+    <plurals name="day_word">
+        <item quantity="one">день</item>
+        <item quantity="few">дня</item>
+        <item quantity="many">дней</item>
+        <item quantity="other">дня</item>
+    </plurals>
+
     <plurals name="days_clean">
         <item quantity="one">%d чистый день</item>
         <item quantity="few">%d чистых дня</item>

@@ -1,5 +1,8 @@
 package dev.ashwake.ui.settings.theme
 
+import androidx.annotation.StringRes
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -83,11 +86,11 @@ fun ThemeEditorScreen(
             .background(colors.background)
     ) {
         AshNavBar(
-            title = "Оформление",
+            title = stringResource(R.string.settings_oformlenie),
             onBack = onBack,
             actions = {
                 if (theme.isCustomized) {
-                    TextAction(text = "Сброс", onClick = viewModel::reset)
+                    TextAction(text = stringResource(R.string.theme_sbros), onClick = viewModel::reset)
                 }
             }
         )
@@ -102,11 +105,11 @@ fun ThemeEditorScreen(
         ) {
             Preview()
 
-            Section("Тема") {
+            Section(stringResource(R.string.theme_tema)) {
                 ChipRow {
                     ThemeMode.entries.forEach { mode ->
                         ChipButton(
-                            text = mode.title,
+                            text = stringResource(mode.titleRes),
                             selected = theme.mode == mode,
                             onClick = { viewModel.update { it.copy(mode = mode) } }
                         )
@@ -117,13 +120,13 @@ fun ThemeEditorScreen(
             AccentSection(theme, viewModel)
 
             Section(
-                title = "Фон",
-                footer = theme.background.note
+                title = stringResource(R.string.theme_fon),
+                footer = stringResource(theme.background.noteRes)
             ) {
                 ChipRow {
                     BackgroundStyle.entries.forEach { style ->
                         ChipButton(
-                            text = style.title,
+                            text = stringResource(style.titleRes),
                             selected = theme.background == style,
                             onClick = { viewModel.update { it.copy(background = style) } }
                         )
@@ -134,17 +137,17 @@ fun ThemeEditorScreen(
             SemanticColorsSection(theme, viewModel)
 
             Section(
-                title = "Форма углов",
+                title = stringResource(R.string.theme_forma_uglov),
                 footer = when (theme.corner) {
-                    CornerStyle.CONTINUOUS -> "Кривизна нарастает плавно, как в iOS"
-                    CornerStyle.ROUNDED -> "Обычная дуга окружности"
-                    CornerStyle.SHARP -> "Совсем без скруглений"
+                    CornerStyle.CONTINUOUS -> stringResource(R.string.theme_krivizna_narastaet_plavno_kak_v_ios)
+                    CornerStyle.ROUNDED -> stringResource(R.string.theme_obychnaya_duga_okruzhnosti)
+                    CornerStyle.SHARP -> stringResource(R.string.theme_sovsem_bez_skrugleniy)
                 }
             ) {
                 ChipRow {
                     CornerStyle.entries.forEach { style ->
                         ChipButton(
-                            text = style.title,
+                            text = stringResource(style.titleRes),
                             selected = theme.corner == style,
                             onClick = { viewModel.update { it.copy(corner = style) } }
                         )
@@ -153,8 +156,8 @@ fun ThemeEditorScreen(
             }
 
             Section(
-                title = "Скругление · ${(theme.cornerScale * 100).roundToInt()}%",
-                footer = "Множитель всех радиусов сразу: карточек, полей, листов"
+                title = stringResource(R.string.theme_skruglenie_1_s, (theme.cornerScale * 100).roundToInt()),
+                footer = stringResource(R.string.theme_mnozhitel_vseh_radiusov_srazu_kartochek_pole)
             ) {
                 ValueSlider(
                     value = theme.cornerScale / MAX_CORNER_SCALE,
@@ -168,13 +171,13 @@ fun ThemeEditorScreen(
             }
 
             Section(
-                title = "Плотность списков",
-                footer = "Высота строки и воздух между группами"
+                title = stringResource(R.string.theme_plotnost_spiskov),
+                footer = stringResource(R.string.theme_vysota_stroki_i_vozduh_mezhdu_gruppami)
             ) {
                 ChipRow {
                     UiDensity.entries.forEach { density ->
                         ChipButton(
-                            text = density.title,
+                            text = stringResource(density.titleRes),
                             selected = theme.density == density,
                             onClick = { viewModel.update { it.copy(density = density) } }
                         )
@@ -183,17 +186,17 @@ fun ThemeEditorScreen(
             }
 
             Section(
-                title = "Эффекты",
-                footer = "Размытие работает с Android 12; ниже панели просто заливаются"
+                title = stringResource(R.string.theme_effekty),
+                footer = stringResource(R.string.theme_razmytie_rabotaet_s_android_12_nizhe_paneli)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ToggleRow(
-                        title = "Размытие под панелями",
+                        title = stringResource(R.string.theme_razmytie_pod_panelyami),
                         checked = theme.blur,
                         onToggle = { viewModel.update { it.copy(blur = !it.blur) } }
                     )
                     ToggleRow(
-                        title = "Градиент акцента",
+                        title = stringResource(R.string.theme_gradient_akcenta),
                         checked = theme.gradient,
                         onToggle = { viewModel.update { it.copy(gradient = !it.gradient) } }
                     )
@@ -201,7 +204,7 @@ fun ThemeEditorScreen(
             }
 
             SecondaryButton(
-                text = "Вернуть исходное оформление",
+                text = stringResource(R.string.theme_vernut_ishodnoe_oformlenie),
                 textColor = colors.danger,
                 onClick = viewModel::reset
             )
@@ -221,8 +224,8 @@ private fun AccentSection(theme: ThemeSettings, viewModel: ThemeEditorViewModel)
     var showPicker by remember { mutableStateOf(theme.customAccent != null) }
 
     Section(
-        title = "Акцент",
-        footer = "Цвет кнопок, отметок и активной вкладки"
+        title = stringResource(R.string.theme_akcent),
+        footer = stringResource(R.string.theme_cvet_knopok_otmetok_i_aktivnoy_vkladki)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -255,7 +258,7 @@ private fun AccentSection(theme: ThemeSettings, viewModel: ThemeEditorViewModel)
                 ) {
                     Icon(
                         AshIcons.Edit,
-                        contentDescription = "Свой цвет",
+                        contentDescription = stringResource(R.string.theme_svoy_cvet),
                         tint = colors.text2,
                         modifier = Modifier.size(20.dp)
                     )
@@ -288,8 +291,8 @@ private fun SemanticColorsSection(theme: ThemeSettings, viewModel: ThemeEditorVi
     var editing by remember { mutableStateOf<SemanticRole?>(null) }
 
     Section(
-        title = "Цвета состояний",
-        footer = "Награда, счётчики, срыв и подтверждение"
+        title = stringResource(R.string.theme_cveta_sostoyaniy),
+        footer = stringResource(R.string.theme_nagrada_schetchiki_sryv_i_podtverzhdenie)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
@@ -320,7 +323,7 @@ private fun SemanticColorsSection(theme: ThemeSettings, viewModel: ThemeEditorVi
                                 )
                         )
                         Text(
-                            text = role.title,
+                            text = stringResource(role.titleRes),
                             style = AshTheme.type.caption,
                             color = colors.text2,
                             textAlign = TextAlign.Center
@@ -338,7 +341,7 @@ private fun SemanticColorsSection(theme: ThemeSettings, viewModel: ThemeEditorVi
                         }
                     )
                     TextAction(
-                        text = "Вернуть исходный",
+                        text = stringResource(R.string.theme_vernut_ishodnyy),
                         onClick = { viewModel.update { role.apply(it, null) } }
                     )
                 }
@@ -348,11 +351,11 @@ private fun SemanticColorsSection(theme: ThemeSettings, viewModel: ThemeEditorVi
 }
 
 /** Роль семантического цвета: заголовок плюс доступ к настройке. */
-private enum class SemanticRole(val title: String) {
-    WARM("Награда"),
-    COLD("Счётчик"),
-    DANGER("Срыв"),
-    SUCCESS("Готово");
+private enum class SemanticRole(@StringRes val titleRes: Int) {
+    WARM(R.string.color_role_warm),
+    COLD(R.string.color_role_cold),
+    DANGER(R.string.color_role_danger),
+    SUCCESS(R.string.color_role_success);
 
     fun current(theme: ThemeSettings, colors: dev.ashwake.ui.theme.AshColors): Color = when (this) {
         WARM -> theme.warm?.let(::Color) ?: colors.warm
@@ -393,7 +396,7 @@ private fun Preview() {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Так это выглядит", style = AshTheme.type.title3, color = colors.text)
+        Text(stringResource(R.string.theme_tak_eto_vyglyadit), style = AshTheme.type.title3, color = colors.text)
 
         Row(
             Modifier
@@ -412,8 +415,8 @@ private fun Preview() {
                 Box(Modifier.size(10.dp).background(colors.danger, CircleShape))
             }
             Column(Modifier.weight(1f)) {
-                Text("Задача с меткой", style = AshTheme.type.headline, color = colors.text)
-                Text("срочно · 30 мин", style = AshTheme.type.footnote, color = colors.text2)
+                Text(stringResource(R.string.theme_zadacha_s_metkoy), style = AshTheme.type.headline, color = colors.text)
+                Text(stringResource(R.string.theme_srochno_30_min), style = AshTheme.type.footnote, color = colors.text2)
             }
             Icon(
                 AshIcons.Check,
@@ -432,7 +435,7 @@ private fun Preview() {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Кнопка",
+                    stringResource(R.string.theme_knopka),
                     style = AshTheme.type.body,
                     color = if (colors.isDark) Color.Black else Color.White
                 )
@@ -444,7 +447,7 @@ private fun Preview() {
                     .background(colors.surface2, AshShapes.pill),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Вторая", style = AshTheme.type.body, color = colors.accent)
+                Text(stringResource(R.string.theme_vtoraya), style = AshTheme.type.body, color = colors.accent)
             }
         }
     }

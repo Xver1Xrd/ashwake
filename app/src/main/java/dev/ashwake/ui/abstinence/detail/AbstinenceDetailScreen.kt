@@ -62,7 +62,7 @@ fun AbstinenceDetailScreen(
         containerColor = AshTheme.colors.background,
         topBar = {
             AshNavBar(
-                title = detail?.abstinence?.name ?: "Отказ",
+                title = detail?.abstinence?.name ?: stringResource(R.string.detail_otkaz),
                 onBack = onBack
             )
         },
@@ -113,14 +113,14 @@ fun AbstinenceDetailScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ActionButton(
-                    text = "Тяжело",
+                    text = stringResource(R.string.detail_tyazhelo),
                     color = AshTheme.colors.cold,
                     filled = true,
                     onClick = { showCraving = true },
                     modifier = Modifier.weight(1f)
                 )
                 ActionButton(
-                    text = "Срыв",
+                    text = stringResource(R.string.detail_sryv),
                     color = AshTheme.colors.danger,
                     filled = false,
                     onClick = { showRelapse = true },
@@ -128,8 +128,7 @@ fun AbstinenceDetailScreen(
                 )
             }
             Text(
-                "«Тяжело» — отметка о том, что накрыло, но вы удержались: " +
-                    "счётчик продолжает идти. Сбрасывает его только «Срыв»",
+                stringResource(R.string.detail_tyazhelo_otmetka_o_tom_chto_nakrylo_no_vy_ud),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2,
                 textAlign = TextAlign.Center
@@ -230,12 +229,12 @@ private fun CravingAnalyticsBlock(data: dev.ashwake.domain.repository.abstinence
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Metric("${analytics.totalEvents}", "эпизодов")
+            Metric("${analytics.totalEvents}", stringResource(R.string.detail_epizodov))
             analytics.resistedShare?.let {
-                Metric("${(it * 100).roundToInt()}%", "переждано")
+                Metric("${(it * 100).roundToInt()}%", stringResource(R.string.detail_perezhdano))
             }
             analytics.averageIntensity?.let {
-                Metric("%.1f".format(it), "средняя сила")
+                Metric("%.1f".format(it), stringResource(R.string.detail_srednyaya_sila))
             }
         }
 

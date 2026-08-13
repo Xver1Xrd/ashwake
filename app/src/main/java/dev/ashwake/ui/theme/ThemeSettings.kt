@@ -1,5 +1,7 @@
 package dev.ashwake.ui.theme
 
+import dev.ashwake.R
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
@@ -47,10 +49,10 @@ data class ThemeSettings(
  * пустоте; чернильный оставляет запас светлоты. Выбор за человеком —
  * это ровно тот случай, когда «правильного» ответа нет.
  */
-enum class BackgroundStyle(val title: String, val note: String) {
-    INK("Чернильный", "Тёмный с холодным подтоном"),
-    BLACK("Чёрный", "Экономит батарею на OLED"),
-    GRAPHITE("Графит", "Светлее, мягче контраст")
+enum class BackgroundStyle(@StringRes val titleRes: Int, @StringRes val noteRes: Int) {
+    INK(R.string.background_ink, R.string.background_ink_note),
+    BLACK(R.string.background_black, R.string.background_black_note),
+    GRAPHITE(R.string.background_graphite, R.string.background_graphite_note)
 }
 
 /**
@@ -60,22 +62,22 @@ enum class BackgroundStyle(val title: String, val note: String) {
  * нарастает плавно; обычное — дуга окружности со скачком кривизны на стыке
  * с прямой стороной. Разницу глаз замечает, даже не умея её назвать.
  */
-enum class CornerStyle(val title: String, val smoothing: Float) {
-    CONTINUOUS("Непрерывное", 0.6f),
-    ROUNDED("Обычное", 0f),
-    SHARP("Прямое", 0f)
+enum class CornerStyle(@StringRes val titleRes: Int, val smoothing: Float) {
+    CONTINUOUS(R.string.corner_continuous, 0.6f),
+    ROUNDED(R.string.corner_rounded, 0f),
+    SHARP(R.string.corner_sharp, 0f)
 }
 
 /** Плотность списков: сколько воздуха в строке. */
 enum class UiDensity(
-    val title: String,
+    @StringRes val titleRes: Int,
     val rowVerticalPadding: Dp,
     val minRowHeight: Dp,
     val groupSpacing: Dp
 ) {
-    COMPACT("Плотно", 7.dp, 40.dp, 14.dp),
-    NORMAL("Обычно", 11.dp, 48.dp, 22.dp),
-    SPACIOUS("Просторно", 15.dp, 56.dp, 28.dp)
+    COMPACT(R.string.density_compact, 7.dp, 40.dp, 14.dp),
+    NORMAL(R.string.density_normal, 11.dp, 48.dp, 22.dp),
+    SPACIOUS(R.string.density_spacious, 15.dp, 56.dp, 28.dp)
 }
 
 // ---------------------------------------------------------------------------

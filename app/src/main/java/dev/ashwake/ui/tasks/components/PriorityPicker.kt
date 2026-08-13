@@ -118,5 +118,6 @@ fun PriorityDot(priority: Priority, modifier: Modifier = Modifier, size: Dp = 8.
 }
 
 /** Название цвета и его смысл одной строкой: для подсказок и подписей. */
+@Composable
 fun priorityLabel(priority: Priority): String =
     if (priority.hasMark) "${priority.colorTitle} · ${priority.meaning}" else priority.colorTitle

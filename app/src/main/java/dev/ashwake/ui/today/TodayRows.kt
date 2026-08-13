@@ -1,5 +1,6 @@
 package dev.ashwake.ui.today
 
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -408,13 +409,14 @@ private fun TaskTodayRowContent(
     }
 }
 
+@Composable
 private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList {
     task.dueDate?.let { date ->
-        if (date < today) add(if (date == today.minusDays(1)) "вчера" else date.format(DateFormat))
+        if (date < today) add(if (date == today.minusDays(1)) stringResource(R.string.components_vchera) else date.format(DateFormat))
     }
     if (task.priority.hasMark) add(task.priority.meaning)
     task.dueTime?.let { add(it.format(TimeFormat)) }
-    task.estimateMinutes?.let { add("${it} мин") }
+    task.estimateMinutes?.let { add(stringResource(R.string.settings_1_s_min, it)) }
     task.tags.take(2).forEach { add("#${it.name}") }
 }.joinToString(" · ")
 
@@ -475,7 +477,7 @@ fun AbstinenceTodayRow(
             )
             Text(
                 text = pluralStringResource(R.plurals.streak_days, days.toInt(), days.toInt()) +
-                    " · рекорд ${item.stats.record.toDays()}",
+                    stringResource(R.string.today_rekord_1_s, item.stats.record.toDays()),
                 style = AshTheme.type.subhead,
                 color = colors.text2
             )

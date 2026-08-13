@@ -1,5 +1,6 @@
 package dev.ashwake.platform.widget
 
+import dev.ashwake.R
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
@@ -63,7 +64,7 @@ class AbstinenceWidget : GlanceAppWidget() {
         ) {
             if (name == null) {
                 Text(
-                    "Счётчиков нет",
+                    LocalContext.current.getString(R.string.abstinencewidget_schetchikov_net),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
                 )
                 return@Column
@@ -88,23 +89,21 @@ class AbstinenceWidget : GlanceAppWidget() {
             )
             if (record > days) {
                 Text(
-                    "рекорд $record",
+                    LocalContext.current.getString(R.string.abstinence_rekord_1_s, record),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
                 )
             }
         }
     }
 
-    private fun dayWord(days: Long): String {
-        val mod100 = days % 100
-        val mod10 = days % 10
-        return when {
-            mod100 in 11..14 -> "дней"
-            mod10 == 1L -> "день"
-            mod10 in 2..4 -> "дня"
-            else -> "дней"
-        }
-    }
+    /**
+     * Слово «день» в нужном числе — из тех же ресурсов, что и на экране.
+     * Своя таблица остатков здесь жила отдельной копией и разошлась бы
+     * с экранной на первой же правке.
+     */
+    @Composable
+    private fun dayWord(days: Long): String =
+        LocalContext.current.resources.getQuantityString(R.plurals.day_word, days.toInt())
 }
 
 class AbstinenceWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -132,17 +131,17 @@ class QuickActionsWidget : GlanceAppWidget() {
             verticalAlignment = Alignment.CenterVertically
         ) {
             ActionButton(
-                "＋ Задача",
+                LocalContext.current.getString(R.string.abstinencewidget_zadacha),
                 appIntent(context, AppRoutes.NEW_TASK),
                 GlanceModifier.defaultWeight()
             )
             ActionButton(
-                "▶ Помодоро",
+                LocalContext.current.getString(R.string.abstinencewidget_pomodoro),
                 appIntent(context, AppRoutes.FOCUS_START),
                 GlanceModifier.defaultWeight()
             )
             ActionButton(
-                "☾ Ритуал",
+                LocalContext.current.getString(R.string.abstinencewidget_ritual),
                 appIntent(context, AppRoutes.RITUAL),
                 GlanceModifier.defaultWeight()
             )

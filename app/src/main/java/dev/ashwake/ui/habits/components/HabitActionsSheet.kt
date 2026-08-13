@@ -73,7 +73,7 @@ fun HabitActionsSheet(
         ) {
             Text(habit.name, style = AshTheme.type.title3)
             Text(
-                "score ${(progress.score * 100).toInt()}% · серия ${progress.currentStreak} · рекорд ${progress.recordStreak}",
+                stringResource(R.string.components_score_1_s_seriya_2_s_rekord_3_s, (progress.score * 100).toInt(), progress.currentStreak, progress.recordStreak),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -81,7 +81,7 @@ fun HabitActionsSheet(
             if (habit.type == HabitType.COUNTER) {
                 HorizontalDivider()
                 Text(
-                    "Сегодня: ${formatValue(counter)} из ${formatValue(habit.targetValue)}" +
+                    stringResource(R.string.components_segodnya_1_s_iz_2_s, formatValue(counter), formatValue(habit.targetValue)) +
                         (habit.unitName?.let { " $it" } ?: ""),
                     style = AshTheme.type.callout
                 )
@@ -126,13 +126,13 @@ fun HabitActionsSheet(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 ChipButton(
-                    text = "  Заморозить (${progress.freezesLeftThisMonth})",
+                    text = stringResource(R.string.components_zamorozit_1_s, progress.freezesLeftThisMonth),
                     icon = FreezeIcon,
                     enabled = progress.freezesLeftThisMonth > 0,
                     onClick = onFreeze
                 )
                 ChipButton(
-                    text = if (progress.paused) "Снять паузу" else "Пауза",
+                    text = if (progress.paused) stringResource(R.string.components_snyat_pauzu) else stringResource(R.string.detail_pauza),
                     onClick = if (progress.paused) onResume else onPause
                 )
             }

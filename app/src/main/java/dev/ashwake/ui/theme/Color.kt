@@ -1,5 +1,8 @@
 package dev.ashwake.ui.theme
 
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Brush
@@ -108,20 +111,20 @@ private val SuccessLight = Color(0xFF12A06A)
  * заливка: разница по тону не больше 30°.
  */
 enum class AccentColor(
-    val title: String,
+    @StringRes val titleRes: Int,
     private val darkFrom: Color,
     private val darkTo: Color,
     private val lightFrom: Color,
     private val lightTo: Color
 ) {
-    VIOLET("Фиалковый", Color(0xFF8B7CFF), Color(0xFFB07CFF), Color(0xFF6A4CF0), Color(0xFF9A4CF0)),
-    EMBER("Угольный жар", Color(0xFFFF8A4C), Color(0xFFFF5E7A), Color(0xFFE8620F), Color(0xFFE03A5C)),
-    AMBER("Янтарь", Color(0xFFFFC24D), Color(0xFFFF9A3D), Color(0xFFDD9500), Color(0xFFDD6E00)),
-    MINT("Мята", Color(0xFF3FDC9A), Color(0xFF3FD0C8), Color(0xFF0E9E68), Color(0xFF0E9490)),
-    AZURE("Лазурь", Color(0xFF4CC9F0), Color(0xFF4C9BF0), Color(0xFF0E8CC0), Color(0xFF1367CE)),
-    INDIGO("Индиго", Color(0xFF6C7BFF), Color(0xFF8B62F5), Color(0xFF4453EE), Color(0xFF6B36DE)),
-    ROSE("Роза", Color(0xFFFF6FA5), Color(0xFFFF7BD0), Color(0xFFE0407D), Color(0xFFDB4BAF)),
-    LIME("Лайм", Color(0xFFA8DC3F), Color(0xFF5FD86B), Color(0xFF6F9C10), Color(0xFF23A03A));
+    VIOLET(R.string.accent_violet, Color(0xFF8B7CFF), Color(0xFFB07CFF), Color(0xFF6A4CF0), Color(0xFF9A4CF0)),
+    EMBER(R.string.accent_ember, Color(0xFFFF8A4C), Color(0xFFFF5E7A), Color(0xFFE8620F), Color(0xFFE03A5C)),
+    AMBER(R.string.accent_amber, Color(0xFFFFC24D), Color(0xFFFF9A3D), Color(0xFFDD9500), Color(0xFFDD6E00)),
+    MINT(R.string.accent_mint, Color(0xFF3FDC9A), Color(0xFF3FD0C8), Color(0xFF0E9E68), Color(0xFF0E9490)),
+    AZURE(R.string.accent_azure, Color(0xFF4CC9F0), Color(0xFF4C9BF0), Color(0xFF0E8CC0), Color(0xFF1367CE)),
+    INDIGO(R.string.accent_indigo, Color(0xFF6C7BFF), Color(0xFF8B62F5), Color(0xFF4453EE), Color(0xFF6B36DE)),
+    ROSE(R.string.accent_rose, Color(0xFFFF6FA5), Color(0xFFFF7BD0), Color(0xFFE0407D), Color(0xFFDB4BAF)),
+    LIME(R.string.accent_lime, Color(0xFFA8DC3F), Color(0xFF5FD86B), Color(0xFF6F9C10), Color(0xFF23A03A));
 
     fun resolve(isDark: Boolean): Color = if (isDark) darkFrom else lightFrom
 

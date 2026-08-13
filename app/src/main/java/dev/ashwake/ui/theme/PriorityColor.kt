@@ -1,5 +1,8 @@
 package dev.ashwake.ui.theme
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import dev.ashwake.core.model.Priority
 
@@ -18,20 +21,20 @@ import dev.ashwake.core.model.Priority
 
 /** Название цвета метки. Оно же подпись кнопки в редакторе. */
 val Priority.colorTitle: String
-    get() = when (this) {
-        Priority.P1 -> "Красный"
-        Priority.P2 -> "Оранжевый"
-        Priority.P3 -> "Зелёный"
-        Priority.P4 -> "Без метки"
+    @Composable get() = when (this) {
+        Priority.P1 -> stringResource(R.string.theme_krasnyy)
+        Priority.P2 -> stringResource(R.string.theme_oranzhevyy)
+        Priority.P3 -> stringResource(R.string.theme_zelenyy)
+        Priority.P4 -> stringResource(R.string.theme_bez_metki)
     }
 
 /** Что метка означает. Короткое слово для строки списка и подсказки. */
 val Priority.meaning: String
-    get() = when (this) {
-        Priority.P1 -> "срочно"
-        Priority.P2 -> "важно"
-        Priority.P3 -> "обычная"
-        Priority.P4 -> "потом"
+    @Composable get() = when (this) {
+        Priority.P1 -> stringResource(R.string.theme_srochno)
+        Priority.P2 -> stringResource(R.string.theme_vazhno)
+        Priority.P3 -> stringResource(R.string.theme_obychnaya)
+        Priority.P4 -> stringResource(R.string.theme_potom)
     }
 
 /** Показывать ли метку в списке. У «без метки» точки нет. */

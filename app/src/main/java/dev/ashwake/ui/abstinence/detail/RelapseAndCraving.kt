@@ -71,7 +71,7 @@ fun RelapseDialog(
             title = { Text(stringResource(R.string.detail_otmetit_sryv)) },
             text = {
                 Text(
-                    "Счётчик начнёт новую попытку. История никуда не денется: рекорд и общее число чистых дней сохранятся.",
+                    stringResource(R.string.detail_schetchik_nachnet_novuyu_popytku_istoriya_ni),
                     style = AshTheme.type.callout
                 )
             },
@@ -93,7 +93,7 @@ fun RelapseDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 3, 12, 24).forEach { hours ->
                         ChipButton(
-                        text = if (hours == 0) "сейчас" else "$hours ч назад",
+                        text = if (hours == 0) stringResource(R.string.detail_seychas) else stringResource(R.string.detail_1_s_ch_nazad, hours),
                         selected = hoursAgo == hours,
                         onClick = { hoursAgo = hours }
                     )
@@ -251,7 +251,7 @@ fun CravingSheet(
             // это отдельный, названный своим словом выход
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PrimaryButton(
-                    text = "Справился",
+                    text = stringResource(R.string.detail_spravilsya),
                     modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
@@ -260,7 +260,7 @@ fun CravingSheet(
                 )
 
                 ChipButton(
-                    text = "Отпустило само",
+                    text = stringResource(R.string.detail_otpustilo_samo),
                     modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
@@ -270,7 +270,7 @@ fun CravingSheet(
             }
 
             TextAction(
-                text = "Не справился — отметить срыв",
+                text = stringResource(R.string.detail_ne_spravilsya_otmetit_sryv),
                 color = AshTheme.colors.danger,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = {
@@ -283,7 +283,7 @@ fun CravingSheet(
             )
 
             Text(
-                "Пока вы не отметили срыв, счётчик идёт дальше",
+                stringResource(R.string.detail_poka_vy_ne_otmetili_sryv_schetchik_idet_dals),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -347,10 +347,10 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
                 drawCircle(color = color, radius = radius * scale)
             }
             Text(
-                text = if (!running) "старт" else when {
-                    inhaling -> "вдох"
-                    holding -> "держим"
-                    else -> "выдох"
+                text = if (!running) stringResource(R.string.detail_start) else when {
+                    inhaling -> stringResource(R.string.detail_vdoh)
+                    holding -> stringResource(R.string.detail_derzhim)
+                    else -> stringResource(R.string.detail_vydoh)
                 },
                 style = AshTheme.type.subhead,
                 color = if (colors.isDark) Color.Black else Color.White
@@ -361,12 +361,12 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
             style = AshTheme.type.title3
         )
         Text(
-            "Две–пять минут обычно достаточно, чтобы волна прошла",
+            stringResource(R.string.detail_dve_pyat_minut_obychno_dostatochno_chtoby_vo),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2,
             textAlign = TextAlign.Center
         )
-        ChipButton(text = if (running) "Пауза" else "Начать дышать", onClick = onToggle)
+        ChipButton(text = if (running) stringResource(R.string.detail_pauza) else stringResource(R.string.detail_nachat_dyshat), onClick = onToggle)
     }
 }
 
@@ -381,9 +381,7 @@ fun SubstanceWarningDialog(onAcknowledge: () -> Unit) {
         title = { Text(stringResource(R.string.detail_odno_zamechanie)) },
         text = {
             Text(
-                "Резкий отказ от алкоголя или веществ может быть небезопасен. " +
-                    "Имеет смысл обсудить это с врачом.\n\n" +
-                    "Приложение считает дни и ведёт историю. Медицинских рекомендаций оно не даёт.",
+                stringResource(R.string.detail_rezkiy_otkaz_ot_alkogolya_ili_veschestv_mozh),
                 style = AshTheme.type.callout
             )
         },

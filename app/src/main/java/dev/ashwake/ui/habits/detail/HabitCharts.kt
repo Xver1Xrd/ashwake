@@ -1,5 +1,7 @@
 package dev.ashwake.ui.habits.detail
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -107,10 +109,10 @@ private fun HeatmapLegend() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LegendItem(Moss, "выполнено")
-        LegendItem(Moss.copy(alpha = 0.5f), "минимум")
-        LegendItem(Ember.copy(alpha = 0.6f), "пропуск")
-        LegendItem(Steel, "заморозка")
+        LegendItem(Moss, stringResource(R.string.detail_vypolneno))
+        LegendItem(Moss.copy(alpha = 0.5f), stringResource(R.string.detail_minimum))
+        LegendItem(Ember.copy(alpha = 0.6f), stringResource(R.string.detail_propusk))
+        LegendItem(Steel, stringResource(R.string.detail_zamorozka))
     }
 }
 
@@ -147,7 +149,7 @@ fun ScoreChart(
 ) {
     if (series.size < 2) {
         Text(
-            "Данных пока мало для графика",
+            stringResource(R.string.detail_dannyh_poka_malo_dlya_grafika),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2,
             modifier = modifier

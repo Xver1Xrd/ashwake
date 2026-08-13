@@ -1,5 +1,6 @@
 package dev.ashwake.ui.abstinence.components
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -185,7 +186,7 @@ fun MilestoneRing(
         }
         if (label != null) {
             Text(
-                "до вехи: $label",
+                stringResource(R.string.components_do_vehi_1_s, label),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2,
                 modifier = Modifier.padding(top = 8.dp)
@@ -201,9 +202,9 @@ fun StatsRow(stats: AbstinenceStats, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatCell(stats.record.toDays().toString(), "рекорд")
-        StatCell(stats.totalCleanDays.toString(), "всего чистых")
-        StatCell("№${stats.attemptNumber}", "попытка")
+        StatCell(stats.record.toDays().toString(), stringResource(R.string.components_rekord))
+        StatCell(stats.totalCleanDays.toString(), stringResource(R.string.components_vsego_chistyh))
+        StatCell("№${stats.attemptNumber}", stringResource(R.string.components_popytka))
     }
 }
 
@@ -225,7 +226,7 @@ fun SavingsBlock(savings: Savings, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(stringResource(R.string.components_sekonomleno), style = AshTheme.type.headline)
         Text(
-            "не ${savings.units.roundToInt()} ${savings.unitName}",
+            stringResource(R.string.components_ne_1_s_2_s, savings.units.roundToInt(), savings.unitName),
             style = AshTheme.type.callout,
             color = AshTheme.colors.text2
         )
@@ -297,7 +298,7 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
     val max = heatmap.flatMap { it.asIterable() }.maxOrNull() ?: 0
     if (max == 0) return
     val emptyColor = AshTheme.colors.surface2
-    val labels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
+    val labels = listOf(stringResource(R.string.components_pn), stringResource(R.string.components_vt), stringResource(R.string.components_sr), stringResource(R.string.components_cht), stringResource(R.string.components_pt), stringResource(R.string.components_sb), stringResource(R.string.components_vs))
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         (1..7).forEach { day ->
@@ -341,16 +342,16 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
     }
 }
 
-internal fun dayWord(days: Long): String {
-    val mod100 = days % 100
-    val mod10 = days % 10
-    return when {
-        mod100 in 11..14 -> "дней"
-        mod10 == 1L -> "день"
-        mod10 in 2..4 -> "дня"
-        else -> "дней"
-    }
-}
+/**
+ * Слово «день» в нужном числе.
+ *
+ * Правило склонения теперь в ресурсах, а не в коде: русские «1 день, 2 дня,
+ * 5 дней» — это ровно то, для чего в Android есть plurals, и своя таблица
+ * остатков рядом с ней выглядит как недоверие к платформе.
+ */
+@Composable
+internal fun dayWord(days: Long): String =
+    pluralStringResource(R.plurals.day_word, days.toInt())
 
 internal fun formatMoney(value: Float): String =
     if (value >= 1000) "%,d".format(value.roundToInt()).replace(',', ' ')

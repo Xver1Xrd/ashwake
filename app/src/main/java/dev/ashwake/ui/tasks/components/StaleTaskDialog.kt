@@ -39,12 +39,12 @@ fun StaleTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Задача переносится ${task.postponeCount}-й раз") },
+        title = { Text(stringResource(R.string.components_zadacha_perenositsya_1_s_y_raz, task.postponeCount)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(task.title, style = AshTheme.type.body)
                 Text(
-                    "Похоже, в текущем виде она не двигается. Что с ней сделать?",
+                    stringResource(R.string.components_pohozhe_v_tekuschem_vide_ona_ne_dvigaetsya_c),
                     style = AshTheme.type.callout,
                     color = AshTheme.colors.text2
                 )
@@ -105,7 +105,7 @@ fun StaleTaskDialog(
         },
         dismissButton = {
             TextAction(
-                text = if (mode != null) "Назад" else "Оставить как есть",
+                text = if (mode != null) stringResource(R.string.detail_nazad) else stringResource(R.string.components_ostavit_kak_est),
                 onClick = {
                     if (mode != null) mode = null else onResolve(StaleResolution.KEEP, null)
                 }

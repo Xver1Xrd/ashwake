@@ -1,5 +1,7 @@
 package dev.ashwake.ui.theme
 
+import dev.ashwake.R
+import androidx.annotation.StringRes
 import android.provider.Settings
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
@@ -19,10 +21,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 
 /** Режим темы. Тёмная — основная, светлая делается второй (раздел 2). */
-enum class ThemeMode(val title: String) {
-    DARK("Тёмная"),
-    LIGHT("Светлая"),
-    SYSTEM("Как в системе");
+enum class ThemeMode(@StringRes val titleRes: Int) {
+    DARK(R.string.theme_mode_dark),
+    LIGHT(R.string.theme_mode_light),
+    SYSTEM(R.string.theme_mode_system);
 
     companion object {
         val DEFAULT = DARK

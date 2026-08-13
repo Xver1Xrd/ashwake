@@ -1,5 +1,6 @@
 package dev.ashwake.platform.widget
 
+import dev.ashwake.R
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
@@ -70,7 +71,7 @@ class TasksWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Сегодня",
+                    LocalContext.current.getString(R.string.shortcut_today),
                     style = TextStyle(
                         fontWeight = FontWeight.Bold,
                         color = GlanceTheme.colors.onSurface
@@ -91,7 +92,7 @@ class TasksWidget : GlanceAppWidget() {
 
             if (tasks.isEmpty()) {
                 Text(
-                    "Задач на сегодня нет",
+                    LocalContext.current.getString(R.string.taskswidget_zadach_na_segodnya_net),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
                 )
             } else {

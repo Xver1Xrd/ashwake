@@ -1,5 +1,7 @@
 package dev.ashwake.ui.navigation
 
+import dev.ashwake.R
+import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
 import dev.ashwake.ui.components.AshIcons
 
@@ -13,20 +15,20 @@ import dev.ashwake.ui.components.AshIcons
  */
 enum class Destination(
     val route: String,
-    val title: String,
+    @StringRes val titleRes: Int,
     val icon: ImageVector,
     val inBottomBar: Boolean = false
 ) {
-    Today("today", "Сегодня", AshIcons.Sun, inBottomBar = true),
-    Tasks("tasks", "Задачи", AshIcons.CheckCircle, inBottomBar = true),
-    Habits("habits", "Привычки", AshIcons.Repeat, inBottomBar = true),
-    More("more", "Ещё", AshIcons.DotsThree, inBottomBar = true),
+    Today("today", R.string.nav_today, AshIcons.Sun, inBottomBar = true),
+    Tasks("tasks", R.string.nav_tasks, AshIcons.CheckCircle, inBottomBar = true),
+    Habits("habits", R.string.nav_habits, AshIcons.Repeat, inBottomBar = true),
+    More("more", R.string.nav_more, AshIcons.DotsThree, inBottomBar = true),
 
-    Abstinence("abstinence", "Отказы", AshIcons.Prohibit),
-    Character("character", "Персонаж", AshIcons.Person),
-    Timers("timers", "Таймеры", AshIcons.Timer),
-    Stats("stats", "Статистика", AshIcons.BarChart),
-    Settings("settings", "Настройки", AshIcons.Settings);
+    Abstinence("abstinence", R.string.nav_abstinence, AshIcons.Prohibit),
+    Character("character", R.string.nav_character, AshIcons.Person),
+    Timers("timers", R.string.nav_timers, AshIcons.Timer),
+    Stats("stats", R.string.nav_stats, AshIcons.BarChart),
+    Settings("settings", R.string.nav_settings, AshIcons.Settings);
 
     companion object {
         val bottomBar: List<Destination> = entries.filter { it.inBottomBar }

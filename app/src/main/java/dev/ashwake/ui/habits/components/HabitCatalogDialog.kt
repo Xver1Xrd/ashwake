@@ -87,20 +87,21 @@ fun HabitCatalogDialog(
     )
 }
 
+@Composable
 private fun describe(habit: Habit): String {
     val schedule = when (habit.schedule.type) {
-        HabitScheduleType.DAILY -> "каждый день"
-        HabitScheduleType.TIMES_PER_WEEK -> "${habit.schedule.timesPerWeek} раза в неделю"
-        HabitScheduleType.EVERY_OTHER_DAY -> "через день"
-        HabitScheduleType.WEEKDAYS -> "по дням недели"
-        HabitScheduleType.BIWEEKLY -> "раз в две недели"
+        HabitScheduleType.DAILY -> stringResource(R.string.components_kazhdyy_den)
+        HabitScheduleType.TIMES_PER_WEEK -> stringResource(R.string.components_1_s_raza_v_nedelyu, habit.schedule.timesPerWeek)
+        HabitScheduleType.EVERY_OTHER_DAY -> stringResource(R.string.components_cherez_den)
+        HabitScheduleType.WEEKDAYS -> stringResource(R.string.components_po_dnyam_nedeli)
+        HabitScheduleType.BIWEEKLY -> stringResource(R.string.components_raz_v_dve_nedeli)
     }
     val target = when (habit.type) {
         HabitType.COUNTER ->
             " · ${formatValue(habit.targetValue)}${habit.unitName?.let { " $it" } ?: ""}"
-        HabitType.NEGATIVE -> " · отказ"
+        HabitType.NEGATIVE -> stringResource(R.string.components_otkaz)
         HabitType.CHECK -> ""
     }
-    val minimum = habit.minimumValue?.let { " · минимум ${formatValue(it)}" }.orEmpty()
+    val minimum = habit.minimumValue?.let { stringResource(R.string.components_minimum_1_s_2, formatValue(it)) }.orEmpty()
     return schedule + target + minimum
 }

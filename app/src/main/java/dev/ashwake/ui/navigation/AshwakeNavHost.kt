@@ -1,5 +1,7 @@
 package dev.ashwake.ui.navigation
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -126,8 +128,9 @@ fun AshwakeRoot(
                     currentRoute?.startsWith(it) == true
                 }
                 if (showBottomBar) {
+                    val tabItems = tabs()
                     AshTabBar(
-                        tabs = TABS,
+                        tabs = tabItems,
                         // Поверх вкладок открыт другой экран — ни одна вкладка
                         // не активна, и это честно: человек не «внутри» вкладки
                         selectedRoute = if (onTabs) {
@@ -136,7 +139,7 @@ fun AshwakeRoot(
                             null
                         },
                         onSelect = { tab ->
-                            openTab(TABS.indexOfFirst { it.route == tab.route })
+                            openTab(tabItems.indexOfFirst { it.route == tab.route })
                         }
                     )
                 }
@@ -375,9 +378,15 @@ private fun screenPopExit(reduceMotion: Boolean) =
     scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.94f) +
         fadeOut(tween(screenDuration(reduceMotion)))
 
-/** Вкладки нижней панели. */
-private val TABS: List<TabItem> = Destination.bottomBar.map {
-    TabItem(route = it.route, title = it.title, icon = it.icon)
+/**
+ * Вкладки нижней панели.
+ *
+ * Собираются в композиции, а не в статическом списке: подписи теперь живут
+ * в ресурсах, а `stringResource` без композиции не прочитать.
+ */
+@Composable
+private fun tabs(): List<TabItem> = Destination.bottomBar.map {
+    TabItem(route = it.route, title = stringResource(it.titleRes), icon = it.icon)
 }
 
 /** Маршрут из виджета в экран приложения. */

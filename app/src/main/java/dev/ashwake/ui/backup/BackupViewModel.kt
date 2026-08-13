@@ -1,5 +1,6 @@
 package dev.ashwake.ui.backup
 
+import dev.ashwake.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -84,7 +85,7 @@ class BackupViewModel @Inject constructor(
                 )
             }
             settings.setBackupFolder(uri.toString())
-            _message.value = "Папка выбрана. Копия делается раз в сутки"
+            _message.value = context.getString(R.string.backup_papka_vybrana_kopiya_delaetsya_raz_v_sutki)
         }
     }
 
@@ -94,8 +95,8 @@ class BackupViewModel @Inject constructor(
                 val result = backups.createBackup(password?.takeIf { it.isNotBlank() }?.toCharArray())
             ) {
                 is BackupResult.Success ->
-                    "Сохранено: ${result.fileName} · ${result.contents.total} записей"
-                BackupResult.NoFolder -> "Сначала выберите папку"
+                    context.getString(R.string.backup_sohraneno_1_s_2_s_zapisey, result.fileName, result.contents.total)
+                BackupResult.NoFolder -> context.getString(R.string.backup_snachala_vyberite_papku)
                 is BackupResult.Failed -> result.reason
             }
         }
@@ -131,10 +132,10 @@ class BackupViewModel @Inject constructor(
             is RestoreResult.Restored -> {
                 _restorePreview.value = null
                 pendingRestore = null
-                _message.value = "Данные восстановлены: ${result.contents.total} записей"
+                _message.value = context.getString(R.string.backup_dannye_vosstanovleny_1_s_zapisey, result.contents.total)
             }
-            RestoreResult.NeedsPassword -> _message.value = "Архив зашифрован — нужен пароль"
-            RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
+            RestoreResult.NeedsPassword -> _message.value = context.getString(R.string.backup_arhiv_zashifrovan_nuzhen_parol)
+            RestoreResult.WrongPassword -> _message.value = context.getString(R.string.backup_parol_ne_podoshel)
             is RestoreResult.Failed -> _message.value = result.reason
         }
     }
@@ -158,7 +159,7 @@ class BackupViewModel @Inject constructor(
             }
             if (content == null) {
                 _import.value = ImportState()
-                _message.value = "Файл не читается"
+                _message.value = context.getString(R.string.backup_fayl_ne_chitaetsya)
                 return@launch
             }
 
@@ -225,7 +226,7 @@ class BackupViewModel @Inject constructor(
             pendingTasks = emptyList()
             pendingHabits = null
             _import.value = ImportState(applied = true)
-            _message.value = "Импорт применён"
+            _message.value = context.getString(R.string.backup_import_primenen)
         }
     }
 

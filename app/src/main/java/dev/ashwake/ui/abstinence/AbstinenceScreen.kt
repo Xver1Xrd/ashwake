@@ -96,8 +96,7 @@ fun AbstinenceScreen(
                     EmptyState(
                         icon = AshIcons.Prohibit,
                         title = stringResource(R.string.abstinence_schetchikov_poka_net),
-                        description = "Отказ не надо делать — надо не делать. " +
-                            "Счётчик идёт сам, вмешиваться нужно только при срыве",
+                        description = stringResource(R.string.abstinence_otkaz_ne_nado_delat_nado_ne_delat_schetchik),
                         actionText = stringResource(R.string.abstinence_novyy_otkaz),
                         onAction = { showCreate = true }
                     )
@@ -132,8 +131,8 @@ fun AbstinenceScreen(
                         modifier = Modifier.padding(vertical = 10.dp)
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Badge("рекорд ${item.stats.record.toDays()}")
-                        Badge("попытка №${item.stats.attemptNumber}")
+                        Badge(stringResource(R.string.abstinence_rekord_1_s, item.stats.record.toDays()))
+                        Badge(stringResource(R.string.abstinence_popytka_1_s, item.stats.attemptNumber))
                     }
                     item.stats.savings?.let { savings ->
                         Row(
@@ -150,7 +149,7 @@ fun AbstinenceScreen(
                             Text(
                                 text = "${formatMoney(savings.money)} " +
                                     currencySymbol(savings.currency) +
-                                    " · не ${savings.units.roundToInt()} ${savings.unitName}",
+                                    stringResource(R.string.abstinence_ne_1_s_2_s, savings.units.roundToInt(), savings.unitName),
                                 style = AshTheme.type.footnote,
                                 color = colors.warm
                             )

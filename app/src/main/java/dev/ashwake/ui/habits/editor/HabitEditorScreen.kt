@@ -1,5 +1,6 @@
 package dev.ashwake.ui.habits.editor
 
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -54,8 +55,6 @@ import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-private val WEEKDAY_LABELS = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
-
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun HabitEditorScreen(
@@ -72,7 +71,7 @@ fun HabitEditorScreen(
         containerColor = AshTheme.colors.background,
         topBar = {
             AshNavBar(
-                title = if (state.isNew) "Новая привычка" else "Привычка",
+                title = if (state.isNew) stringResource(R.string.editor_novaya_privychka) else stringResource(R.string.detail_privychka),
                 onBack = onDone,
                 actions = {
                     if (!state.isNew) {
@@ -135,7 +134,7 @@ fun HabitEditorScreen(
             }
             if (state.type == HabitType.NEGATIVE) {
                 Text(
-                    "Успех — это отсутствие отметки. Отмечать нужно срывы, а не выполнение",
+                    stringResource(R.string.editor_uspeh_eto_otsutstvie_otmetki_otmechat_nuzhno),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -171,7 +170,7 @@ fun HabitEditorScreen(
                 Column(Modifier.weight(1f)) {
                     Text(stringResource(R.string.editor_minimalnaya_planka), style = AshTheme.type.headline)
                     Text(
-                        "Цель на плохой день. Держит серию и даёт половину вклада в score",
+                        stringResource(R.string.editor_cel_na_plohoy_den_derzhit_seriyu_i_daet_polo),
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.text2
                     )
@@ -217,15 +216,16 @@ fun HabitEditorScreen(
                     }
                 }
 
-                HabitScheduleType.WEEKDAYS -> Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    DayOfWeek.entries.forEachIndexed { index, day ->
-                        ChipButton(
-                        text = WEEKDAY_LABELS[index],
-                        selected = day in state.weekdays,
-                        onClick = { viewModel.toggleWeekday(day) }
-                    )
+                HabitScheduleType.WEEKDAYS -> {
+                    val weekdays = stringArrayResource(R.array.weekday_short)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        DayOfWeek.entries.forEachIndexed { index, day ->
+                            ChipButton(
+                                text = weekdays[index],
+                                selected = day in state.weekdays,
+                                onClick = { viewModel.toggleWeekday(day) }
+                            )
+                        }
                     }
                 }
 
@@ -245,7 +245,7 @@ fun HabitEditorScreen(
                 }
             }
             Text(
-                "Сфера определяет, какая характеристика персонажа растёт от этой привычки",
+                stringResource(R.string.editor_sfera_opredelyaet_kakaya_harakteristika_pers),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -255,7 +255,7 @@ fun HabitEditorScreen(
             Text(stringResource(R.string.editor_napominanie), style = AshTheme.type.headline)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChipButton(
-                        text = state.reminderTime?.format(TIME_FORMAT) ?: "Время",
+                        text = state.reminderTime?.format(TIME_FORMAT) ?: stringResource(R.string.editor_vremya),
                         selected = state.reminderTime != null,
                         onClick = { showTimePicker = true }
                     )
@@ -282,7 +282,7 @@ fun HabitEditorScreen(
 
             Text(stringResource(R.string.editor_yakor), style = AshTheme.type.headline)
             Text(
-                "Привязка к событию вместо часов: цепочка привычек одна за другой",
+                stringResource(R.string.editor_privyazka_k_sobytiyu_vmesto_chasov_cepochka),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -360,32 +360,36 @@ fun HabitEditorScreen(
     }
 }
 
+@Composable
 private fun typeLabel(type: HabitType): String = when (type) {
-    HabitType.CHECK -> "чекбокс"
-    HabitType.COUNTER -> "счётчик"
-    HabitType.NEGATIVE -> "негативная"
+    HabitType.CHECK -> stringResource(R.string.editor_chekboks)
+    HabitType.COUNTER -> stringResource(R.string.editor_schetchik)
+    HabitType.NEGATIVE -> stringResource(R.string.editor_negativnaya)
 }
 
+@Composable
 private fun scheduleLabel(type: HabitScheduleType): String = when (type) {
-    HabitScheduleType.DAILY -> "каждый день"
-    HabitScheduleType.TIMES_PER_WEEK -> "N раз в неделю"
-    HabitScheduleType.EVERY_OTHER_DAY -> "через день"
-    HabitScheduleType.WEEKDAYS -> "по дням"
-    HabitScheduleType.BIWEEKLY -> "раз в 2 недели"
+    HabitScheduleType.DAILY -> stringResource(R.string.components_kazhdyy_den)
+    HabitScheduleType.TIMES_PER_WEEK -> stringResource(R.string.editor_n_raz_v_nedelyu)
+    HabitScheduleType.EVERY_OTHER_DAY -> stringResource(R.string.components_cherez_den)
+    HabitScheduleType.WEEKDAYS -> stringResource(R.string.editor_po_dnyam)
+    HabitScheduleType.BIWEEKLY -> stringResource(R.string.editor_raz_v_2_nedeli)
 }
 
+@Composable
 private fun sphereLabel(sphere: Sphere): String = when (sphere) {
-    Sphere.HEALTH -> "здоровье"
-    Sphere.SPORT -> "спорт"
-    Sphere.STUDY -> "учёба"
-    Sphere.CHORES -> "быт"
-    Sphere.MENTAL -> "ментальное"
+    Sphere.HEALTH -> stringResource(R.string.editor_zdorove)
+    Sphere.SPORT -> stringResource(R.string.editor_sport)
+    Sphere.STUDY -> stringResource(R.string.editor_ucheba)
+    Sphere.CHORES -> stringResource(R.string.editor_byt)
+    Sphere.MENTAL -> stringResource(R.string.editor_mentalnoe)
 }
 
+@Composable
 private fun anchorLabel(type: AnchorType): String = when (type) {
-    AnchorType.HABIT_DONE -> "после привычки"
-    AnchorType.ROUTINE_DONE -> "после рутины"
-    AnchorType.FIRST_UNLOCK -> "первая разблокировка"
-    AnchorType.TASK_TAG_DONE -> "после задачи с тегом"
-    AnchorType.TIME -> "по времени"
+    AnchorType.HABIT_DONE -> stringResource(R.string.editor_posle_privychki)
+    AnchorType.ROUTINE_DONE -> stringResource(R.string.editor_posle_rutiny)
+    AnchorType.FIRST_UNLOCK -> stringResource(R.string.editor_pervaya_razblokirovka)
+    AnchorType.TASK_TAG_DONE -> stringResource(R.string.editor_posle_zadachi_s_tegom)
+    AnchorType.TIME -> stringResource(R.string.editor_po_vremeni)
 }

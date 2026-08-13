@@ -1,5 +1,8 @@
 package dev.ashwake.ui.tasks.editor
 
+import androidx.compose.ui.res.stringArrayResource
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -89,8 +92,6 @@ private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm"
 
 private val ESTIMATE_PRESETS = listOf(5, 15, 30, 45, 60, 90, 120)
 private val REMINDER_PRESETS = listOf(5, 10, 15, 30, 60)
-private val WEEKDAY_LABELS = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
-
 @Composable
 fun TaskEditorScreen(
     onDone: () -> Unit,
@@ -114,13 +115,13 @@ fun TaskEditorScreen(
             .background(colors.background)
     ) {
         AshNavBar(
-            title = if (state.isNew) "Новая задача" else "Задача",
+            title = if (state.isNew) stringResource(R.string.shortcut_new_task) else stringResource(R.string.tile_add_task),
             onBack = onDone,
             actions = {
                 if (!state.isNew) {
                     IconAction(
                         icon = AshIcons.Trash,
-                        contentDescription = "Удалить",
+                        contentDescription = stringResource(R.string.blocking_udalit),
                         tint = colors.danger,
                         onClick = viewModel::delete
                     )
@@ -152,7 +153,7 @@ fun TaskEditorScreen(
                 AshTextField(
                     value = state.title,
                     onValueChange = viewModel::setTitle,
-                    placeholder = "Что нужно сделать",
+                    placeholder = stringResource(R.string.editor_chto_nuzhno_sdelat),
                     textStyle = AshTheme.type.headline,
                     modifier = Modifier.weight(1f)
                 )
@@ -174,13 +175,13 @@ fun TaskEditorScreen(
             AshTextField(
                 value = state.note,
                 onValueChange = viewModel::setNote,
-                placeholder = "Заметка",
+                placeholder = stringResource(R.string.detail_zametka),
                 singleLine = false,
                 minLines = 2
             )
 
             // --- приоритет ---------------------------------------------------
-            Section("Приоритет") {
+            Section(stringResource(R.string.editor_prioritet)) {
                 PriorityPicker(
                     selected = state.priority,
                     onSelect = viewModel::setPriority
@@ -188,7 +189,7 @@ fun TaskEditorScreen(
             }
 
             // --- срок ---------------------------------------------------------
-            Section("Срок") {
+            Section(stringResource(R.string.editor_srok)) {
                 DueDateRow(
                     state = state,
                     onPickDate = { showDatePicker = true },
@@ -203,8 +204,8 @@ fun TaskEditorScreen(
 
             // --- оценка -------------------------------------------------------
             Section(
-                title = "Оценка времени",
-                footer = "Без оценки задача не попадёт в автораскладку дня"
+                title = stringResource(R.string.editor_ocenka_vremeni),
+                footer = stringResource(R.string.editor_bez_ocenki_zadacha_ne_popadet_v_avtoraskladk)
             ) {
                 ChipRow {
                     ESTIMATE_PRESETS.forEach { minutes ->
@@ -222,10 +223,10 @@ fun TaskEditorScreen(
             }
 
             // --- проект и теги --------------------------------------------------
-            Section("Проект") {
+            Section(stringResource(R.string.editor_proekt)) {
                 ChipRow {
                     ChipButton(
-                        text = "Без проекта",
+                        text = stringResource(R.string.editor_bez_proekta),
                         selected = state.projectId == null,
                         onClick = { viewModel.setProject(null) }
                     )
@@ -242,12 +243,12 @@ fun TaskEditorScreen(
             AshTextField(
                 value = state.tagsInput,
                 onValueChange = viewModel::setTagsInput,
-                label = "Теги",
-                placeholder = "#дом #срочное"
+                label = stringResource(R.string.editor_tegi),
+                placeholder = stringResource(R.string.editor_dom_srochnoe)
             )
 
             // --- подзадачи ------------------------------------------------------
-            Section("Подзадачи") {
+            Section(stringResource(R.string.editor_podzadachi)) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.subtasks.forEachIndexed { index, subtask ->
                         SubtaskRow(
@@ -264,12 +265,12 @@ fun TaskEditorScreen(
                         AshTextField(
                             value = newSubtask,
                             onValueChange = { newSubtask = it },
-                            placeholder = "Ещё шаг",
+                            placeholder = stringResource(R.string.editor_esche_shag),
                             modifier = Modifier.weight(1f)
                         )
                         IconAction(
                             icon = AshIcons.Add,
-                            contentDescription = "Добавить подзадачу",
+                            contentDescription = stringResource(R.string.editor_dobavit_podzadachu),
                             enabled = newSubtask.isNotBlank(),
                             onClick = {
                                 viewModel.addSubtask(newSubtask)
@@ -284,23 +285,23 @@ fun TaskEditorScreen(
 
             // --- напоминание ----------------------------------------------------
             Section(
-                title = "Настойчивое напоминание",
+                title = stringResource(R.string.editor_nastoychivoe_napominanie),
                 footer = if (state.persistentReminderMinutes != null && state.dueTime == null) {
-                    "Нужно указать время: без него напоминать не от чего"
+                    stringResource(R.string.editor_nuzhno_ukazat_vremya_bez_nego_napominat_ne_o)
                 } else {
-                    "Повторять уведомление, пока задача не закрыта"
+                    stringResource(R.string.editor_povtoryat_uvedomlenie_poka_zadacha_ne_zakryt)
                 },
                 footerDanger = state.persistentReminderMinutes != null && state.dueTime == null
             ) {
                 ChipRow {
                     ChipButton(
-                        text = "Выкл",
+                        text = stringResource(R.string.editor_vykl),
                         selected = state.persistentReminderMinutes == null,
                         onClick = { viewModel.setPersistentReminder(null) }
                     )
                     REMINDER_PRESETS.forEach { minutes ->
                         ChipButton(
-                            text = "${minutes} мин",
+                            text = stringResource(R.string.settings_1_s_min, minutes),
                             selected = state.persistentReminderMinutes == minutes,
                             onClick = { viewModel.setPersistentReminder(minutes) }
                         )
@@ -311,14 +312,14 @@ fun TaskEditorScreen(
             Spacer(Modifier.height(4.dp))
 
             PrimaryButton(
-                text = "Сохранить",
+                text = stringResource(R.string.detail_sohranit),
                 enabled = state.canSave,
                 onClick = viewModel::save
             )
 
             if (!state.isNew) {
                 SecondaryButton(
-                    text = if (state.isDone) "Вернуть в работу" else "Выполнено",
+                    text = if (state.isDone) stringResource(R.string.editor_vernut_v_rabotu) else stringResource(R.string.editor_vypolneno),
                     onClick = viewModel::toggleDone
                 )
             }
@@ -403,12 +404,12 @@ private fun DueDateRow(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ChipRow {
             ChipButton(
-                text = "Сегодня",
+                text = stringResource(R.string.shortcut_today),
                 selected = state.dueDate == today,
                 onClick = { onSetDate(today) }
             )
             ChipButton(
-                text = "Завтра",
+                text = stringResource(R.string.editor_zavtra),
                 selected = state.dueDate == tomorrow,
                 onClick = { onSetDate(tomorrow) }
             )
@@ -416,19 +417,19 @@ private fun DueDateRow(
                 text = state.dueDate
                     ?.takeIf { it != today && it != tomorrow }
                     ?.format(DATE_FORMAT)
-                    ?: "Дата",
+                    ?: stringResource(R.string.editor_data),
                 icon = AshIcons.Calendar,
                 selected = state.dueDate != null && state.dueDate != today && state.dueDate != tomorrow,
                 onClick = onPickDate
             )
             ChipButton(
-                text = state.dueTime?.format(TIME_FORMAT) ?: "Время",
+                text = state.dueTime?.format(TIME_FORMAT) ?: stringResource(R.string.editor_vremya),
                 icon = AshIcons.Timer,
                 selected = state.dueTime != null,
                 onClick = onPickTime
             )
             if (state.dueDate != null || state.dueTime != null) {
-                ChipButton(text = "Без срока", icon = AshIcons.Close, onClick = onClear)
+                ChipButton(text = stringResource(R.string.editor_bez_sroka), icon = AshIcons.Close, onClick = onClear)
             }
         }
     }
@@ -479,7 +480,7 @@ private fun SubtaskRow(
         )
         IconAction(
             icon = AshIcons.Close,
-            contentDescription = "Убрать подзадачу",
+            contentDescription = stringResource(R.string.editor_ubrat_podzadachu),
             tint = colors.text3,
             onClick = onRemove
         )
@@ -499,7 +500,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Повторять", style = AshTheme.type.body, color = colors.text)
+            Text(stringResource(R.string.editor_povtoryat), style = AshTheme.type.body, color = colors.text)
             Switch(
                 checked = state.recurrenceEnabled,
                 onCheckedChange = viewModel::setRecurrenceEnabled,
@@ -529,7 +530,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
             RecurrenceType.EVERY_N_DAYS -> AshTextField(
                 value = state.recurrenceInterval.toString(),
                 onValueChange = { it.toIntOrNull()?.let(viewModel::setRecurrenceInterval) },
-                label = "Каждые N дней",
+                label = stringResource(R.string.editor_kazhdye_n_dney),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
@@ -551,7 +552,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = WEEKDAY_LABELS[index],
+                            text = stringArrayResource(R.array.weekday_short)[index],
                             style = AshTheme.type.footnote,
                             color = when {
                                 selected && colors.isDark -> Color.Black
@@ -566,7 +567,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
             RecurrenceType.DAY_OF_MONTH -> AshTextField(
                 value = state.recurrenceDayOfMonth.toString(),
                 onValueChange = { it.toIntOrNull()?.let(viewModel::setRecurrenceDayOfMonth) },
-                label = "Число месяца",
+                label = stringResource(R.string.editor_chislo_mesyaca),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
             )
 
@@ -608,7 +609,7 @@ private fun RecurrenceSection(state: TaskEditorState, viewModel: TaskEditorViewM
                 }
             }
             Text(
-                "Считать от факта выполнения, а не от плана",
+                stringResource(R.string.editor_schitat_ot_fakta_vypolneniya_a_ne_ot_plana),
                 style = AshTheme.type.subhead,
                 color = colors.text2
             )
@@ -639,7 +640,7 @@ private fun DatePickerSheet(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextAction(
-                text = "Готово",
+                text = stringResource(R.string.editor_gotovo),
                 onClick = {
                     pickerState.selectedDateMillis?.let { millis ->
                         // Пикер отдаёт UTC-полночь: переводим её в дату без сдвига пояса
@@ -650,7 +651,7 @@ private fun DatePickerSheet(
             )
         },
         dismissButton = {
-            TextAction(text = "Отмена", onClick = onDismiss)
+            TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss)
         }
     ) { DatePicker(state = pickerState) }
 }
@@ -672,7 +673,7 @@ private fun TimePickerSheet(
         onDismissRequest = onDismiss,
         confirmButton = {
             TextAction(
-                text = "Готово",
+                text = stringResource(R.string.editor_gotovo),
                 onClick = {
                     onPick(LocalTime.of(pickerState.hour, pickerState.minute))
                     onDismiss()
@@ -680,7 +681,7 @@ private fun TimePickerSheet(
             )
         },
         dismissButton = {
-            TextAction(text = "Отмена", onClick = onDismiss)
+            TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss)
         }
     ) {
         Column(
@@ -690,15 +691,17 @@ private fun TimePickerSheet(
     }
 }
 
+@Composable
 private fun recurrenceLabel(type: RecurrenceType): String = when (type) {
-    RecurrenceType.DAILY -> "каждый день"
-    RecurrenceType.EVERY_N_DAYS -> "каждые N дней"
-    RecurrenceType.WEEKDAYS -> "по дням недели"
-    RecurrenceType.DAY_OF_MONTH -> "N-е число"
+    RecurrenceType.DAILY -> stringResource(R.string.components_kazhdyy_den)
+    RecurrenceType.EVERY_N_DAYS -> stringResource(R.string.editor_kazhdye_n_dney_2)
+    RecurrenceType.WEEKDAYS -> stringResource(R.string.components_po_dnyam_nedeli)
+    RecurrenceType.DAY_OF_MONTH -> stringResource(R.string.editor_n_e_chislo)
 }
 
+@Composable
 private fun formatMinutes(minutes: Int): String = when {
-    minutes < 60 -> "${minutes} мин"
-    minutes % 60 == 0 -> "${minutes / 60} ч"
-    else -> "${minutes / 60} ч ${minutes % 60}"
+    minutes < 60 -> stringResource(R.string.settings_1_s_min, minutes)
+    minutes % 60 == 0 -> stringResource(R.string.editor_1_s_ch, minutes / 60)
+    else -> stringResource(R.string.editor_1_s_ch_2_s, minutes / 60, minutes % 60)
 }

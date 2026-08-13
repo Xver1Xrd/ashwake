@@ -1,5 +1,7 @@
 package dev.ashwake.ui.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -72,8 +74,7 @@ fun ColorPicker(
                     color = AshTheme.colors.text
                 )
                 Text(
-                    text = "тон ${hue.toInt()}° · насыщенность ${(saturation * 100).toInt()}%" +
-                        " · яркость ${(value * 100).toInt()}%",
+                    text = stringResource(R.string.components_ton_1_s_nasyschennost_2_s_yarkost_3_s, hue.toInt(), (saturation * 100).toInt(), (value * 100).toInt()),
                     style = AshTheme.type.caption,
                     color = AshTheme.colors.text2
                 )

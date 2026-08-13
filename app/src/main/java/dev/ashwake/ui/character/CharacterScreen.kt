@@ -133,7 +133,7 @@ fun CharacterScreen(
                     )
                     if (layers.isEmpty()) {
                         Text(
-                            "Наденьте что-нибудь из магазина ниже",
+                            stringResource(R.string.character_nadente_chto_nibud_iz_magazina_nizhe),
                             style = AshTheme.type.callout,
                             color = AshTheme.colors.text2,
                             modifier = Modifier.align(Alignment.Center)
@@ -173,7 +173,7 @@ fun CharacterScreen(
             if (visibleItems.isEmpty()) {
                 item {
                     Text(
-                        "По этим фильтрам ничего нет",
+                        stringResource(R.string.character_po_etim_filtram_nichego_net),
                         style = AshTheme.type.callout,
                         color = AshTheme.colors.text2
                     )
@@ -205,7 +205,7 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Уровень $level", style = AshTheme.type.headline)
+            Text(stringResource(R.string.character_uroven_1_s, level), style = AshTheme.type.headline)
             Text(
                 "$xp XP",
                 style = AshTheme.type.footnote,
@@ -225,7 +225,7 @@ private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterS
     Column(Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.character_harakteristiki), style = AshTheme.type.headline)
         Text(
-            "Растут от поведения, а не за монеты",
+            stringResource(R.string.character_rastut_ot_povedeniya_a_ne_za_monety),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2
         )
@@ -239,7 +239,7 @@ private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterS
                     onClick = {},
                     label = {
                         Text(
-                            statTitle(stat.stat) + " " + (stat.value + bonus) +
+                            stringResource(stat.stat.titleRes) + " " + (stat.value + bonus) +
                                 if (bonus > 0) " (+$bonus)" else ""
                         )
                     }
@@ -273,7 +273,7 @@ private fun ActiveEffectsBlock(state: dev.ashwake.domain.repository.character.Ch
         }
         if (equipment.blockedItems.isNotEmpty()) {
             Text(
-                "Не работают из-за требований: " +
+                stringResource(R.string.character_ne_rabotayut_iz_za_trebovaniy) +
                     equipment.blockedItems.joinToString { it.name },
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.danger
@@ -392,13 +392,13 @@ private fun ShopRow(
             }
             when {
                 equipped -> Text(
-                    "надето",
+                    stringResource(R.string.character_nadeto),
                     style = AshTheme.type.footnote,
                     color = Moss
                 )
                 owned -> TextAction(text = stringResource(R.string.character_nadet), onClick = onEquip)
                 item.price == null -> Text(
-                    "за достижение",
+                    stringResource(R.string.character_za_dostizhenie),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -407,18 +407,22 @@ private fun ShopRow(
         }
 
         if (item.effects.isNotEmpty()) {
+            // Названия эффектов собираются через map, а не внутри joinToString:
+            // joinToString не inline, и composable-вызов из его лямбды не сделать
+            val effects = item.effects.map { "${effectTitle(it.key)} ${formatEffect(it.key, it.value)}" }
             Text(
-                item.effects.joinToString(" · ") {
-                    "${effectTitle(it.key)} ${formatEffect(it.key, it.value)}"
-                },
+                effects.joinToString(" · "),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
         }
         if (missing.isNotEmpty()) {
             // Предмет виден в магазине, но не надевается — с подписью, чего не хватает
+            // Названия собираются через map: joinToString не inline, и
+            // composable-вызов из его лямбды не сделать
+            val lack = missing.entries.map { "${stringResource(it.key.titleRes)} +${it.value}" }
             Text(
-                "нужно: " + missing.entries.joinToString { "${statTitle(it.key)} +${it.value}" },
+                stringResource(R.string.character_nuzhno) + lack.joinToString(),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.danger
             )
@@ -431,7 +435,7 @@ private fun ShopRow(
             )
         }
         if (owned && item.price != 0) {
-            TextAction(text = "Улучшить · $upgradeCost ◈", onClick = onUpgrade)
+            TextAction(text = stringResource(R.string.character_uluchshit_1_s, upgradeCost), onClick = onUpgrade)
         }
     }
 }
@@ -447,26 +451,27 @@ private fun rarityColor(rarity: Rarity): Color = when (rarity) {
     Rarity.RELIC -> Ember
 }
 
+@Composable
 private fun effectTitle(key: String): String = when (EffectKeys.baseKey(key)) {
-    EffectKeys.COIN_MULT -> "монеты"
-    EffectKeys.COIN_MULT_SPHERE -> "монеты за ${EffectKeys.parameter(key)?.lowercase()}"
-    EffectKeys.COIN_MULT_MORNING -> "монеты утром"
-    EffectKeys.COIN_MULT_NIGHT -> "монеты ночью"
-    EffectKeys.XP_MULT -> "опыт"
-    EffectKeys.SCORE_DECAY_SLOW -> "стойкость score"
-    EffectKeys.FREEZE_CAP -> "заморозки"
-    EffectKeys.STREAK_SHIELD -> "щит серии"
-    EffectKeys.PUNCTUAL_BONUS -> "за пунктуальность"
-    EffectKeys.EARLY_BONUS -> "за раннее выполнение"
-    EffectKeys.COMBO_BONUS -> "за комбо"
-    EffectKeys.ABSTINENCE_COIN -> "за день отказа"
-    EffectKeys.CRAVING_WARD -> "за переждённую тягу"
-    EffectKeys.FOCUS_COIN -> "за помодоро"
-    EffectKeys.ROUTINE_BONUS -> "за рутину"
-    EffectKeys.TASK_PRIORITY_BONUS -> "за срочные задачи"
-    EffectKeys.LOOT_LUCK -> "удача в наградах"
-    EffectKeys.REROLL_CHEST -> "перебросы награды"
-    EffectKeys.OVERDUE_RELIEF -> "смягчение просрочки"
+    EffectKeys.COIN_MULT -> stringResource(R.string.character_monety)
+    EffectKeys.COIN_MULT_SPHERE -> stringResource(R.string.character_monety_za_1_s, EffectKeys.parameter(key)?.lowercase().orEmpty())
+    EffectKeys.COIN_MULT_MORNING -> stringResource(R.string.character_monety_utrom)
+    EffectKeys.COIN_MULT_NIGHT -> stringResource(R.string.character_monety_nochyu)
+    EffectKeys.XP_MULT -> stringResource(R.string.character_opyt)
+    EffectKeys.SCORE_DECAY_SLOW -> stringResource(R.string.character_stoykost_score)
+    EffectKeys.FREEZE_CAP -> stringResource(R.string.detail_zamorozki)
+    EffectKeys.STREAK_SHIELD -> stringResource(R.string.character_schit_serii)
+    EffectKeys.PUNCTUAL_BONUS -> stringResource(R.string.character_za_punktualnost)
+    EffectKeys.EARLY_BONUS -> stringResource(R.string.character_za_rannee_vypolnenie)
+    EffectKeys.COMBO_BONUS -> stringResource(R.string.character_za_kombo)
+    EffectKeys.ABSTINENCE_COIN -> stringResource(R.string.character_za_den_otkaza)
+    EffectKeys.CRAVING_WARD -> stringResource(R.string.character_za_perezhdennuyu_tyagu)
+    EffectKeys.FOCUS_COIN -> stringResource(R.string.character_za_pomodoro)
+    EffectKeys.ROUTINE_BONUS -> stringResource(R.string.character_za_rutinu)
+    EffectKeys.TASK_PRIORITY_BONUS -> stringResource(R.string.character_za_srochnye_zadachi)
+    EffectKeys.LOOT_LUCK -> stringResource(R.string.character_udacha_v_nagradah)
+    EffectKeys.REROLL_CHEST -> stringResource(R.string.character_perebrosy_nagrady)
+    EffectKeys.OVERDUE_RELIEF -> stringResource(R.string.character_smyagchenie_prosrochki)
     else -> key
 }
 

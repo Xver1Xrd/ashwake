@@ -44,15 +44,15 @@ class SessionForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForegroundSafely(buildNotification("Ashwake", "Таймер запущен"))
+        startForegroundSafely(buildNotification("Ashwake", getString(R.string.sessionforegroun_taymer_zapuschen)))
 
         scope.launch {
             combine(routineController.state, focusController.state) { routine, focus ->
                 when {
                     routine.active -> {
-                        val step = routine.currentStep?.title ?: "Рутина"
+                        val step = routine.currentStep?.title ?: getString(R.string.shortcut_routine)
                         val remaining = routine.progress.stepRemainingSeconds
-                        (routine.routine?.name ?: "Рутина") to
+                        (routine.routine?.name ?: getString(R.string.shortcut_routine)) to
                             "$step · ${formatTime(remaining)}"
                     }
 

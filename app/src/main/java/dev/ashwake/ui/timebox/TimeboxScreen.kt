@@ -103,7 +103,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             ExtendedFloatingActionButton(
                 onClick = viewModel::planDay,
                 icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
-                text = { Text(if (planning) "Раскладываю…" else "Разложить день") }
+                text = { Text(if (planning) stringResource(R.string.timebox_raskladyvayu) else stringResource(R.string.timebox_razlozhit_den)) }
             )
         }
     ) { padding ->
@@ -124,7 +124,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "${settings.workStartMinute / 60}:00–${settings.workEndMinute / 60}:00 · буфер ${settings.bufferMinutes} мин",
+                    stringResource(R.string.timebox_1_s_00_2_s_00_bufer_3_s_min, settings.workStartMinute / 60, settings.workEndMinute / 60, settings.bufferMinutes),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -136,7 +136,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             ) {
                 listOf(0, 5, 10, 15).forEach { buffer ->
                     ChipButton(
-                        text = "буфер $buffer",
+                        text = stringResource(R.string.timebox_bufer_1_s, buffer),
                         selected = settings.bufferMinutes == buffer,
                         onClick = { viewModel.setBuffer(buffer) }
                     )
@@ -150,7 +150,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
 
             if (useCalendar && !viewModel.calendarPermissionGranted()) {
                 Text(
-                    "Нет доступа к календарю — события учитываться не будут. Разрешение запрашивается в настройках системы",
+                    stringResource(R.string.timebox_net_dostupa_k_kalendaryu_sobytiya_uchityvats),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.danger,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -159,7 +159,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
 
             if (day.deficitMinutes > 0) {
                 Text(
-                    "Не влезло ${formatDuration(day.deficitMinutes)} — часть задач придётся вынести на завтра",
+                    stringResource(R.string.timebox_ne_vlezlo_1_s_chast_zadach_pridetsya_vynesti, formatDuration(day.deficitMinutes)),
                     style = AshTheme.type.footnote,
                     color = Ember,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
@@ -187,12 +187,12 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
     outcome?.let { data ->
         AlertDialog(
             onDismissRequest = viewModel::dismissOutcome,
-            title = { Text(if (data.deficitMinutes == 0) "День разложен" else "День не вмещает всё") },
+            title = { Text(if (data.deficitMinutes == 0) stringResource(R.string.timebox_den_razlozhen) else stringResource(R.string.timebox_den_ne_vmeschaet_vse)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (data.deficitMinutes > 0) {
                         Text(
-                            "Не хватает ${formatDuration(data.deficitMinutes)}",
+                            stringResource(R.string.timebox_ne_hvataet_1_s, formatDuration(data.deficitMinutes)),
                             style = AshTheme.type.callout,
                             color = Ember
                         )
@@ -207,7 +207,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                     if (data.withoutEstimateTitles.isNotEmpty()) {
                         HorizontalDivider(Modifier.padding(vertical = 4.dp))
                         Text(
-                            "Без оценки времени — не раскладываются:",
+                            stringResource(R.string.timebox_bez_ocenki_vremeni_ne_raskladyvayutsya),
                             style = AshTheme.type.subhead
                         )
                         data.withoutEstimateTitles.take(6).forEach {
@@ -376,7 +376,7 @@ private fun BlockActionsDialog(
                     style = AshTheme.type.callout
                 )
                 TextAction(
-                    text = if (block.pinned) "Открепить" else "Закрепить: не двигать",
+                    text = if (block.pinned) stringResource(R.string.timebox_otkrepit) else stringResource(R.string.timebox_zakrepit_ne_dvigat),
                     onClick = onPin
                 )
                 Text(stringResource(R.string.timebox_zatyanulos_na), style = AshTheme.type.subhead)
@@ -404,11 +404,12 @@ private fun colorOf(kind: BlockKind): Color = when (kind) {
     BlockKind.MANUAL -> Steel
 }
 
+@Composable
 internal fun formatDuration(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
     return when {
-        safe < 60 -> "$safe мин"
-        safe % 60 == 0 -> "${safe / 60} ч"
-        else -> "${safe / 60} ч ${safe % 60} мин"
+        safe < 60 -> stringResource(R.string.duration_minutes, safe)
+        safe % 60 == 0 -> stringResource(R.string.duration_hours, safe / 60)
+        else -> stringResource(R.string.duration_hours_minutes, safe / 60, safe % 60)
     }
 }

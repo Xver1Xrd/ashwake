@@ -10,7 +10,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
@@ -20,11 +19,10 @@ import java.io.File
  * разъедутся с холстом 128×128, персонаж уедет за край и этого никто не
  * заметит до первого виджета на домашнем экране.
  */
+// Рисование проверяется настоящим Skia — режим включён на весь модуль
+// в `robolectric.properties`: одному классу его включать нельзя, соседние
+// тесты базы в той же JVM теряют нативную привязку SQLite
 @RunWith(RobolectricTestRunner::class)
-// Рисование проверяется настоящим Skia: подставной Canvas из Robolectric
-// рисует приблизительно, и щель между пикселями на нём не отличить от щели
-// в самом спрайте
-@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class SpriteRenderSmokeTest {
 
     @Test

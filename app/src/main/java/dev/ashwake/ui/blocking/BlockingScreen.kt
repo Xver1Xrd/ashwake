@@ -110,7 +110,7 @@ fun BlockingScreen(
 
             if (rules.isEmpty()) {
                 Text(
-                    "Правил нет. Правило описывает, какие приложения закрыты и что нужно сделать, чтобы они открылись",
+                    stringResource(R.string.blocking_pravil_net_pravilo_opisyvaet_kakie_prilozhen),
                     style = AshTheme.type.callout,
                     color = AshTheme.colors.text2
                 )
@@ -155,7 +155,7 @@ fun BlockingScreen(
                 HorizontalDivider()
                 Text(stringResource(R.string.blocking_ekstrennye_obhody), style = AshTheme.type.headline)
                 Text(
-                    "Обход всегда возможен — запирать себя в собственном телефоне нельзя. Но он остаётся в логе, и по нему видно, работает правило или стало формальностью",
+                    stringResource(R.string.blocking_obhod_vsegda_vozmozhen_zapirat_sebya_v_sobst),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -188,19 +188,19 @@ private fun PermissionsBlock(state: PermissionState, viewModel: BlockingViewMode
     PermissionRow(
         granted = state.usageAccess,
         title = stringResource(R.string.blocking_dostup_k_statistike_ispolzovaniya),
-        explanation = "Нужен, чтобы понять, какое приложение открыто прямо сейчас. Ashwake читает только имя приложения на переднем плане и никуда его не отправляет",
+        explanation = stringResource(R.string.blocking_nuzhen_chtoby_ponyat_kakoe_prilozhenie_otkry),
         onOpen = viewModel::openUsageAccessSettings
     )
     PermissionRow(
         granted = state.overlay,
         title = stringResource(R.string.blocking_poverh_drugih_prilozheniy),
-        explanation = "Нужен, чтобы показать экран с напоминанием, что осталось сделать",
+        explanation = stringResource(R.string.blocking_nuzhen_chtoby_pokazat_ekran_s_napominaniem_c),
         onOpen = viewModel::openOverlaySettings
     )
 
     if (!state.allGranted) {
         Text(
-            "Без обоих разрешений блокировка не включается",
+            stringResource(R.string.blocking_bez_oboih_razresheniy_blokirovka_ne_vklyucha),
             style = AshTheme.type.footnote,
             color = Ember
         )
@@ -359,16 +359,18 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
     )
 }
 
+@Composable
 private fun conditionLabel(condition: UnlockCondition, time: LocalTime?): String =
     when (condition) {
-        UnlockCondition.MORNING_HABITS_DONE -> "Пока не отмечены утренние привычки"
-        UnlockCondition.ROUTINE_DONE -> "Пока не пройдена рутина"
+        UnlockCondition.MORNING_HABITS_DONE -> stringResource(R.string.blocking_poka_ne_otmecheny_utrennie_privychki)
+        UnlockCondition.ROUTINE_DONE -> stringResource(R.string.blocking_poka_ne_proydena_rutina)
         UnlockCondition.TIME_AFTER ->
-            "Откроется в " + (time?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "—")
+            stringResource(R.string.blocking_otkroetsya_v) + (time?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "—")
     }
 
+@Composable
 private fun shortConditionLabel(condition: UnlockCondition): String = when (condition) {
-    UnlockCondition.MORNING_HABITS_DONE -> "привычки"
-    UnlockCondition.ROUTINE_DONE -> "рутина"
-    UnlockCondition.TIME_AFTER -> "время"
+    UnlockCondition.MORNING_HABITS_DONE -> stringResource(R.string.blocking_privychki)
+    UnlockCondition.ROUTINE_DONE -> stringResource(R.string.blocking_rutina)
+    UnlockCondition.TIME_AFTER -> stringResource(R.string.blocking_vremya)
 }

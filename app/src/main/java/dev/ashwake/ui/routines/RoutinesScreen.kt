@@ -72,7 +72,7 @@ fun RoutinesScreen(
             ) {
                 Text(stringResource(R.string.routines_rutin_poka_net), style = AshTheme.type.title3)
                 Text(
-                    "Рутина — это список шагов с таймером: запустил и не думаешь, что дальше",
+                    stringResource(R.string.routines_rutina_eto_spisok_shagov_s_taymerom_zapustil),
                     style = AshTheme.type.callout,
                     color = AshTheme.colors.text2,
                     textAlign = TextAlign.Center
@@ -97,8 +97,8 @@ fun RoutinesScreen(
                         Column(Modifier.weight(1f)) {
                             Text(routine.name, style = AshTheme.type.body)
                             Text(
-                                "${routine.steps.size} шагов · ${formatTime(routine.plannedSeconds)}" +
-                                    (routine.startTime?.let { " · в $it" } ?: ""),
+                                stringResource(R.string.routines_1_s_shagov_2_s, routine.steps.size, formatTime(routine.plannedSeconds)) +
+                                    (routine.startTime?.let { stringResource(R.string.routines_v_1_s, it) } ?: ""),
                                 style = AshTheme.type.footnote,
                                 color = AshTheme.colors.text2
                             )
@@ -129,7 +129,7 @@ fun RoutinesScreen(
                             ) {
                                 Text(preset.name, style = AshTheme.type.callout)
                                 Text(
-                                    "${preset.steps.size} шагов · ${formatTime(preset.totalSeconds)}",
+                                    stringResource(R.string.routines_1_s_shagov_2_s, preset.steps.size, formatTime(preset.totalSeconds)),
                                     style = AshTheme.type.footnote,
                                     color = AshTheme.colors.text2
                                 )

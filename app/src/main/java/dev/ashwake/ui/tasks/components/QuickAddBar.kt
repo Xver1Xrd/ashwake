@@ -1,5 +1,7 @@
 package dev.ashwake.ui.tasks.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -66,12 +68,12 @@ fun QuickAddBar(
             AshTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = "Купить молоко завтра 18:00 p2 #дом 30м",
+                placeholder = stringResource(R.string.components_kupit_moloko_zavtra_18_00_p2_dom_30m_2),
                 modifier = Modifier.weight(1f)
             )
             RoundAction(
                 icon = AshIcons.Mic,
-                description = "Голосовой ввод",
+                description = stringResource(R.string.components_golosovoy_vvod),
                 // Во время записи микрофон подсвечен: иначе непонятно,
                 // слушает приложение или нет
                 tint = if (listening) colors.danger else colors.text2,
@@ -80,7 +82,7 @@ fun QuickAddBar(
             )
             RoundAction(
                 icon = AshIcons.ArrowUpward,
-                description = "Добавить",
+                description = stringResource(R.string.routines_dobavit),
                 tint = if (value.isBlank()) colors.text3
                 else if (colors.isDark) Color.Black else Color.White,
                 background = if (value.isBlank()) colors.surface2 else colors.accent,
@@ -124,7 +126,7 @@ private fun ParsedChips(parsed: ParsedQuickInput) {
         parsed.date?.let { Chip(it.format(DATE_FORMAT)) }
         parsed.time?.let { Chip(it.format(TIME_FORMAT)) }
         parsed.priority?.let { Chip(it.colorTitle, colors.priorityColor(it)) }
-        parsed.estimateMinutes?.let { Chip("~${it} мин") }
+        parsed.estimateMinutes?.let { Chip(stringResource(R.string.components_1_s_min, it)) }
         parsed.tagNames.forEach { Chip("#$it") }
     }
 }

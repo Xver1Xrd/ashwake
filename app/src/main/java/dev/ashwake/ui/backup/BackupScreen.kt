@@ -95,18 +95,18 @@ fun BackupScreen(
         ) {
             Text(stringResource(R.string.backup_rezervnye_kopii), style = AshTheme.type.headline)
             Text(
-                "Копия пишется в выбранную папку раз в сутки. Положите её туда, где работает ваша синхронизация — приложение само никуда ничего не отправляет",
+                stringResource(R.string.backup_kopiya_pishetsya_v_vybrannuyu_papku_raz_v_su),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
 
             Text(
-                folder?.let { "Папка выбрана" } ?: "Папка не выбрана",
+                folder?.let { stringResource(R.string.backup_papka_vybrana) } ?: stringResource(R.string.backup_papka_ne_vybrana),
                 style = AshTheme.type.callout,
                 color = if (folder != null) Moss else Ember
             )
             ChipButton(
-                text = if (folder == null) "Выбрать папку" else "Сменить папку",
+                text = if (folder == null) stringResource(R.string.backup_vybrat_papku) else stringResource(R.string.backup_smenit_papku),
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { pickFolder.launch(null) }
             )
@@ -123,9 +123,9 @@ fun BackupScreen(
             )
             Text(
                 if (password.isBlank()) {
-                    "Без пароля копия сохраняется открытым текстом — её сможет прочитать всё, что имеет доступ к папке"
+                    stringResource(R.string.backup_bez_parolya_kopiya_sohranyaetsya_otkrytym_te)
                 } else {
-                    "Пароль нигде не хранится. Забытый пароль означает потерянный архив"
+                    stringResource(R.string.backup_parol_nigde_ne_hranitsya_zabytyy_parol_oznac)
                 },
                 style = AshTheme.type.footnote,
                 color = if (password.isBlank()) Ember else AshTheme.colors.text2
@@ -147,7 +147,7 @@ fun BackupScreen(
             HorizontalDivider()
             Text(stringResource(R.string.backup_import_iz_drugogo_prilozheniya), style = AshTheme.type.headline)
             Text(
-                "Разбор показывается до применения: ничего не меняется, пока вы не нажмёте «Применить»",
+                stringResource(R.string.backup_razbor_pokazyvaetsya_do_primeneniya_nichego),
                 style = AshTheme.type.footnote,
                 color = AshTheme.colors.text2
             )
@@ -172,7 +172,7 @@ fun BackupScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "Импортируется ${report.imported}, пропущено ${report.skipped}",
+                        stringResource(R.string.backup_importiruetsya_1_s_propuscheno_2_s, report.imported, report.skipped),
                         style = AshTheme.type.callout
                     )
                     if (report.previewTitles.isNotEmpty()) {
@@ -213,13 +213,13 @@ fun BackupScreen(
             title = { Text(stringResource(R.string.backup_chto_v_arhive)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Задач: ${contents.tasks}")
-                    Text("Привычек: ${contents.habits}, отметок: ${contents.habitEntries}")
-                    Text("Отказов: ${contents.abstinences}")
-                    Text("Записей ритуала: ${contents.reviews}")
+                    Text(stringResource(R.string.backup_zadach_1_s, contents.tasks))
+                    Text(stringResource(R.string.backup_privychek_1_s_otmetok_2_s, contents.habits, contents.habitEntries))
+                    Text(stringResource(R.string.backup_otkazov_1_s, contents.abstinences))
+                    Text(stringResource(R.string.backup_zapisey_rituala_1_s, contents.reviews))
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Восстановление заменит текущие данные целиком: задачи, привычки с историей отметок, отказы, персонажа и монеты. Отменить это нельзя",
+                        stringResource(R.string.backup_vosstanovlenie_zamenit_tekuschie_dannye_celi),
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.text2
                     )
@@ -227,7 +227,7 @@ fun BackupScreen(
             },
             confirmButton = {
                 TextAction(
-                    text = if (restoring) "Восстановление…" else "Заменить данные",
+                    text = if (restoring) stringResource(R.string.backup_vosstanovlenie) else stringResource(R.string.backup_zamenit_dannye),
                     color = AshTheme.colors.danger,
                     enabled = !restoring,
                     onClick = viewModel::applyRestore

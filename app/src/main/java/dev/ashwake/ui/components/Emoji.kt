@@ -1,5 +1,7 @@
 package dev.ashwake.ui.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -143,7 +145,7 @@ fun EmojiPicker(
                     tint = colors.text2,
                     modifier = Modifier.size(16.dp)
                 )
-                Text("Убрать значок", style = AshTheme.type.subhead, color = colors.text2)
+                Text(stringResource(R.string.components_ubrat_znachok), style = AshTheme.type.subhead, color = colors.text2)
             }
         }
     }

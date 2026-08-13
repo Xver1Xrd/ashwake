@@ -110,7 +110,7 @@ fun CreateAbstinenceDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AbstinenceMode.entries.forEach { option ->
                         ChipButton(
-                        text = if (option == AbstinenceMode.GENTLE) "мягкий" else "строгий",
+                        text = if (option == AbstinenceMode.GENTLE) stringResource(R.string.editor_myagkiy) else stringResource(R.string.editor_strogiy),
                         selected = mode == option,
                         onClick = { mode = option }
                     )
@@ -118,8 +118,8 @@ fun CreateAbstinenceDialog(
                 }
                 Text(
                     if (mode == AbstinenceMode.GENTLE)
-                        "Срыв отнимает семь дней, но не обнуляет счётчик"
-                    else "Срыв обнуляет счётчик, как в классических трекерах",
+                        stringResource(R.string.editor_sryv_otnimaet_sem_dney_no_ne_obnulyaet_schet)
+                    else stringResource(R.string.editor_sryv_obnulyaet_schetchik_kak_v_klassicheskih),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -128,7 +128,7 @@ fun CreateAbstinenceDialog(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 1, 3, 7, 30).forEach { days ->
                         ChipButton(
-                        text = if (days == 0) "сейчас" else "$days дн. назад",
+                        text = if (days == 0) stringResource(R.string.detail_seychas) else stringResource(R.string.editor_1_s_dn_nazad, days),
                         selected = daysAgo == days,
                         onClick = { daysAgo = days }
                     )
@@ -161,7 +161,7 @@ fun CreateAbstinenceDialog(
                     Column(Modifier.weight(1f)) {
                         Text(stringResource(R.string.editor_schitat_sekonomlennoe), style = AshTheme.type.subhead)
                         Text(
-                            "Без этих цифр блок экономии просто не показывается",
+                            stringResource(R.string.editor_bez_etih_cifr_blok_ekonomii_prosto_ne_pokazy),
                             style = AshTheme.type.footnote,
                             color = AshTheme.colors.text2
                         )

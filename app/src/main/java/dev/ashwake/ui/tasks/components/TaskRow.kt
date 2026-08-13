@@ -1,5 +1,7 @@
 package dev.ashwake.ui.tasks.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -201,8 +203,8 @@ private fun TaskRowContent(
             ) {
                 Icon(
                     if (expanded) AshIcons.ExpandLess else AshIcons.ExpandMore,
-                    contentDescription = if (expanded) "Свернуть подзадачи"
-                    else "Показать подзадачи",
+                    contentDescription = if (expanded) stringResource(R.string.components_svernut_podzadachi)
+                    else stringResource(R.string.components_pokazat_podzadachi),
                     tint = colors.text3,
                     modifier = Modifier.size(18.dp)
                 )
@@ -279,13 +281,14 @@ private fun StaleBadge(task: Task) {
     }
 }
 
+@Composable
 private fun buildMeta(task: Task, today: LocalDate): String {
     val parts = mutableListOf<String>()
     task.dueDate?.let { date ->
         parts += when (date) {
-            today -> "сегодня"
-            today.plusDays(1) -> "завтра"
-            today.minusDays(1) -> "вчера"
+            today -> stringResource(R.string.components_segodnya)
+            today.plusDays(1) -> stringResource(R.string.ritual_zavtra)
+            today.minusDays(1) -> stringResource(R.string.components_vchera)
             else -> date.format(DATE_FORMAT)
         }
     }
@@ -298,8 +301,9 @@ private fun buildMeta(task: Task, today: LocalDate): String {
     return parts.joinToString(" · ")
 }
 
+@Composable
 private fun formatEstimate(minutes: Int): String = when {
-    minutes < 60 -> "${minutes}м"
-    minutes % 60 == 0 -> "${minutes / 60}ч"
-    else -> "${minutes / 60}ч ${minutes % 60}м"
+    minutes < 60 -> stringResource(R.string.components_1_sm, minutes)
+    minutes % 60 == 0 -> stringResource(R.string.components_1_sch, minutes / 60)
+    else -> stringResource(R.string.components_1_sch_2_sm, minutes / 60, minutes % 60)
 }

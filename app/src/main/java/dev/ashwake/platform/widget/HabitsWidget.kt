@@ -1,5 +1,7 @@
 package dev.ashwake.platform.widget
 
+import androidx.glance.LocalContext
+import dev.ashwake.R
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
@@ -75,7 +77,7 @@ class HabitsWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Привычки",
+                    LocalContext.current.getString(R.string.habits_privychki),
                     style = TextStyle(
                         fontWeight = FontWeight.Bold,
                         color = GlanceTheme.colors.onSurface
@@ -90,7 +92,7 @@ class HabitsWidget : GlanceAppWidget() {
 
             if (habits.isEmpty()) {
                 Text(
-                    "На сегодня ничего не запланировано",
+                    LocalContext.current.getString(R.string.today_na_segodnya_nichego_ne_zaplanirovano),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
                 )
                 return@Column
@@ -207,7 +209,7 @@ class HabitHeatmapWidget : GlanceAppWidget() {
                 .padding(12.dp)
         ) {
             Text(
-                name ?: "Привычек нет",
+                name ?: LocalContext.current.getString(R.string.habitswidget_privychek_net),
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
                     color = GlanceTheme.colors.onSurface

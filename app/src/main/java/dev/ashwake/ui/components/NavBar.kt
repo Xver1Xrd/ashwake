@@ -1,5 +1,7 @@
 package dev.ashwake.ui.components
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -93,7 +95,7 @@ fun AshNavBar(
         if (onBack != null) {
             IconAction(
                 icon = AshIcons.ChevronLeft,
-                contentDescription = "Назад",
+                contentDescription = stringResource(R.string.detail_nazad),
                 onClick = onBack
             )
         } else {

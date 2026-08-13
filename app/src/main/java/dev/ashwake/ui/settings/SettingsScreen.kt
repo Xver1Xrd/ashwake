@@ -98,8 +98,7 @@ fun SettingsScreen(
 
             ChipGroup(
                 header = stringResource(R.string.settings_nachalo_sutok),
-                footer = "Отметка в час ночи попадёт в предыдущий день. " +
-                    "Влияет на стрики, счётчики отказов и статистику",
+                footer = stringResource(R.string.settings_otmetka_v_chas_nochi_popadet_v_predyduschiy),
                 options = listOf(0, 2, 4, 6),
                 label = { "%02d:00".format(it) },
                 selected = { it == dayStart },
@@ -108,7 +107,7 @@ fun SettingsScreen(
 
             ListGroup(
                 header = stringResource(R.string.settings_rabochie_chasy),
-                footer = "В этом окне раскладывается день"
+                footer = stringResource(R.string.settings_v_etom_okne_raskladyvaetsya_den)
             ) {
                 ChipRow(
                     options = listOf(6, 7, 8, 9, 10),
@@ -127,8 +126,7 @@ fun SettingsScreen(
 
             ChipGroup(
                 header = stringResource(R.string.settings_bufer_mezhdu_blokami),
-                footer = "Зазор между соседними блоками: без него день " +
-                    "раскладывается впритык и рассыпается от первой задержки",
+                footer = stringResource(R.string.settings_zazor_mezhdu_sosednimi_blokami_bez_nego_den),
                 options = listOf(0, 5, 10, 15),
                 label = { "$it мин" },
                 selected = { timebox.bufferMinutes == it },
@@ -156,11 +154,11 @@ fun SettingsScreen(
                 }
             }
 
-            ListGroup(header = "Данные и система") {
+            ListGroup(header = stringResource(R.string.settings_dannye_i_sistema)) {
                 ListRow(
                     title = stringResource(R.string.settings_sistemnyy_kalendar),
-                    subtitle = if (useCalendar) "События учитываются при раскладке дня"
-                    else "События календаря не учитываются",
+                    subtitle = if (useCalendar) stringResource(R.string.settings_sobytiya_uchityvayutsya_pri_raskladke_dnya)
+                    else stringResource(R.string.settings_sobytiya_kalendarya_ne_uchityvayutsya),
                     trailing = {
                         Switch(
                             checked = useCalendar,
@@ -192,8 +190,7 @@ fun SettingsScreen(
             BatteryOptimizationSection()
 
             ListGroupFooter(
-                "Приложение работает офлайн: ни одного сетевого вызова, " +
-                    "ни аналитики, ни сторонних SDK"
+                stringResource(R.string.settings_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo)
             )
             Spacer(Modifier.navigationBarsPadding())
         }
@@ -217,10 +214,10 @@ private fun AppearanceSection(
     val colors = AshTheme.colors
     val modes = ThemeMode.entries
 
-    ListGroup(header = "Оформление") {
+    ListGroup(header = stringResource(R.string.settings_oformlenie)) {
         Box(Modifier.padding(ChipRowPadding)) {
             SegmentedControl(
-                options = modes.map { it.title },
+                options = modes.map { stringResource(it.titleRes) },
                 selectedIndex = modes.indexOf(theme.mode),
                 onSelect = { onThemeMode(modes[it]) }
             )
@@ -260,7 +257,7 @@ private fun AppearanceSection(
                     if (selected) {
                         Icon(
                             AshIcons.Check,
-                            contentDescription = accent.title,
+                            contentDescription = stringResource(accent.titleRes),
                             tint = if (colors.isDark) Color.Black else Color.White,
                             modifier = Modifier.size(18.dp)
                         )
@@ -272,8 +269,8 @@ private fun AppearanceSection(
         ListDivider()
 
         ListRow(
-            title = "Редактор темы",
-            subtitle = "Свой цвет, форма углов, скругление, плотность, эффекты",
+            title = stringResource(R.string.settings_redaktor_temy),
+            subtitle = stringResource(R.string.settings_svoy_cvet_forma_uglov_skruglenie_plotnost_ef),
             showChevron = true,
             onClick = onOpenEditor
         )

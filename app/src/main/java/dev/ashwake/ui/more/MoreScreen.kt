@@ -61,13 +61,13 @@ fun MoreScreen(
         )
 
         ListGroup(header = stringResource(R.string.more_razdely)) {
-            MoreRow("Отказы", AshIcons.Prohibit, onOpenAbstinence)
+            MoreRow(stringResource(R.string.abstinence_otkazy), AshIcons.Prohibit, onOpenAbstinence)
             ListDivider(52.dp)
-            MoreRow("Персонаж", AshIcons.Person, onOpenCharacter)
+            MoreRow(stringResource(R.string.widget_character), AshIcons.Person, onOpenCharacter)
             ListDivider(52.dp)
-            MoreRow("Таймеры и рутины", AshIcons.Timer, onOpenTimers)
+            MoreRow(stringResource(R.string.more_taymery_i_rutiny), AshIcons.Timer, onOpenTimers)
             ListDivider(52.dp)
-            MoreRow("Статистика", AshIcons.BarChart, onOpenStats)
+            MoreRow(stringResource(R.string.stats_statistika), AshIcons.BarChart, onOpenStats)
         }
 
         ListGroup(header = stringResource(R.string.more_zadachi_group)) {
@@ -75,14 +75,14 @@ fun MoreScreen(
         }
 
         ListGroup(header = stringResource(R.string.more_vecher)) {
-            MoreRow("Вечерний ритуал", AshIcons.Moon, onOpenRitual)
+            MoreRow(stringResource(R.string.ritual_vecherniy_ritual), AshIcons.Moon, onOpenRitual)
         }
 
         ListGroup(
             header = stringResource(R.string.more_prilozhenie),
             footer = stringResource(R.string.more_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo)
         ) {
-            MoreRow("Настройки", AshIcons.Settings, onOpenSettings)
+            MoreRow(stringResource(R.string.character_nastroyki), AshIcons.Settings, onOpenSettings)
         }
     }
 }

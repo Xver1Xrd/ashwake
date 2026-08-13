@@ -1,5 +1,7 @@
 package dev.ashwake.ui.onboarding
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -91,7 +93,7 @@ fun OnboardingScreen(
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.End
         ) {
-            TextAction(text = "Пропустить", color = colors.text2, onClick = viewModel::skip)
+            TextAction(text = stringResource(R.string.onboarding_propustit), color = colors.text2, onClick = viewModel::skip)
         }
 
         HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
@@ -136,8 +138,8 @@ fun OnboardingScreen(
 
             PrimaryButton(
                 text = when (pager.currentPage) {
-                    PAGES - 1 -> if (state.picked.isEmpty()) "Начать" else "Начать с ${state.picked.size}"
-                    else -> "Дальше"
+                    PAGES - 1 -> if (state.picked.isEmpty()) stringResource(R.string.onboarding_nachat) else stringResource(R.string.onboarding_nachat_s_1_s, state.picked.size)
+                    else -> stringResource(R.string.onboarding_dalshe)
                 },
                 onClick = {
                     if (pager.currentPage == PAGES - 1) {
@@ -158,9 +160,7 @@ private fun IntroPage() {
     Page(
         icon = AshIcons.Sun,
         title = "Ashwake",
-        text = "Это не ещё один список дел. Задачи, привычки и отказы живут " +
-            "в одном месте, а за сделанное растёт персонаж — чтобы у усилий " +
-            "был видимый след, а не только галочка."
+        text = stringResource(R.string.onboarding_eto_ne_esche_odin_spisok_del_zadachi_privych)
     )
 }
 
@@ -168,10 +168,8 @@ private fun IntroPage() {
 private fun CharacterPage() {
     Page(
         icon = AshIcons.Person,
-        title = "Персонаж растёт от дел",
-        text = "Монеты приходят за выполненное, характеристики — за поведение: " +
-            "силу нельзя купить, её надо натренировать. Одежду и снаряжение " +
-            "можно купить в магазине на заработанное."
+        title = stringResource(R.string.onboarding_personazh_rastet_ot_del),
+        text = stringResource(R.string.onboarding_monety_prihodyat_za_vypolnennoe_harakteristi)
     )
 }
 
@@ -240,13 +238,12 @@ private fun HabitsPage(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Text(
-            text = "С чего начнём?",
+            text = stringResource(R.string.onboarding_s_chego_nachnem),
             style = AshTheme.type.title2,
             color = colors.text
         )
         Text(
-            text = "Выберите одну-две. Больше — соблазн, который через неделю " +
-                "превращается в список невыполненного",
+            text = stringResource(R.string.onboarding_vyberite_odnu_dve_bolshe_soblazn_kotoryy_che),
             style = AshTheme.type.subhead,
             color = colors.text2
         )

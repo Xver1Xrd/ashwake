@@ -53,8 +53,8 @@ class RitualReminderWorker @AssistedInject constructor(
         if (ritual.observeRitual(date).first().alreadyDone) return Result.success()
 
         notify(
-            title = "Вечерний ритуал",
-            text = "Две минуты: оценить день, разобрать хвосты, наметить завтра"
+            title = applicationContext.getString(R.string.ritual_vecherniy_ritual),
+            text = applicationContext.getString(R.string.ritualworkers_dve_minuty_ocenit_den_razobrat_hvosty_nameti)
         )
         return Result.success()
     }
@@ -115,10 +115,8 @@ class WeeklyReportWorker @AssistedInject constructor(
         val report = ritual.weeklyReport(weekStart)
 
         notify(
-            "Итоги недели",
-            "Задачи ${report.tasksCompleted.current}, привычки " +
-                "${(report.habitCompletionRate * 100).toInt()}%, " +
-                "ритуал ${report.ritualDays} из 7"
+            applicationContext.getString(R.string.ritualworkers_itogi_nedeli),
+            applicationContext.getString(R.string.ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7, report.tasksCompleted.current, (report.habitCompletionRate * 100).toInt(), report.ritualDays)
         )
         return Result.success()
     }

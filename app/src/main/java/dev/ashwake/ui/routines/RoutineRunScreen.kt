@@ -112,7 +112,7 @@ fun RoutineRunScreen(
         }
 
         Text(
-            "Шаг ${run.stepIndex + 1} из ${run.steps.size}",
+            stringResource(R.string.routines_shag_1_s_iz_2_s, run.stepIndex + 1, run.steps.size),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2
         )
@@ -146,7 +146,7 @@ fun RoutineRunScreen(
             ) {
                 Icon(
                     if (run.running) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (run.running) "Пауза" else "Продолжить"
+                    contentDescription = if (run.running) stringResource(R.string.detail_pauza) else stringResource(R.string.focus_prodolzhit)
                 )
             }
             ChipButton(
@@ -173,7 +173,7 @@ fun RoutineRunScreen(
                     .padding(12.dp)
             ) {
                 Text(
-                    "Дальше",
+                    stringResource(R.string.onboarding_dalshe),
                     style = AshTheme.type.footnote,
                     color = AshTheme.colors.text2
                 )
@@ -187,7 +187,7 @@ fun RoutineRunScreen(
         }
 
         Text(
-            "Осталось всего: ${formatTime(run.progress.totalRemainingSeconds)}",
+            stringResource(R.string.routines_ostalos_vsego_1_s, formatTime(run.progress.totalRemainingSeconds)),
             style = AshTheme.type.footnote,
             color = AshTheme.colors.text2
         )
@@ -272,25 +272,25 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "План ${formatTime(summary.plannedSeconds)} · факт ${formatTime(summary.actualSeconds)}",
+                    stringResource(R.string.routines_plan_1_s_fakt_2_s, formatTime(summary.plannedSeconds), formatTime(summary.actualSeconds)),
                     style = AshTheme.type.callout
                 )
                 Text(
                     if (summary.overran)
-                        "Дольше плана на ${formatTime(summary.deviationSeconds)}"
-                    else "Быстрее плана на ${formatTime(-summary.deviationSeconds)}",
+                        stringResource(R.string.routines_dolshe_plana_na_1_s, formatTime(summary.deviationSeconds))
+                    else stringResource(R.string.routines_bystree_plana_na_1_s, formatTime(-summary.deviationSeconds)),
                     style = AshTheme.type.footnote,
                     color = if (summary.overran) Ember else Moss
                 )
                 if (summary.skippedSteps > 0) {
                     Text(
-                        "Пропущено шагов: ${summary.skippedSteps}",
+                        stringResource(R.string.routines_propuscheno_shagov_1_s, summary.skippedSteps),
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.text2
                     )
                 } else {
                     Text(
-                        "Без пропусков",
+                        stringResource(R.string.routines_bez_propuskov),
                         style = AshTheme.type.footnote,
                         color = Gold
                     )
@@ -301,7 +301,7 @@ private fun SummaryDialog(summary: SessionSummary, onDismiss: () -> Unit) {
                     Text(stringResource(R.string.routines_zametnye_otkloneniya), style = AshTheme.type.subhead)
                     summary.notableSteps.forEach { step ->
                         Text(
-                            "${step.title}: план ${formatTime(step.plannedSeconds)}, факт ${formatTime(step.actualSeconds)}",
+                            stringResource(R.string.routines_1_s_plan_2_s_fakt_3_s, step.title, formatTime(step.plannedSeconds), formatTime(step.actualSeconds)),
                             style = AshTheme.type.footnote,
                             color = AshTheme.colors.text2
                         )
