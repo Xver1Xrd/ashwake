@@ -31,24 +31,29 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Слой персонажа: слот, цвет палитры и подпись для плейсхолдера. */
+/**
+ * Слой персонажа: что рисовать, каким цветом и в каком слоте.
+ *
+ * [spriteId] — базовый id предмета из каталога, без палитры: один силуэт
+ * куртки красится в двенадцать цветов, а не заводит двенадцать спрайтов.
+ */
 data class CharacterLayer(
     val slot: EquipSlot,
     val color: Color,
     val label: String,
+    val spriteId: String = "",
     val frames: Int = 1
 )
 
 /**
- * Плейсхолдерный рендер персонажа (п. 15.12).
+ * Рендер персонажа (п. 15.12).
  *
- * До появления арта каждый слот рисуется прямоугольником своего цвета
- * с подписью. Смысл в том, что вся система — каталог, характеристики,
- * магазин, сеты, перекрытия слоёв — собирается и проверяется
- * **без единого готового спрайта**.
+ * Рисуется спрайтами из [CharacterSprites]: тело первым слоем, поверх —
+ * надетое в порядке z-таблицы слотов. Предмет, которому спрайта ещё нет,
+ * остаётся подписанным прямоугольником — это лучше, чем не показать вещь,
+ * которую человек купил и надел.
  *
- * Правила из п. 15.1 соблюдаются уже сейчас, чтобы подмена плейсхолдеров
- * на спрайты не потребовала переписывать разметку:
+ * Правила из п. 15.1 соблюдаются:
  * - холст ровно [CANVAS] пикселей, предмет знает своё место сам;
  * - масштаб только целочисленный, `floor(доступная высота / 128)`, минимум 2;
  * - пол на строке 116, центр симметрии — колонка 64.
@@ -161,8 +166,19 @@ fun PixelCharacter(
 
                 drawShadow(originX, originY, scale, breathOffset)
 
+                // Тело рисуется всегда и первым: персонаж без вещей — это
+                // человек без вещей, а не пустое место
+                drawSprite(
+                    sprite = CharacterSprites.body,
+                    tint = Color.White,
+                    alpha = 1f,
+                    originX = originX,
+                    originY = originY,
+                    scale = scale,
+                    yShift = if (reduceMotion) 0 else -breathOffset
+                )
+
                 layers.forEach { layer ->
-                    val rect = SLOT_RECTS[layer.slot] ?: return@forEach
                     // Корпус и голова дышат, ноги не двигаются вообще (п. 15.6)
                     val breathes = layer.slot.breathes
                     val yShift = when {
@@ -177,6 +193,22 @@ fun PixelCharacter(
                         layer.slot == EquipSlot.FACE && scene == CharacterScene.BLINK -> 0.55f
                         else -> 1f
                     }
+                    val sprite = CharacterSprites.items[layer.spriteId]
+                    if (sprite != null) {
+                        drawSprite(
+                            sprite = sprite,
+                            tint = layer.color.desaturate(decay),
+                            alpha = alpha,
+                            originX = originX,
+                            originY = originY,
+                            scale = scale,
+                            yShift = yShift
+                        )
+                        return@forEach
+                    }
+                    // Спрайта нет — остаётся подписанный прямоугольник: лучше
+                    // видеть «сюда не нарисовано», чем не видеть предмет вообще
+                    val rect = SLOT_RECTS[layer.slot] ?: return@forEach
                     drawSlot(
                         rect = rect,
                         color = layer.color.desaturate(decay),
@@ -192,6 +224,47 @@ fun PixelCharacter(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Спрайт на холсте: пиксель куклы — квадрат [SpriteShading.STEP] на [scale].
+ *
+ * Рисуется прямоугольниками, а не через Bitmap: спрайтов немного, они
+ * мелкие, и любое масштабирование растра тут же размывает пиксель-арт.
+ */
+private fun DrawScope.drawSprite(
+    sprite: CharacterSprites.Sprite,
+    tint: Color,
+    alpha: Float,
+    originX: Float,
+    originY: Float,
+    scale: Int,
+    yShift: Int
+) {
+    sprite.rows.forEachIndexed { row, chars ->
+        val top = originY + (SpriteShading.canvasY(sprite.y + row) + yShift) * scale
+        val bottom = originY + (SpriteShading.canvasY(sprite.y + row + 1) + yShift) * scale
+        // Подряд идущие пиксели одного цвета рисуются одним прямоугольником:
+        // так между ними не остаётся щели от округления, и вызовов меньше
+        // в разы — спрайт из тысячи пикселей это тысяча drawRect на кадр
+        var start = 0
+        while (start < chars.length) {
+            val char = chars[start]
+            var end = start
+            while (end + 1 < chars.length && chars[end + 1] == char) end++
+            val color = SpriteShading.colorFor(char, tint)
+            if (color != null) {
+                val left = originX + SpriteShading.canvasX(sprite.x + start) * scale
+                val right = originX + SpriteShading.canvasX(sprite.x + end + 1) * scale
+                drawRect(
+                    color = color.copy(alpha = color.alpha * alpha),
+                    topLeft = Offset(left, top),
+                    size = Size(right - left, bottom - top)
+                )
+            }
+            start = end + 1
         }
     }
 }

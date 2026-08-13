@@ -30,6 +30,7 @@ fun buildCharacterLayers(
                 slot = item.slot,
                 color = Color(tints[item.paletteId] ?: DEFAULT_TINT.toInt()),
                 label = item.slot.title,
+                spriteId = item.baseSpriteId,
                 frames = item.frames
             )
         }

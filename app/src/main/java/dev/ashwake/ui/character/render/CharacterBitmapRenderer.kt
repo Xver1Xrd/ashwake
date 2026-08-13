@@ -63,7 +63,16 @@ class CharacterBitmapRenderer @Inject constructor() {
             )
         }
 
+        // Тело первым слоем — портрет должен показывать человека, а не вещи,
+        // висящие в воздухе
+        drawSprite(canvas, paint, CharacterSprites.body, Color.WHITE, safeScale)
+
         layers.forEach { layer ->
+            val sprite = CharacterSprites.items[layer.spriteId]
+            if (sprite != null) {
+                drawSprite(canvas, paint, sprite, layer.color.toArgb(), safeScale)
+                return@forEach
+            }
             val rect = CharacterGeometry.SLOT_RECTS[layer.slot] ?: return@forEach
             val left = rect[0] * safeScale
             val top = rect[1] * safeScale
@@ -74,8 +83,6 @@ class CharacterBitmapRenderer @Inject constructor() {
             paint.color = layer.color.toArgb()
             canvas.drawRect(left, top, right, bottom, paint)
 
-            // Обводка отделяет слои друг от друга — на плейсхолдерах без неё
-            // видна одна цветная каша
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = safeScale.toFloat()
             paint.color = Color.argb(200, 26, 22, 34)
@@ -91,6 +98,45 @@ class CharacterBitmapRenderer @Inject constructor() {
         }
 
         return bitmap
+    }
+
+    /**
+     * Спрайт в растр теми же координатами, что и на экране: портрет в
+     * галерее и виджет обязаны совпадать с тем, что человек видел.
+     */
+    private fun drawSprite(
+        canvas: Canvas,
+        paint: Paint,
+        sprite: CharacterSprites.Sprite,
+        tint: Int,
+        scale: Int
+    ) {
+        paint.style = Paint.Style.FILL
+        val compose = androidx.compose.ui.graphics.Color(tint)
+        sprite.rows.forEachIndexed { row, chars ->
+            val top = SpriteShading.canvasY(sprite.y + row) * scale
+            val bottom = SpriteShading.canvasY(sprite.y + row + 1) * scale
+            // Ряд одинаковых пикселей — один прямоугольник: иначе между
+            // соседними остаётся щель в пиксель, и спрайт выглядит сеткой
+            var start = 0
+            while (start < chars.length) {
+                val char = chars[start]
+                var end = start
+                while (end + 1 < chars.length && chars[end + 1] == char) end++
+                val color = SpriteShading.colorFor(char, compose)
+                if (color != null) {
+                    paint.color = color.toArgb()
+                    canvas.drawRect(
+                        SpriteShading.canvasX(sprite.x + start) * scale,
+                        top,
+                        SpriteShading.canvasX(sprite.x + end + 1) * scale,
+                        bottom,
+                        paint
+                    )
+                }
+                start = end + 1
+            }
+        }
     }
 
     private fun androidx.compose.ui.graphics.Color.toArgb(): Int =

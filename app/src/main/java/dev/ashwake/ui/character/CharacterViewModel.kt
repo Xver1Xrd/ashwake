@@ -13,6 +13,7 @@ import dev.ashwake.data.export.ExportResult
 import dev.ashwake.data.export.ImageExporter
 import dev.ashwake.ui.character.render.CharacterBitmapRenderer
 import dev.ashwake.ui.character.render.CharacterLayer
+import dev.ashwake.ui.character.render.buildCharacterLayers
 import dev.ashwake.domain.engine.character.EquipmentEngine
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
@@ -219,23 +220,10 @@ class CharacterViewModel @Inject constructor(
         }
     }
 
-    private fun currentLayers(): List<CharacterLayer> {
-        val items = state.value.equipped.values.toList()
-        val hidden = items.flatMap { it.hides }.toSet()
-        val tints = _catalog.value.paletteTints
-
-        return items
-            .filterNot { it.slot in hidden }
-            .sortedBy { it.layer }
-            .map { item ->
-                CharacterLayer(
-                    slot = item.slot,
-                    color = Color(tints[item.paletteId] ?: DEFAULT_TINT),
-                    label = item.slot.title,
-                    frames = item.frames
-                )
-            }
-    }
+    private fun currentLayers(): List<CharacterLayer> = buildCharacterLayers(
+        items = state.value.equipped.values.toList(),
+        tints = _catalog.value.paletteTints
+    )
 
     private fun portraitName(): String =
         "ashwake-" + state.value.profile.name.lowercase().replace(' ', '-') +

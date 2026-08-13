@@ -27,6 +27,7 @@ import androidx.glance.text.TextStyle
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.ui.character.render.CharacterBitmapRenderer
 import dev.ashwake.ui.character.render.CharacterLayer
+import dev.ashwake.ui.character.render.buildCharacterLayers
 
 /**
  * Виджет с пиксельным персонажем в текущей экипировке (п. 18).
@@ -43,7 +44,7 @@ class CharacterWidget : GlanceAppWidget() {
         val state = deps.characterRepository().state()
         val catalog = deps.catalogLoader().load()
 
-        val layers = buildLayers(
+        val layers = buildCharacterLayers(
             items = state.equipped.values.toList(),
             tints = catalog.paletteTints
         )
@@ -83,20 +84,6 @@ class CharacterWidget : GlanceAppWidget() {
         }
     }
 
-    private fun buildLayers(items: List<EquipItem>, tints: Map<String, Int>): List<CharacterLayer> {
-        val hidden = items.flatMap { it.hides }.toSet()
-        return items
-            .filterNot { it.slot in hidden }
-            .sortedBy { it.layer }
-            .map { item ->
-                CharacterLayer(
-                    slot = item.slot,
-                    color = Color(tints[item.paletteId] ?: DEFAULT_TINT),
-                    label = item.slot.title,
-                    frames = item.frames
-                )
-            }
-    }
 
     private companion object {
         const val WIDGET_SCALE = 2

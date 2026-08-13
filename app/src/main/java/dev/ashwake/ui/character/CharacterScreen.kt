@@ -51,6 +51,7 @@ import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
 import dev.ashwake.domain.model.character.Rarity
 import dev.ashwake.ui.character.render.CharacterLayer
+import dev.ashwake.ui.character.render.buildCharacterLayers
 import dev.ashwake.ui.character.render.PixelCharacter
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
@@ -88,7 +89,7 @@ fun CharacterScreen(
     }
 
     val layers = remember(displayed, catalog) {
-        buildLayers(displayed.values.toList(), catalog.paletteTints)
+        buildCharacterLayers(displayed.values.toList(), catalog.paletteTints)
     }
 
     Scaffold(
@@ -435,20 +436,6 @@ private fun ShopRow(
     }
 }
 
-private fun buildLayers(items: List<EquipItem>, tints: Map<String, Int>): List<CharacterLayer> {
-    val hidden = items.flatMap { it.hides }.toSet()
-    return items
-        .filterNot { it.slot in hidden }
-        .sortedBy { it.layer }
-        .map { item ->
-            CharacterLayer(
-                slot = item.slot,
-                color = Color(tints[item.paletteId] ?: 0xFF6E7BA6.toInt()),
-                label = item.slot.title,
-                frames = item.frames
-            )
-        }
-}
 
 @Composable
 private fun rarityColor(rarity: Rarity): Color = when (rarity) {
