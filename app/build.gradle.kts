@@ -68,6 +68,26 @@ android {
         }
     }
 
+    /**
+     * Статический анализ.
+     *
+     * Появился после того, как lint нашёл в проекте вызовы API 31 и 34 при
+     * minSdk 26: код компилировался молча и падал на устройстве. Такое ловится
+     * только здесь, поэтому ошибки роняют сборку, а не копятся в отчёте.
+     *
+     * Предупреждения не роняют: их сотни, и половина — «вышла новая версия
+     * библиотеки». Смешивать это с настоящими падениями значит перестать
+     * читать и то и другое.
+     */
+    lint {
+        abortOnError = true
+        warningsAsErrors = false
+        checkDependencies = false
+        // Проверять переводы нечего: приложение одноязычное
+        disable += setOf("MissingTranslation", "GradleDependency", "AndroidGradlePluginVersion")
+        textReport = true
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

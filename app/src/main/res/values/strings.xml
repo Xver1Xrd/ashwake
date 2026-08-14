@@ -238,7 +238,7 @@
 
     <!-- Вынесено из кода tools/strings/extract.py -->
     <string name="abstinence_otkaz_ne_nado_delat_nado_ne_delat_schetchik">Отказ не надо делать — надо не делать. Счётчик идёт сам, вмешиваться нужно только при срыве</string>
-    <string name="abstinence_rekord_1_s">рекорд %1$s</string>
+    <string name="abstinence_rekord_1_s">рекорд %1$d</string>
     <string name="abstinence_popytka_1_s">попытка №%1$s</string>
     <string name="abstinence_ne_1_s_2_s"> · не %1$s %2$s</string>
     <string name="components_do_vehi_1_s">до вехи: %1$s</string>
@@ -617,8 +617,8 @@
     <string name="character_ne_hvataet">Не хватает: </string>
     <string name="character_uluchsheno">Улучшено</string>
     <string name="character_uluchshit_nelzya">Улучшить нельзя</string>
-    <string name="character_obraz_1_s">Образ %1$s</string>
-    <string name="character_obraz_1_s_sohranen">Образ %1$s сохранён</string>
+    <string name="character_obraz_1_s">Образ %1$d</string>
+    <string name="character_obraz_1_s_sohranen">Образ %1$d сохранён</string>
     <string name="character_portret_sohranen_v_galereyu">Портрет сохранён в галерею</string>
     <string name="character_ne_udalos_podgotovit_kartinku">Не удалось подготовить картинку</string>
     <string name="character_podelitsya_portretom">Поделиться портретом</string>
@@ -629,9 +629,9 @@
     <string name="character_volya">Воля</string>
     <string name="character_udacha">Удача</string>
     <string name="backup_papka_vybrana_kopiya_delaetsya_raz_v_sutki">Папка выбрана. Копия делается раз в сутки</string>
-    <string name="backup_sohraneno_1_s_2_s_zapisey">Сохранено: %1$s · %2$s записей</string>
+    <string name="backup_sohraneno_1_s_2_s_zapisey">Сохранено: %1$s · %2$d записей</string>
     <string name="backup_snachala_vyberite_papku">Сначала выберите папку</string>
-    <string name="backup_dannye_vosstanovleny_1_s_zapisey">Данные восстановлены: %1$s записей</string>
+    <string name="backup_dannye_vosstanovleny_1_s_zapisey">Данные восстановлены: %1$d записей</string>
     <string name="backup_arhiv_zashifrovan_nuzhen_parol">Архив зашифрован — нужен пароль</string>
     <string name="backup_parol_ne_podoshel">Пароль не подошёл</string>
     <string name="backup_fayl_ne_chitaetsya">Файл не читается</string>
@@ -684,7 +684,7 @@
     <string name="blockingoverlay_prilozhenie_zablokirovano">Приложение заблокировано</string>
     <string name="blockingoverlay_snachala_vot_eto">Сначала — вот это:</string>
     <string name="blockingoverlay_otkryt_ashwake">Открыть Ashwake</string>
-    <string name="blockingoverlay_ekstrennyy_obhod_cherez_1_s">Экстренный обход через %1$s</string>
+    <string name="blockingoverlay_ekstrennyy_obhod_cherez_1_s">Экстренный обход через %1$d</string>
     <string name="blockingoverlay_ekstrennyy_obhod">Экстренный обход</string>
 
     <!-- Сообщения вью-моделей -->
@@ -706,7 +706,7 @@
     <!-- Сообщения вью-моделей -->
     <string name="ritualworkers_dve_minuty_ocenit_den_razobrat_hvosty_nameti">Две минуты: оценить день, разобрать хвосты, наметить завтра</string>
     <string name="ritualworkers_itogi_nedeli">Итоги недели</string>
-    <string name="ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7">Задачи %1$s, привычки %2$s%, ритуал %3$s из 7</string>
+    <string name="ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7">Задачи %1$d, привычки %2$d%, ритуал %3$d из 7</string>
 
     <!-- Надписи виджетов -->
     <string name="abstinencewidget_schetchikov_net">Счётчиков нет</string>

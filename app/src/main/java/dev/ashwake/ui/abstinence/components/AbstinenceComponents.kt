@@ -56,10 +56,13 @@ import dev.ashwake.R
  */
 @Composable
 fun LiveCounter(duration: Duration, modifier: Modifier = Modifier) {
+    // Остатки считаются вручную: `toHoursPart` и соседи появились в API 31,
+    // а приложение живёт с 26 — вызов компилируется молча и падает на
+    // устройстве ровно на этом экране
     val days = duration.toDays()
-    val hours = duration.toHoursPart()
-    val minutes = duration.toMinutesPart()
-    val seconds = duration.toSecondsPart()
+    val hours = (duration.toHours() % HOURS_IN_DAY).toInt()
+    val minutes = (duration.toMinutes() % MINUTES_IN_HOUR).toInt()
+    val seconds = (duration.seconds % SECONDS_IN_MINUTE).toInt()
 
     // Дни доезжают, а не подменяются: срыв обнуляет счётчик, и мгновенный
     // прыжок с 94 на 0 читается как сбой, а скручивание — как то, что
@@ -367,3 +370,7 @@ internal fun currencySymbol(code: String): String = when (code.uppercase()) {
 /** Цвет фона карточки счётчика в списке. */
 internal val CounterAccent: Color
     @Composable get() = AshTheme.colors.success
+
+private const val HOURS_IN_DAY = 24L
+private const val MINUTES_IN_HOUR = 60L
+private const val SECONDS_IN_MINUTE = 60L

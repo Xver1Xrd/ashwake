@@ -46,7 +46,7 @@ import javax.inject.Inject
  * курить, видел свой счётчик, только если специально за ним ходил.
  */
 data class TodayUiState(
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = EPOCH_DAY,
     val tasks: List<Task> = emptyList(),
     val habits: List<HabitWithProgress> = emptyList(),
     val abstinences: List<AbstinenceWithStats> = emptyList(),
@@ -207,3 +207,11 @@ class TodayViewModel @Inject constructor(
         const val TICK_MILLIS = 60_000L
     }
 }
+
+/**
+ * Заглушка «даты ещё нет» до первого значения из репозитория.
+ *
+ * Не `LocalDate.EPOCH`: это поле появилось только в API 34, а приложение
+ * живёт с 26. Компилятор такое пропускает молча, падает оно на устройстве.
+ */
+private val EPOCH_DAY: LocalDate = LocalDate.ofEpochDay(0)

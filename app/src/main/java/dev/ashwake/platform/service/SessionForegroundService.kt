@@ -1,5 +1,9 @@
 package dev.ashwake.platform.service
 
+import androidx.core.content.ContextCompat
+import androidx.core.app.NotificationManagerCompat
+import android.content.pm.PackageManager
+import android.Manifest
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
@@ -94,11 +98,22 @@ class SessionForegroundService : Service() {
         }
     }
 
+    /**
+     * Показ уведомления с явной проверкой разрешения.
+     *
+     * `runCatching` вокруг вызова гасил бы SecurityException, но разрешение
+     * спрашивают у человека, и «молча ничего не произошло» — это не поведение,
+     * а замазанная дыра. Проверяем до вызова: нет разрешения — нет и попытки.
+     */
     private fun notify(notification: Notification) {
-        androidx.core.app.NotificationManagerCompat.from(this)
-            .let { manager ->
-                runCatching { manager.notify(NOTIFICATION_ID, notification) }
-            }
+        // Проверка стоит прямо здесь, а не в отдельной функции: так её видит
+        // и человек, и статический анализ. Вынесенная в помощник, она для
+        // lint исчезает, и он справедливо ругается на вызов без разрешения
+        val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) return
+        runCatching { NotificationManagerCompat.from(this).notify(NOTIFICATION_ID, notification) }
     }
 
     private fun buildNotification(title: String, text: String): Notification {

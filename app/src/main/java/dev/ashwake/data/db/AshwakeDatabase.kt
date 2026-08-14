@@ -122,7 +122,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 4,
+    version = AshwakeDatabase.VERSION,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -141,6 +141,13 @@ abstract class AshwakeDatabase : RoomDatabase() {
 
     companion object {
         const val NAME = "ashwake.db"
+
+        /**
+         * Версия схемы. Константой, а не числом в аннотации: её сверяет тест
+         * миграций с последней выгруженной схемой, и без имени сверять было
+         * бы нечего.
+         */
+        const val VERSION = 4
 
         /**
          * 1 → 2: у якоря появился день последнего срабатывания.

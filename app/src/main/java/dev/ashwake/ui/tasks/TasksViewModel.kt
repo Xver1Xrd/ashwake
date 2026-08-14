@@ -54,15 +54,15 @@ data class TasksUiState(
     val viewMode: TasksViewMode = TasksViewMode.LIST,
     val quickInput: String = "",
     val parsed: ParsedQuickInput? = null,
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = EPOCH_DAY,
     val staleDialogTask: Task? = null,
     val expandedTaskIds: Set<Long> = emptySet()
 )
 
 data class CalendarUiState(
     val scale: CalendarScale = CalendarScale.MONTH,
-    val anchor: LocalDate = LocalDate.EPOCH,
-    val selected: LocalDate = LocalDate.EPOCH,
+    val anchor: LocalDate = EPOCH_DAY,
+    val selected: LocalDate = EPOCH_DAY,
     val tasksByDate: Map<LocalDate, List<Task>> = emptyMap()
 )
 
@@ -368,3 +368,11 @@ class TasksViewModel @Inject constructor(
         )
     }
 }
+
+/**
+ * Заглушка «даты ещё нет» до первого значения из репозитория.
+ *
+ * Не `LocalDate.EPOCH`: это поле появилось только в API 34, а приложение
+ * живёт с 26. Компилятор такое пропускает молча, падает оно на устройстве.
+ */
+private val EPOCH_DAY: LocalDate = LocalDate.ofEpochDay(0)

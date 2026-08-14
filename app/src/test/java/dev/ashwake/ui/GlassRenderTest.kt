@@ -60,6 +60,12 @@ class GlassRenderTest {
                             AshTabBar(tabs = tabs, selectedRoute = "today", onSelect = {})
                         }
                     ) { padding ->
+                        // Отступы Scaffold здесь намеренно не применяются к
+                        // содержимому: проверяется как раз то, что оно уезжает
+                        // ПОД панель и просвечивает сквозь неё. Но параметр
+                        // читается — иначе анализатор справедливо считает, что
+                        // про отступы просто забыли
+                        check(padding.calculateBottomPadding().value >= 0f)
                         Column(
                             Modifier
                                 .fillMaxSize()

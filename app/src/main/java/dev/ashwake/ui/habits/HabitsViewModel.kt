@@ -30,7 +30,7 @@ data class HabitsUiState(
     val habits: List<HabitWithProgress> = emptyList(),
     val skipReasons: List<SkipReason> = emptyList(),
     val pauses: List<HabitPause> = emptyList(),
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = EPOCH_DAY,
     val showOnlyDueToday: Boolean = true
 ) {
     /** На сегодня ожидаются: остальные показываются отдельным свёрнутым блоком. */
@@ -215,3 +215,11 @@ class HabitsViewModel @Inject constructor(
         else -> 1f
     }
 }
+
+/**
+ * Заглушка «даты ещё нет» до первого значения из репозитория.
+ *
+ * Не `LocalDate.EPOCH`: это поле появилось только в API 34, а приложение
+ * живёт с 26. Компилятор такое пропускает молча, падает оно на устройстве.
+ */
+private val EPOCH_DAY: LocalDate = LocalDate.ofEpochDay(0)

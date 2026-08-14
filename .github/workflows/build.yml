@@ -33,8 +33,17 @@ jobs:
       - name: Тесты
         run: ./gradlew testDebugUnitTest --stacktrace
 
+      - name: Статический анализ
+        run: ./gradlew lintDebug --stacktrace
+
       - name: Сборка
         run: ./gradlew assembleDebug --stacktrace
+
+      # Релиз собирается иначе, чем отладка: minify выкидывает то, к чему
+      # обращаются рефлексией, и падает от одного недостающего правила
+      # ProGuard. Без этого шага о поломке узнаёшь в день публикации.
+      - name: Релизная сборка
+        run: ./gradlew assembleRelease --stacktrace
 
       # Отчёт нужен именно при падении: по одной строке «tests failed»
       # причину не найти, а лезть за ней в CI руками — лишний круг
@@ -44,6 +53,13 @@ jobs:
         with:
           name: test-report
           path: app/build/reports/tests/testDebugUnitTest
+
+      - name: Отчёт анализатора
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-report
+          path: app/build/reports/lint-results-debug.html
 
       - name: APK
         uses: actions/upload-artifact@v4
