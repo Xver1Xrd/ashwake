@@ -51,20 +51,20 @@ fun StaleTaskDialog(
 
                 when (mode) {
                     StaleResolution.DELEGATE -> AshTextField(
-                                                    value = payload,
-                                                    onValueChange = { payload = it },
-                                                    label = stringResource(R.string.components_komu_delegirovat),
-                                                    singleLine = true,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                )
+                        value = payload,
+                        onValueChange = { payload = it },
+                        label = stringResource(R.string.components_komu_delegirovat),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                        )
 
                     StaleResolution.SPLIT -> AshTextField(
-                                                 value = payload,
-                                                 onValueChange = { payload = it },
-                                                 label = stringResource(R.string.components_podzadachi_po_odnoy_v_stroke),
-                                                 modifier = Modifier.fillMaxWidth(),
-                                                 minLines = 3
-                                             )
+                        value = payload,
+                        onValueChange = { payload = it },
+                        label = stringResource(R.string.components_podzadachi_po_odnoy_v_stroke),
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3
+                        )
 
                     else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         ChipButton(

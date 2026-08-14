@@ -1,13 +1,10 @@
 package dev.ashwake.ui
 
-import android.content.Context
-import android.provider.Settings
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.test.core.app.ApplicationProvider
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
@@ -15,7 +12,6 @@ import dev.ashwake.MainActivity
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.ExternalResource
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -40,26 +36,9 @@ import org.robolectric.annotation.Config
 @Config(application = HiltTestApplication::class, sdk = [33])
 class NavigationTest {
 
-    /**
-     * Порядок правил здесь — не оформление, а условие работы теста.
-     *
-     * Персонаж дышит бесконечным циклом кадров, и пока он крутится,
-     * Compose никогда не считается спокойным: `waitForIdle` ждёт, пока
-     * никто не просит следующий кадр. Приложение само отключает движение
-     * по системной настройке, но читает её один раз при первой отрисовке —
-     * значит выставить её надо до того, как правило поднимет активность,
-     * то есть снаружи него. Из `@Before` уже поздно: там экран собран.
-     */
+    // Правило обязано стоять первым: подробности — в его описании
     @get:Rule(order = 0)
-    val reduceMotion = object : ExternalResource() {
-        override fun before() {
-            Settings.Global.putFloat(
-                ApplicationProvider.getApplicationContext<Context>().contentResolver,
-                Settings.Global.ANIMATOR_DURATION_SCALE,
-                0f
-            )
-        }
-    }
+    val reduceMotion = ReduceMotionRule()
 
     @get:Rule(order = 1)
     val hilt = HiltAndroidRule(this)

@@ -1,5 +1,7 @@
 package dev.ashwake.ui.components
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -92,6 +94,14 @@ fun AshTextField(
                     modifier = Modifier
                         .fillMaxWidth()
                         .defaultMinSize(minHeight = textStyle.fontSize.value.dp)
+                        // Подпись и подсказка нарисованы отдельными Text рядом
+                        // с полем, и для скринридера они с полем не связаны:
+                        // он находит пустое поле ввода и молчит. Имя нужно
+                        // повесить на само поле
+                        .semantics {
+                            val name = label ?: placeholder
+                            if (name != null) contentDescription = name
+                        }
                 )
             }
             trailing?.invoke()

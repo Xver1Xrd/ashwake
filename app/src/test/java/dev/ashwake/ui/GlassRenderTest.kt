@@ -39,7 +39,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [33])
 class GlassRenderTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val reduceMotion = ReduceMotionRule()
+
+    @get:Rule(order = 1)
     val rule = createComposeRule()
 
     private val tabs = listOf(
