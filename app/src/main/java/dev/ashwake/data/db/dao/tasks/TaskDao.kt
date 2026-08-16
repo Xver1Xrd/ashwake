@@ -91,6 +91,9 @@ interface TaskDao {
     @Insert
     suspend fun insert(task: TaskEntity): Long
 
+    @Insert
+    suspend fun insertAll(tasks: List<TaskEntity>)
+
     @Update
     suspend fun update(task: TaskEntity)
 
@@ -153,6 +156,17 @@ interface TaskDao {
 
     @Query("SELECT COALESCE(MAX(position), 0) FROM tasks WHERE parentTaskId = :parentId")
     suspend fun maxSubtaskPosition(parentId: Long): Int
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE status = 'DONE'")
+    suspend fun countDone(): Long
+
+    @Query("SELECT COUNT(*) FROM tasks WHERE status = 'DONE' AND completedAt >= :fromMillis")
+    suspend fun countDoneSince(fromMillis: Long): Long
+
+    @Query("SELECT * FROM tasks ORDER BY createdAt")
+    suspend fun allTasks(): List<TaskEntity>
 }
 
 @Dao

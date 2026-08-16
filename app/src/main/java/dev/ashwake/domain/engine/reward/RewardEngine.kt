@@ -12,7 +12,7 @@ import kotlin.math.roundToInt
 /** Источник начисления. Пишется в журнал — по нему потом отлаживается баланс. */
 enum class RewardSource {
     TASK_DONE, HABIT_DONE, HABIT_MINIMUM, ROUTINE_DONE, ABSTINENCE_DAY,
-    MILESTONE, CRAVING_RESISTED, FOCUS_DONE, RITUAL_DONE,
+    MILESTONE, CRAVING_RESISTED, FOCUS_DONE, RITUAL_DONE, ACHIEVEMENT,
     PURCHASE, UPGRADE, USER_REWARD, CHEST, ADJUST
 }
 
@@ -27,7 +27,14 @@ data class RewardContext(
     val postponeCount: Int = 0,
     val flawless: Boolean = false,
     /** Итоговые эффекты экипировки из EquipmentEngine. */
-    val equipmentEffects: Map<String, Float> = emptyMap()
+    val equipmentEffects: Map<String, Float> = emptyMap(),
+    /**
+     * Прямое начисление, минуя базовые таблицы: достижения и сундук платят
+     * свои суммы из assets/каталога. Множители экипировки применяются
+     * как обычно — баланс остаётся в одном месте.
+     */
+    val flatCoins: Int? = null,
+    val flatXp: Int? = null
 )
 
 data class Reward(
@@ -56,8 +63,10 @@ class RewardEngine @Inject constructor(
 ) {
 
     fun reward(context: RewardContext): Reward {
-        val base = baseCoins(context)
-        val baseXp = baseXp(context)
+        // Прямые начисления (достижения, сундук) несут свою сумму из assets:
+        // базовая таблица не про них, но множители экипировки применяются как обычно
+        val base = context.flatCoins ?: baseCoins(context)
+        val baseXp = context.flatXp ?: baseXp(context)
         val multiplier = coinMultiplier(context)
 
         return Reward(
@@ -96,7 +105,8 @@ class RewardEngine @Inject constructor(
         RewardSource.RITUAL_DONE -> config.ritualCoins
 
         RewardSource.PURCHASE, RewardSource.UPGRADE,
-        RewardSource.USER_REWARD, RewardSource.CHEST, RewardSource.ADJUST -> 0
+        RewardSource.USER_REWARD, RewardSource.CHEST, RewardSource.ADJUST,
+        RewardSource.ACHIEVEMENT -> 0
     }
 
     private fun baseXp(context: RewardContext): Int = when (context.source) {

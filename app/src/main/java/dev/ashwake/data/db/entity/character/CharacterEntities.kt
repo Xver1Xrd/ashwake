@@ -118,3 +118,36 @@ data class UserRewardRedemptionEntity(
     val at: Long,
     val cost: Long
 )
+
+/**
+ * Материалы улучшений (п. 16.9). Падают из сундука и за достижения,
+ * расходуются на апгрейды. Определение в [MaterialType].
+ */
+@Entity(tableName = "material_inventory")
+data class MaterialInventoryEntity(
+    @PrimaryKey val materialId: String,
+    val amount: Int = 0
+)
+
+/**
+ * Достижения. Определение — в assets/catalog/achievements.json,
+ * здесь только состояние игрока: открыто и когда.
+ */
+@Entity(tableName = "achievements")
+data class AchievementEntity(
+    @PrimaryKey val id: String,
+    val unlockedAt: Long? = null,
+    val progress: Float = 0f
+)
+
+/**
+ * Ежедневный сундук: одна строка на день (epochDay). rewardJson хранит
+ * раздачу, чтобы после перезапуска было видно, что именно упало.
+ */
+@Entity(tableName = "daily_chests")
+data class DailyChestEntity(
+    @PrimaryKey val date: Int,
+    val openedAt: Long? = null,
+    val rerollsUsed: Int = 0,
+    val rewardJson: String? = null
+)

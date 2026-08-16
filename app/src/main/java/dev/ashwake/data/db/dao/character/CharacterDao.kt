@@ -7,10 +7,13 @@ import androidx.room.Query
 import androidx.room.Upsert
 import dev.ashwake.data.db.entity.character.AppearancePresetEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
+import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.CharacterProfileEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
 import dev.ashwake.data.db.entity.character.LedgerTransactionEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.StatEventEntity
 import dev.ashwake.data.db.entity.character.UserRewardEntity
@@ -42,6 +45,9 @@ interface CharacterDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertOwned(item: OwnedItemEntity): Long
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertOwnedAll(items: List<OwnedItemEntity>)
 
     @Query("UPDATE owned_items SET upgradeLevel = :level WHERE itemId = :itemId")
     suspend fun setUpgradeLevel(itemId: String, level: Int)
@@ -89,6 +95,9 @@ interface CharacterDao {
     @Upsert
     suspend fun upsertStat(stat: CharacterStatEntity)
 
+    @Upsert
+    suspend fun upsertStats(stats: List<CharacterStatEntity>)
+
     @Insert
     suspend fun insertStatEvent(event: StatEventEntity)
 
@@ -122,4 +131,48 @@ interface CharacterDao {
 
     @Insert
     suspend fun insertRedemption(redemption: UserRewardRedemptionEntity)
+
+    // --- материалы ---------------------------------------------------------
+
+    @Query("SELECT * FROM material_inventory")
+    fun observeMaterials(): Flow<List<MaterialInventoryEntity>>
+
+    @Query("SELECT * FROM material_inventory WHERE materialId = :materialId")
+    suspend fun material(materialId: String): MaterialInventoryEntity?
+
+    @Upsert
+    suspend fun upsertMaterial(material: MaterialInventoryEntity)
+
+    // --- достижения --------------------------------------------------------
+
+    @Query("SELECT * FROM achievements")
+    fun observeAchievements(): Flow<List<AchievementEntity>>
+
+    @Query("SELECT * FROM achievements WHERE id = :id")
+    suspend fun achievement(id: String): AchievementEntity?
+
+    @Upsert
+    suspend fun upsertAchievement(achievement: AchievementEntity)
+
+    // --- ежедневный сундук -------------------------------------------------
+
+    @Query("SELECT * FROM daily_chests WHERE date = :date")
+    suspend fun chest(date: Int): DailyChestEntity?
+
+    @Query("SELECT * FROM daily_chests WHERE date = :date")
+    fun observeChest(date: Int): Flow<DailyChestEntity?>
+
+    @Upsert
+    suspend fun upsertChest(chest: DailyChestEntity)
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM owned_items")
+    suspend fun countOwned(): Long
+
+    @Query(
+        "SELECT COALESCE(SUM(amount), 0) FROM ledger_transactions " +
+            "WHERE currency = 'COIN' AND amount > 0"
+    )
+    suspend fun coinsEarned(): Long
 }

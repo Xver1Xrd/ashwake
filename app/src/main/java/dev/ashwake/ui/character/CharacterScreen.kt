@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -68,6 +69,8 @@ fun CharacterScreen(
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val preview by viewModel.preview.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
+    val chest by viewModel.chest.collectAsStateWithLifecycle()
+    val achievements by viewModel.achievements.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(message) {
@@ -138,9 +141,25 @@ fun CharacterScreen(
 
             item { LevelBlock(state.level, state.levelProgress, state.wallet.xp) }
 
+            item { ChestBlock(chest, viewModel::openChest) }
+
             item { StatsBlock(state) }
 
             item { ActiveEffectsBlock(state) }
+
+            item {
+                MaterialsBlock(
+                    materials = state.materials,
+                    materialMap = state.materialMap
+                )
+            }
+
+            item {
+                AchievementsBlock(
+                    definitions = achievements,
+                    unlocked = state.achievements
+                )
+            }
 
             item { PresetsRow(viewModel) }
 
@@ -204,6 +223,120 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
             progress = { progress },
             modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
         )
+    }
+}
+
+/** Ежедневный сундук (п. 16.9): открывается раз в день, падает монеты и материалы. */
+@Composable
+private fun ChestBlock(chest: dev.ashwake.domain.repository.character.ChestState, onOpen: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .padding(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Ежедневный сундук", style = MaterialTheme.typography.titleSmall)
+                Text(
+                    if (chest.opened) "Уже открыт — заходите завтра" else "Одна раздача в день: монеты, материалы, иногда предмет",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = onOpen,
+                enabled = !chest.opened
+            ) {
+                Text(if (chest.opened) "Открыт" else "Открыть")
+            }
+        }
+        chest.reward?.let { reward ->
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            val parts = buildList {
+                add("+${reward.coins} монет")
+                reward.materials.forEach { add("${it.type.title} ×${it.amount}") }
+                reward.itemId?.let { add("предмет") }
+            }
+            Text(
+                parts.joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = Gold
+            )
+        }
+    }
+}
+
+/** Инвентарь материалов улучшений (п. 16.9). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MaterialsBlock(
+    materials: List<dev.ashwake.domain.model.character.MaterialCount>,
+    materialMap: Map<dev.ashwake.domain.model.character.MaterialType, Int>
+) {
+    if (materials.isEmpty()) return
+    Column(Modifier.fillMaxWidth()) {
+        Text("Материалы", style = MaterialTheme.typography.titleSmall)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            dev.ashwake.domain.model.character.MaterialType.entries.forEach { type ->
+                val amount = materialMap[type] ?: 0
+                if (amount > 0) {
+                    AssistChip(
+                        onClick = {},
+                        label = { Text("${type.title}: $amount") }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Достижения (п. 16.10): открытые — золотые, остальные — как есть. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AchievementsBlock(
+    definitions: List<dev.ashwake.domain.engine.achievement.AchievementDefinition>,
+    unlocked: List<dev.ashwake.domain.model.character.AchievementState>
+) {
+    if (definitions.isEmpty()) return
+    val unlockedAt = unlocked.associateBy { it.id }
+    Column(Modifier.fillMaxWidth()) {
+        Text("Достижения", style = MaterialTheme.typography.titleSmall)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            definitions.forEach { def ->
+                val state = unlockedAt[def.id]
+                val isUnlocked = state?.unlockedAt != null
+                AssistChip(
+                    onClick = {},
+                    label = {
+                        Text(
+                            if (isUnlocked) "★ ${def.title}" else def.title,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    colors = if (isUnlocked) {
+                        AssistChipDefaults.assistChipColors(
+                            containerColor = Gold.copy(alpha = 0.15f),
+                            labelColor = Gold
+                        )
+                    } else {
+                        AssistChipDefaults.assistChipColors()
+                    }
+                )
+            }
+        }
     }
 }
 

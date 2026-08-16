@@ -12,3 +12,6 @@ build/
 local.properties
 *.apk
 *.keystore
+
+# Сессии компилятора Kotlin
+.kotlin/

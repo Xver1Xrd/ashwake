@@ -6,30 +6,51 @@ import dev.ashwake.core.model.Stat
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.data.assets.CatalogLoader
 import dev.ashwake.data.db.AshwakeDatabase
+import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.character.CharacterDao
+import dev.ashwake.data.db.dao.habits.HabitDao
+import dev.ashwake.data.db.dao.ritual.RitualDao
+import dev.ashwake.data.db.dao.routines.FocusDao
+import dev.ashwake.data.db.dao.routines.RoutineDao
+import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
 import dev.ashwake.data.db.entity.character.CharacterProfileEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
 import dev.ashwake.data.db.entity.character.LedgerTransactionEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.StatEventEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
+import dev.ashwake.domain.engine.achievement.AchievementSnapshot
+import dev.ashwake.domain.engine.abstinence.AbstinenceCalculator
 import dev.ashwake.domain.engine.character.EquipmentEngine
+import dev.ashwake.domain.engine.character.MaterialCost
+import dev.ashwake.domain.engine.character.ChestReward
 import dev.ashwake.domain.engine.character.StatProgressCalculator
 import dev.ashwake.domain.engine.character.StatSource
 import dev.ashwake.domain.engine.reward.RewardContext
 import dev.ashwake.domain.engine.reward.RewardEngine
+import dev.ashwake.domain.engine.reward.RewardSource
+import dev.ashwake.domain.model.character.AchievementState
 import dev.ashwake.domain.model.character.Bulk
 import dev.ashwake.domain.model.character.CharacterProfile
 import dev.ashwake.domain.model.character.EquipSlot
+import dev.ashwake.domain.model.character.MaterialCount
+import dev.ashwake.domain.model.character.MaterialType
 import dev.ashwake.domain.model.character.OwnedItem
 import dev.ashwake.domain.model.character.StatValue
 import dev.ashwake.domain.model.character.Wallet
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
+import dev.ashwake.domain.repository.character.ChestState
 import dev.ashwake.domain.repository.character.PurchaseResult
+import dev.ashwake.domain.repository.character.UpgradeResult
+import dev.ashwake.domain.repository.character.MAX_UPGRADE_LEVEL
+import dev.ashwake.data.db.mapper.abstinence.toDomain
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -41,9 +62,16 @@ import javax.inject.Singleton
 class CharacterRepositoryImpl @Inject constructor(
     private val db: AshwakeDatabase,
     private val dao: CharacterDao,
+    private val taskDao: TaskDao,
+    private val habitDao: HabitDao,
+    private val abstinenceDao: AbstinenceDao,
+    private val ritualDao: RitualDao,
+    private val routineDao: RoutineDao,
+    private val focusDao: FocusDao,
     private val catalogLoader: CatalogLoader,
     private val equipmentEngine: EquipmentEngine,
     private val statCalculator: StatProgressCalculator,
+    private val abstinenceCalculator: AbstinenceCalculator,
     private val rewardEngine: RewardEngine,
     private val clock: AppClock
 ) : CharacterRepository {
@@ -53,9 +81,19 @@ class CharacterRepositoryImpl @Inject constructor(
         dao.observeWallet(),
         dao.observeStats(),
         dao.observeOwned(),
-        dao.observeEquipped()
-    ) { profile, wallet, stats, owned, equipped ->
-        buildState(profile, wallet, stats, owned, equipped)
+        dao.observeEquipped(),
+        dao.observeMaterials(),
+        dao.observeAchievements()
+    ) { values ->
+        buildState(
+            profile = values[0] as CharacterProfileEntity?,
+            wallet = values[1] as WalletEntity?,
+            stats = values[2] as List<CharacterStatEntity>,
+            owned = values[3] as List<OwnedItemEntity>,
+            equipped = values[4] as List<EquippedItemEntity>,
+            materials = values[5] as List<MaterialInventoryEntity>,
+            achievements = values[6] as List<AchievementEntity>
+        )
     }
 
     override suspend fun state(): CharacterState = buildState(
@@ -63,7 +101,9 @@ class CharacterRepositoryImpl @Inject constructor(
         dao.wallet(),
         dao.observeStats().first(),
         dao.observeOwned().first(),
-        dao.equipped()
+        dao.equipped(),
+        dao.observeMaterials().first(),
+        dao.observeAchievements().first()
     )
 
     private suspend fun buildState(
@@ -71,7 +111,9 @@ class CharacterRepositoryImpl @Inject constructor(
         wallet: WalletEntity?,
         stats: List<CharacterStatEntity>,
         owned: List<OwnedItemEntity>,
-        equipped: List<EquippedItemEntity>
+        equipped: List<EquippedItemEntity>,
+        materials: List<MaterialInventoryEntity>,
+        achievements: List<AchievementEntity>
     ): CharacterState {
         val catalog = catalogLoader.load()
         val ownedById = owned.associateBy { it.itemId }
@@ -105,7 +147,14 @@ class CharacterRepositoryImpl @Inject constructor(
             stats = statValues,
             equipped = equippedItems.associateBy { it.slot },
             owned = owned.map { OwnedItem(it.id, it.itemId, it.upgradeLevel, it.favorite, it.source) },
-            equipment = equipment
+            equipment = equipment,
+            materials = materials.mapNotNull { row ->
+                MaterialType.entries.firstOrNull { it.name == row.materialId }
+                    ?.let { MaterialCount(it, row.amount) }
+            },
+            achievements = achievements.map {
+                AchievementState(id = it.id, unlockedAt = it.unlockedAt, progress = it.progress)
+            }
         )
     }
 
@@ -154,16 +203,28 @@ class CharacterRepositoryImpl @Inject constructor(
         PurchaseResult.Success
     }
 
-    override suspend fun upgrade(itemId: String, cost: Int): PurchaseResult = db.withTransaction {
-        val owned = dao.owned(itemId) ?: return@withTransaction PurchaseResult.NotForSale
-        if (owned.upgradeLevel >= MAX_UPGRADE) return@withTransaction PurchaseResult.NotForSale
-        val wallet = walletOrCreate()
-        if (wallet.coins < cost) return@withTransaction PurchaseResult.NotEnoughCoins
+    override suspend fun upgrade(itemId: String, coinCost: Int): UpgradeResult =
+        db.withTransaction {
+            val catalog = catalogLoader.load()
+            val owned = dao.owned(itemId) ?: return@withTransaction UpgradeResult.NotForSale
+            if (owned.upgradeLevel >= MAX_UPGRADE_LEVEL) return@withTransaction UpgradeResult.NotForSale
+            val item = catalog.item(itemId) ?: return@withTransaction UpgradeResult.NotForSale
 
-        applyCoins(-cost.toLong(), "UPGRADE", itemId, 1f)
-        dao.setUpgradeLevel(itemId, owned.upgradeLevel + 1)
-        PurchaseResult.Success
-    }
+            // Материалы проверяются до монет: списывать одно без другого нельзя
+            val required = MaterialCost.forRarity(item.rarity)
+            val missing = MaterialCost.missing(required, currentMaterials())
+            if (missing.isNotEmpty()) {
+                return@withTransaction UpgradeResult.NotEnoughMaterials(missing)
+            }
+
+            val wallet = walletOrCreate()
+            if (wallet.coins < coinCost) return@withTransaction UpgradeResult.NotEnoughCoins
+
+            applyCoins(-coinCost.toLong(), "UPGRADE", itemId, 1f)
+            spendMaterialsQuietly(required)
+            dao.setUpgradeLevel(itemId, owned.upgradeLevel + 1)
+            UpgradeResult.Success
+        }
 
     override suspend fun savePreset(index: Int, name: String) {
         db.withTransaction {
@@ -244,8 +305,187 @@ class CharacterRepositoryImpl @Inject constructor(
                     dao.upsertStat(CharacterStatEntity(stat = stat.name))
                 }
             }
+            MaterialType.entries.forEach { type ->
+                if (dao.material(type.name) == null) {
+                    dao.upsertMaterial(MaterialInventoryEntity(materialId = type.name))
+                }
+            }
         }
     }
+
+    // --- материалы ----------------------------------------------------------
+
+    override fun observeMaterials(): Flow<List<MaterialCount>> =
+        dao.observeMaterials().map { rows ->
+            rows.mapNotNull { row ->
+                MaterialType.entries.firstOrNull { it.name == row.materialId }
+                    ?.let { MaterialCount(it, row.amount) }
+            }
+        }
+
+    override suspend fun grantMaterial(type: MaterialType, amount: Int) {
+        if (amount <= 0) return
+        db.withTransaction {
+            val row = dao.material(type.name) ?: MaterialInventoryEntity(type.name)
+            dao.upsertMaterial(row.copy(amount = row.amount + amount))
+        }
+    }
+
+    override suspend fun spendMaterials(required: Map<MaterialType, Int>): Boolean =
+        db.withTransaction {
+            val missing = MaterialCost.missing(required, currentMaterials())
+            if (missing.isNotEmpty()) return@withTransaction false
+            spendMaterialsQuietly(required)
+            true
+        }
+
+    private suspend fun spendMaterialsQuietly(required: Map<MaterialType, Int>) {
+        required.forEach { (type, amount) ->
+            val row = dao.material(type.name) ?: return@forEach
+            dao.upsertMaterial(row.copy(amount = (row.amount - amount).coerceAtLeast(0)))
+        }
+    }
+
+    private suspend fun currentMaterials(): Map<MaterialType, Int> =
+        MaterialType.entries.associateWith { type ->
+            dao.material(type.name)?.amount ?: 0
+        }
+
+    // --- достижения ---------------------------------------------------------
+
+    override fun observeAchievements(): Flow<List<AchievementState>> =
+        dao.observeAchievements().map { rows ->
+            rows.map { AchievementState(id = it.id, unlockedAt = it.unlockedAt, progress = it.progress) }
+        }
+
+    override suspend fun achievementSnapshot(): AchievementSnapshot {
+        val dayStart = clock.today().toEpochDay().toLong()
+        val nowMillis = clock.now().toEpochMilli()
+
+        // Чистые дни отказа: сумма по всем отказам, как считает движок отказов
+        val abstinences = abstinenceDao.allAbstinences()
+        val attemptsByAbstinence = abstinenceDao.allAttempts().groupBy { it.abstinenceId }
+        val cleanDays = abstinences.sumOf { item ->
+            val attempts = attemptsByAbstinence[item.id].orEmpty().map { it.toDomain() }
+            val abstinence = item.toDomain(attempts)
+            abstinenceCalculator.stats(abstinence, clock.now()).totalCleanDays
+        }
+
+        return AchievementSnapshot(
+            tasksDone = taskDao.countDone(),
+            tasksDoneToday = taskDao.countDoneSince(dayStartMillis(dayStart)),
+            habitsDone = habitDao.countDoneEntries(),
+            cravingsResisted = abstinenceDao.countResistedCravings(),
+            focusMinutes = focusDao.totalFocusSeconds() / 60,
+            routinesDone = routineDao.countCompletedSessions(),
+            ritualsDone = ritualDao.countReviews(),
+            abstinenceDays = cleanDays,
+            coinsEarned = dao.coinsEarned(),
+            itemsOwned = dao.countOwned(),
+            level = rewardEngine.levelForXp(dao.wallet()?.xp ?: 0L).toLong()
+        )
+    }
+
+    override suspend fun unlockAchievement(id: String, at: Long): Boolean =
+        db.withTransaction {
+            val existing = dao.achievement(id)
+            if (existing?.unlockedAt != null) return@withTransaction false
+            dao.upsertAchievement(
+                AchievementEntity(
+                    id = id,
+                    unlockedAt = existing?.unlockedAt ?: at,
+                    progress = 1f
+                )
+            )
+            true
+        }
+
+    // --- ежедневный сундук -------------------------------------------------
+
+    override fun observeChest(epochDay: Int): Flow<ChestState> =
+        dao.observeChest(epochDay).map { row ->
+            if (row?.openedAt == null) {
+                ChestState(opened = false)
+            } else {
+                ChestState(opened = true, reward = rewardFromJson(row.rewardJson))
+            }
+        }
+
+    override suspend fun chestState(epochDay: Int): ChestState {
+        val row = dao.chest(epochDay)
+        return if (row?.openedAt == null) {
+            ChestState(opened = false)
+        } else {
+            ChestState(opened = true, reward = rewardFromJson(row.rewardJson))
+        }
+    }
+
+    override suspend fun applyChest(reward: ChestReward, epochDay: Int) {
+        if (reward.isEmpty) return
+        db.withTransaction {
+            if (dao.chest(epochDay)?.openedAt != null) return@withTransaction
+            val at = clock.now().toEpochMilli()
+            dao.upsertChest(
+                DailyChestEntity(
+                    date = epochDay,
+                    openedAt = at,
+                    rewardJson = rewardToJson(reward)
+                )
+            )
+            // Монеты сундука тоже проходят через движок: множители экипировки
+            // применяются к ним как ко всем остальным начислениям
+            grantReward(
+                RewardContext(
+                    source = RewardSource.CHEST,
+                    time = clock.now().atZone(clock.zone()).toLocalTime(),
+                    flatCoins = reward.coins
+                ),
+                refId = "chest:$epochDay"
+            )
+            reward.materials.forEach { grantMaterial(it.type, it.amount) }
+            reward.itemId?.let { itemId ->
+                dao.insertOwned(
+                    OwnedItemEntity(itemId = itemId, acquiredAt = at, source = "CHEST")
+                )
+            }
+        }
+    }
+
+    private fun rewardToJson(reward: ChestReward): String {
+        val json = org.json.JSONObject().apply {
+            put("coins", reward.coins)
+            put("materials", org.json.JSONArray().apply {
+                reward.materials.forEach { put(org.json.JSONObject().apply {
+                    put("id", it.type.name)
+                    put("amount", it.amount)
+                }) }
+            })
+            reward.itemId?.let { put("itemId", it) }
+        }
+        return json.toString()
+    }
+
+    private fun rewardFromJson(json: String?): ChestReward? {
+        if (json == null) return null
+        return runCatching {
+            val root = org.json.JSONObject(json)
+            val materials = root.optJSONArray("materials")?.let { array ->
+                (0 until array.length()).mapNotNull { index ->
+                    val item = array.getJSONObject(index)
+                    MaterialType.entries.firstOrNull { it.name == item.getString("id") }
+                        ?.let { MaterialCount(it, item.getInt("amount")) }
+                }
+            }.orEmpty()
+            ChestReward(
+                coins = root.optInt("coins", 0),
+                materials = materials,
+                itemId = root.optString("itemId").takeIf { it.isNotBlank() }
+            )
+        }.getOrNull()
+    }
+
+    private fun dayStartMillis(epochDay: Long): Long =
+        java.time.LocalDate.ofEpochDay(epochDay).atStartOfDay(clock.zone()).toInstant().toEpochMilli()
 
     // --- вспомогательное ----------------------------------------------------
 
@@ -316,8 +556,4 @@ class CharacterRepositoryImpl @Inject constructor(
         decayEnabled = decayEnabled,
         parallaxEnabled = parallaxEnabled
     )
-
-    private companion object {
-        const val MAX_UPGRADE = 10
-    }
 }

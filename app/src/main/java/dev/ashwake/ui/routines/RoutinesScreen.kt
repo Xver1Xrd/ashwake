@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,6 +46,7 @@ import dev.ashwake.platform.service.formatTime
 @Composable
 fun RoutinesScreen(
     onRun: () -> Unit,
+    onEdit: (routineId: Long) -> Unit,
     viewModel: RoutinesViewModel = hiltViewModel()
 ) {
     val routines by viewModel.list.collectAsStateWithLifecycle()
@@ -91,7 +93,7 @@ fun RoutinesScreen(
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.surface)
                             .clickable { viewModel.start(routine) }
-                            .padding(14.dp),
+                            .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -102,6 +104,9 @@ fun RoutinesScreen(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+                        IconButton(onClick = { onEdit(routine.id) }) {
+                            Icon(Icons.Filled.Edit, contentDescription = "Изменить")
                         }
                         IconButton(onClick = { viewModel.start(routine) }) {
                             Icon(Icons.Filled.PlayArrow, contentDescription = "Запустить")
@@ -117,6 +122,15 @@ fun RoutinesScreen(
                 title = { Text("Шаблоны рутин") },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(
+                            onClick = {
+                                onEdit(0L)
+                                showPresets = false
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Пустая рутина — создать с нуля")
+                        }
                         presets.forEach { preset ->
                             Column(
                                 modifier = Modifier

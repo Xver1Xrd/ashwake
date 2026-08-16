@@ -10,6 +10,7 @@ import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.scheduler.TaskReminderScheduler
+import dev.ashwake.domain.usecase.character.RefreshAchievementsUseCase
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -36,6 +37,7 @@ class CompleteTaskUseCase @Inject constructor(
     private val tasks: TaskRepository,
     private val scheduler: TaskReminderScheduler,
     private val character: CharacterRepository,
+    private val achievements: RefreshAchievementsUseCase,
     private val clock: AppClock
 ) {
     /** @return id следующего экземпляра серии, если задача повторяющаяся. */
@@ -68,6 +70,7 @@ class CompleteTaskUseCase @Inject constructor(
                     StatSource.STALE_TASK_CLOSED, refId = taskId.toString()
                 )
             }
+            achievements()
         }
         return nextId
     }

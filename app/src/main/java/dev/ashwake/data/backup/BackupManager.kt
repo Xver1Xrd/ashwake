@@ -22,6 +22,7 @@ sealed interface BackupResult {
 
 sealed interface RestoreResult {
     data class Preview(val contents: BackupContents) : RestoreResult
+    data class Restored(val contents: BackupContents) : RestoreResult
     data object NeedsPassword : RestoreResult
     data object WrongPassword : RestoreResult
     data class Failed(val reason: String) : RestoreResult
@@ -109,6 +110,39 @@ class BackupManager @Inject constructor(
                 RestoreResult.Preview(contents)
             }.getOrElse { error ->
                 RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
+            }
+        }
+
+    /**
+     * Полное восстановление: текущие данные заменяются содержимым архива.
+     * Необратимо — вызывается только после подтверждения, за которым
+     * следует предпросмотр через [readBackup].
+     */
+    suspend fun restoreBackup(uri: Uri, password: CharArray? = null): RestoreResult =
+        withContext(Dispatchers.IO) {
+            runCatching {
+                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    ?: return@runCatching RestoreResult.Failed("Файл не читается")
+
+                val json = when {
+                    !crypto.isEncrypted(bytes) -> String(bytes)
+                    password == null -> return@runCatching RestoreResult.NeedsPassword
+                    else -> when (val result = crypto.decrypt(bytes, password)) {
+                        is DecryptResult.Success -> String(result.content)
+                        DecryptResult.WrongPassword ->
+                            return@runCatching RestoreResult.WrongPassword
+                        is DecryptResult.Corrupted ->
+                            return@runCatching RestoreResult.Failed(result.reason)
+                        DecryptResult.NotEncrypted -> String(bytes)
+                    }
+                }
+
+                val contents = serializer.peek(json)
+                    ?: return@runCatching RestoreResult.Failed("Файл не похож на архив Ashwake")
+                serializer.restore(json)
+                RestoreResult.Restored(contents)
+            }.getOrElse { error ->
+                RestoreResult.Failed(error.message ?: "Не удалось восстановить архив")
             }
         }
 

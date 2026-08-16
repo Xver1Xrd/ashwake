@@ -14,13 +14,22 @@ import dev.ashwake.data.export.ImageExporter
 import dev.ashwake.ui.character.render.CharacterBitmapRenderer
 import dev.ashwake.ui.character.render.CharacterLayer
 import dev.ashwake.domain.engine.character.EquipmentEngine
+import dev.ashwake.domain.engine.character.ChestResult
+import dev.ashwake.domain.engine.character.MaterialCost
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
+import dev.ashwake.domain.model.character.MaterialType
 import dev.ashwake.domain.model.character.Rarity
 import dev.ashwake.domain.model.character.Style
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
+import dev.ashwake.domain.repository.character.ChestState
 import dev.ashwake.domain.repository.character.PurchaseResult
+import dev.ashwake.domain.repository.character.UpgradeResult
+import dev.ashwake.domain.usecase.character.OpenChestUseCase
+import dev.ashwake.domain.usecase.character.RefreshAchievementsUseCase
+import dev.ashwake.data.assets.AchievementLoader
+import dev.ashwake.core.time.AppClock
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +53,10 @@ class CharacterViewModel @Inject constructor(
     private val equipmentEngine: EquipmentEngine,
     private val bitmapRenderer: CharacterBitmapRenderer,
     private val imageExporter: ImageExporter,
+    private val openChestUseCase: OpenChestUseCase,
+    private val refreshAchievementsUseCase: RefreshAchievementsUseCase,
+    private val achievementLoader: AchievementLoader,
+    private val clock: AppClock,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -52,6 +65,11 @@ class CharacterViewModel @Inject constructor(
 
     private val _catalog = MutableStateFlow(Catalog.EMPTY)
     val catalog: StateFlow<Catalog> = _catalog.asStateFlow()
+
+    /** Каталог достижений из assets — по нему строится список на экране. */
+    private val _achievements = MutableStateFlow(emptyList<dev.ashwake.domain.engine.achievement.AchievementDefinition>())
+    val achievements: StateFlow<List<dev.ashwake.domain.engine.achievement.AchievementDefinition>> =
+        _achievements.asStateFlow()
 
     private val _filter = MutableStateFlow(ShopFilter())
     val filter: StateFlow<ShopFilter> = _filter.asStateFlow()
@@ -63,10 +81,22 @@ class CharacterViewModel @Inject constructor(
     private val _preview = MutableStateFlow<EquipItem?>(null)
     val preview: StateFlow<EquipItem?> = _preview.asStateFlow()
 
+    /** Состояние сегодняшнего сундука: обновляется после каждого открытия. */
+    private val _chest = MutableStateFlow(ChestState(opened = false))
+    val chest: StateFlow<ChestState> = _chest.asStateFlow()
+
+    /** Подтверждение апгрейда, когда материалов не хватает. */
+    private val _pendingUpgrade = MutableStateFlow<EquipItem?>(null)
+    val pendingUpgrade: StateFlow<EquipItem?> = _pendingUpgrade.asStateFlow()
+
     init {
         viewModelScope.launch {
             character.ensureBuiltinData()
             _catalog.value = catalogLoader.load()
+            _achievements.value = achievementLoader.load()
+            val today = clock.today().toEpochDay().toInt()
+            character.observeChest(today).collect { _chest.value = it }
+            checkAchievements()
         }
     }
 
@@ -154,13 +184,60 @@ class CharacterViewModel @Inject constructor(
 
     fun upgrade(item: EquipItem) {
         viewModelScope.launch {
-            _message.value = when (character.upgrade(item.id, upgradeCost(item))) {
-                PurchaseResult.Success -> "Улучшено"
-                PurchaseResult.NotEnoughCoins -> "Не хватает монет"
-                else -> "Улучшить нельзя"
+            _message.value = when (val result = character.upgrade(item.id, upgradeCost(item))) {
+                UpgradeResult.Success -> "Улучшено до +${upgradeLevel(item) + 1}"
+                UpgradeResult.NotEnoughCoins -> "Не хватает монет"
+                is UpgradeResult.NotEnoughMaterials ->
+                    "Не хватает материалов: " + result.missing.entries.joinToString { "${it.key.title} ×${it.value}" }
+                UpgradeResult.NotForSale -> "Улучшать нечего"
             }
         }
     }
+
+    /** Текущий уровень прокачки предмета (для кнопки и бейджа). */
+    fun upgradeLevel(item: EquipItem): Int =
+        state.value.owned.firstOrNull { it.itemId == item.id }?.upgradeLevel ?: 0
+
+    /** Сколько материалов нужно на следующий апгрейд: для подписи кнопки. */
+    fun nextUpgradeCost(item: EquipItem): Map<MaterialType, Int> {
+        val owned = state.value.owned.firstOrNull { it.itemId == item.id } ?: return emptyMap()
+        if (owned.upgradeLevel >= MAX_UPGRADE_LEVEL) return emptyMap()
+        return MaterialCost.forRarity(item.rarity)
+    }
+
+    // --- ежедневный сундук -------------------------------------------------
+
+    fun openChest() {
+        viewModelScope.launch {
+            _message.value = when (val result = openChestUseCase()) {
+                is ChestResult.Opened -> {
+                    val reward = result.reward
+                    val parts = buildList {
+                        add("+${reward.coins} монет")
+                        reward.materials.forEach { add("${it.type.title} ×${it.amount}") }
+                        reward.itemId?.let { add("предмет!") }
+                    }
+                    "Сундук: " + parts.joinToString(", ")
+                }
+                ChestResult.AlreadyOpened -> "Сундук уже открыт сегодня"
+                ChestResult.NoReward -> "Сундук пуст"
+            }
+        }
+    }
+
+    // --- достижения ---------------------------------------------------------
+
+    /** Полная сверка условий. Вызывается после каждого начисления из других экранов. */
+    fun checkAchievements() {
+        viewModelScope.launch {
+            val unlocked = refreshAchievementsUseCase()
+            if (unlocked.isNotEmpty()) {
+                _message.value = "Достижение: " + unlocked.joinToString { it.definition.title }
+            }
+        }
+    }
+
+    fun consumeMessage() { _message.value = null }
 
     // --- пресеты -----------------------------------------------------------
 
@@ -174,8 +251,6 @@ class CharacterViewModel @Inject constructor(
     fun applyPreset(index: Int) {
         viewModelScope.launch { character.applyPreset(index.toLong()) }
     }
-
-    fun consumeMessage() { _message.value = null }
 
     /**
      * «Сохранить портрет» (п. 15.9): рендер на масштабе x8 с фоном и рамкой.
@@ -245,6 +320,7 @@ class CharacterViewModel @Inject constructor(
         const val UPGRADE_COST_SHARE = 0.3f
         const val BASE_UPGRADE_COST = 200
         const val MIN_UPGRADE_COST = 50
+        const val MAX_UPGRADE_LEVEL = 5
 
         const val PORTRAIT_SCALE = 8
         const val PORTRAIT_BACKGROUND = 0xFF1A1622.toInt()

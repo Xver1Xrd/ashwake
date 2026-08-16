@@ -1,15 +1,12 @@
 package dev.ashwake.platform.session
 
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.domain.engine.character.StatSource
-import dev.ashwake.domain.engine.reward.RewardContext
-import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.engine.routines.RoutineProgressCalculator
 import dev.ashwake.domain.engine.routines.RunProgress
 import dev.ashwake.domain.model.routines.Routine
 import dev.ashwake.domain.model.routines.RoutineSessionStep
-import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.routines.RoutineRepository
+import dev.ashwake.domain.usecase.routines.FinishRoutineSessionUseCase
 import dev.ashwake.platform.tts.StepSpeaker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,7 +50,7 @@ data class RoutineRunState(
 @Singleton
 class RoutineRunController @Inject constructor(
     private val routines: RoutineRepository,
-    private val character: CharacterRepository,
+    private val finishSession: FinishRoutineSessionUseCase,
     private val calculator: RoutineProgressCalculator,
     private val speaker: StepSpeaker,
     private val clock: AppClock
@@ -141,23 +138,7 @@ class RoutineRunController @Inject constructor(
         scope.launch {
             if (current.sessionId != 0L) {
                 persistCurrentStep(skipped = false)
-                routines.finishSession(current.sessionId, completed, clock.now())
-
-                if (completed) {
-                    val session = routines.getSession(current.sessionId)
-                    character.grantReward(
-                        RewardContext(
-                            source = RewardSource.ROUTINE_DONE,
-                            flawless = session?.flawless == true,
-                            time = clock.now().atZone(clock.zone()).toLocalTime()
-                        ),
-                        refId = current.routine?.id?.toString()
-                    )
-                    character.grantStatPoints(
-                        StatSource.ROUTINE_DONE,
-                        refId = current.routine?.id?.toString()
-                    )
-                }
+                finishSession(current.sessionId, completed, current.routine?.id)
             }
             _state.update { it.copy(running = false, finished = true) }
         }

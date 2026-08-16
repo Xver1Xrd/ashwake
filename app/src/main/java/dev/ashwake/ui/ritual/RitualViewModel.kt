@@ -17,6 +17,7 @@ import dev.ashwake.domain.repository.ritual.RitualRepository
 import dev.ashwake.domain.repository.ritual.RitualState
 import dev.ashwake.domain.repository.timebox.TimeboxRepository
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
+import dev.ashwake.domain.usecase.ritual.CompleteRitualUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,7 +52,7 @@ class RitualViewModel @Inject constructor(
     private val postponeTask: PostponeTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val timebox: TimeboxRepository,
-    private val character: CharacterRepository,
+    private val completeRitual: CompleteRitualUseCase,
     private val clock: AppClock
 ) : ViewModel() {
 
@@ -167,33 +168,19 @@ class RitualViewModel @Inject constructor(
     fun finish() {
         val form = _form.value
         val date = _date.value
+        val alreadyReviewed = state.value.review != null
 
         viewModelScope.launch {
-            ritual.saveReview(
+            completeRitual(
                 date = date,
                 dayRating = form.dayRating,
                 mood = form.mood,
                 energy = form.energy,
                 note = form.note,
                 topTaskIds = form.topTaskIds,
-                completedAs = if (date < clock.today()) ReviewCompletion.NEXT_MORNING
-                else ReviewCompletion.EVENING
+                alreadyReviewed = alreadyReviewed,
+                planTomorrow = form.planTomorrow
             )
-
-            // Награда только за первое прохождение дня: переоткрыть и «пройти»
-            // ритуал второй раз не должно приносить монет
-            if (state.value.review == null) {
-                character.grantReward(
-                    RewardContext(
-                        source = RewardSource.RITUAL_DONE,
-                        time = clock.now().atZone(clock.zone()).toLocalTime()
-                    ),
-                    refId = date.toString()
-                )
-                character.grantStatPoints(StatSource.RITUAL_DONE, refId = date.toString())
-            }
-
-            if (form.planTomorrow) timebox.planDay(date.plusDays(1))
             _finished.value = true
         }
     }

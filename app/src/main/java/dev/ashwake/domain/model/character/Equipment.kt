@@ -140,3 +140,25 @@ data class CharacterProfile(
 data class Wallet(val coins: Long = 0, val xp: Long = 0, val level: Int = 1)
 
 data class StatValue(val stat: Stat, val points: Long, val value: Int)
+
+/**
+ * Материалы улучшений (п. 16.9).
+ *
+ * id хранится в `material_inventory` и совпадает с именем enum — каталог
+ * достижений ссылается на них строкой, чтобы assets не зависели от кода.
+ */
+enum class MaterialType(val title: String) {
+    COMMON("Осколок"),
+    DOUBLE("Искра"),
+    RARE("Руна")
+}
+
+/** Количество материала в инвентаре — то, что видит экран персонажа. */
+data class MaterialCount(val type: MaterialType, val amount: Int)
+
+/** Достижение с состоянием игрока: открыто и когда. */
+data class AchievementState(
+    val id: String,
+    val unlockedAt: Long? = null,
+    val progress: Float = 0f
+)

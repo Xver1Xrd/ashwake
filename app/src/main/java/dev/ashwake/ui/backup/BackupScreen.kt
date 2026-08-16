@@ -149,6 +149,32 @@ fun BackupScreen(
             }
 
             HorizontalDivider()
+            Text("Экспорт для таблиц", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "CSV без пароля: открывается в любом табличном редакторе",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            val saveTasksCsv = rememberLauncherForActivityResult(
+                ActivityResultContracts.CreateDocument("text/csv")
+            ) { uri -> uri?.let { viewModel.exportCsv(it, dev.ashwake.ui.backup.CsvKind.TASKS) } }
+            val saveHabitsCsv = rememberLauncherForActivityResult(
+                ActivityResultContracts.CreateDocument("text/csv")
+            ) { uri -> uri?.let { viewModel.exportCsv(it, dev.ashwake.ui.backup.CsvKind.HABITS) } }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = { saveTasksCsv.launch("ashwake-tasks.csv") },
+                    modifier = Modifier.weight(1f)
+                ) { Text("CSV задач") }
+                OutlinedButton(
+                    onClick = { saveHabitsCsv.launch("ashwake-habits.csv") },
+                    modifier = Modifier.weight(1f)
+                ) { Text("CSV привычек") }
+            }
+
+            HorizontalDivider()
             Text("Импорт из другого приложения", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Разбор показывается до применения: ничего не меняется, " +
@@ -222,15 +248,20 @@ fun BackupScreen(
                     Text("Записей ритуала: ${contents.reviews}")
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Архив прочитан. Запись в базу появится вместе с полной " +
-                            "заменой данных — она необратима, и делать её вслепую нельзя",
+                        "Восстановление заменяет все текущие данные и необратимо. " +
+                            "Убедитесь, что это именно тот архив, который нужен",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Ember
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Закрыть") }
+                Button(onClick = viewModel::restoreBackup) {
+                    Text("Заменить данные")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Отмена") }
             }
         )
     }

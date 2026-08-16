@@ -81,6 +81,11 @@ interface RoutineDao {
 
     @Query("SELECT * FROM routine_session_steps WHERE sessionId = :sessionId ORDER BY position")
     fun observeSessionSteps(sessionId: Long): Flow<List<RoutineSessionStepEntity>>
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM routine_sessions WHERE completed = 1")
+    suspend fun countCompletedSessions(): Long
 }
 
 @Dao
@@ -109,4 +114,14 @@ interface FocusDao {
 
     @Query("SELECT * FROM focus_sessions WHERE endedAt IS NULL ORDER BY startedAt DESC LIMIT 1")
     suspend fun unfinished(): FocusSessionEntity?
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query(
+        """
+        SELECT COALESCE(SUM(actualSeconds), 0) FROM focus_sessions
+        WHERE completed = 1 AND startedAt >= :sinceMillis
+        """
+    )
+    suspend fun totalFocusSeconds(sinceMillis: Long = 0): Long
 }

@@ -34,14 +34,17 @@ import dev.ashwake.ui.character.CharacterScreen
 import dev.ashwake.ui.ritual.RitualScreen
 import dev.ashwake.ui.settings.SettingsScreen
 import dev.ashwake.ui.routines.RoutineRunScreen
-import dev.ashwake.ui.stats.StatsScreen
+import dev.ashwake.ui.routines.RoutineEditorScreen
+import dev.ashwake.ui.analytics.AnalyticsScreen
 import dev.ashwake.ui.timers.TimersScreen
 import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
+import dev.ashwake.ui.home.HomeScreen
 import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
+import dev.ashwake.ui.today.TodayScreen
 
 @Composable
 fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)) {
@@ -108,8 +111,13 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             }
 
             // Экраны следующих этапов: заглушки, чтобы навигация была целой с самого начала
-            composable(Destination.Home.route) { StageStub("Главный экран", 4) }
-            composable(Destination.Today.route) { StageStub("Сегодня", 2) }
+            composable(Destination.Home.route) {
+                HomeScreen(
+                    onOpenToday = { navController.navigate(Destination.Today.route) },
+                    onOpenCharacter = { navController.navigate(Destination.Character.route) }
+                )
+            }
+            composable(Destination.Today.route) { TodayScreen() }
             composable(Destination.Habits.route) {
                 HabitsScreen(
                     onOpenHabit = { id -> navController.navigate("habit/$id") },
@@ -154,12 +162,23 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
             }
 
             composable(Destination.Timers.route) {
-                TimersScreen(onRunRoutine = { navController.navigate("routine-run") })
+                TimersScreen(
+                    onRunRoutine = { navController.navigate("routine-run") },
+                    onEditRoutine = { id -> navController.navigate("routine-editor?routineId=$id") }
+                )
             }
             composable("routine-run") {
                 RoutineRunScreen(onExit = { navController.popBackStack() })
             }
-            composable(Destination.Stats.route) { StatsScreen() }
+            composable(
+                route = "routine-editor?routineId={routineId}",
+                arguments = listOf(
+                    navArgument("routineId") { type = NavType.StringType; defaultValue = "0" }
+                )
+            ) {
+                RoutineEditorScreen(onDone = { navController.popBackStack() })
+            }
+            composable(Destination.Stats.route) { AnalyticsScreen() }
 
             composable("ritual") {
                 RitualScreen(onDone = { navController.popBackStack() })
@@ -195,22 +214,5 @@ private fun destinationFor(route: String): String = when (route) {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "routine-editor?", "ritual", "blocking", "settings", "backup")
 
-/** Честная заглушка: показывает, на каком этапе плана появится экран. */
-@Composable
-private fun StageStub(title: String, stage: Int) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(32.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(title, style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Этап $stage по docs/03-plan.md",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
-        )
-    }
-}

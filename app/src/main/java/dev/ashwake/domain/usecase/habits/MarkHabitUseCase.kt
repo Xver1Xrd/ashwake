@@ -9,6 +9,7 @@ import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.habits.HabitRepository
+import dev.ashwake.domain.usecase.character.RefreshAchievementsUseCase
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -23,6 +24,7 @@ import javax.inject.Inject
 class MarkHabitUseCase @Inject constructor(
     private val habits: HabitRepository,
     private val character: CharacterRepository,
+    private val achievements: RefreshAchievementsUseCase,
     private val clock: AppClock
 ) {
     suspend operator fun invoke(
@@ -61,5 +63,6 @@ class MarkHabitUseCase @Inject constructor(
         if (progress.currentStreak > 0) {
             character.grantStatPoints(StatSource.STREAK_DAY, refId = habit.id.toString())
         }
+        achievements()
     }
 }

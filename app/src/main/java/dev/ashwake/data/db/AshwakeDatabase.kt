@@ -25,10 +25,13 @@ import dev.ashwake.data.db.entity.blocking.BlockingRuleEntity
 import dev.ashwake.data.db.entity.blocking.BypassLogEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
+import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.CharacterProfileEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
 import dev.ashwake.data.db.entity.character.LedgerTransactionEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.StatEventEntity
 import dev.ashwake.data.db.entity.character.UserRewardEntity
@@ -60,10 +63,10 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 /**
  * Единая база приложения.
  *
- * Схема спроектирована сразу под всё ТЗ (docs/02-database.md), но сущности
- * подключаются по мере реализации фич. До версии 1.0 версия базы остаётся 1,
- * а изменения схемы разработчику достаются пересозданием базы —
- * миграции пишутся начиная с первого релиза.
+ * Схема спроектирована сразу под всё ТЗ (docs/02-database.md). До первого
+ * релиза изменения схемы разработчику доставались пересозданием базы
+ * (debug), с версии 2 схема зафиксирована и двигается только явными
+ * миграциями — они живут в data/db/migration.
  */
 @Database(
     entities = [
@@ -101,6 +104,10 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         LedgerTransactionEntity::class,
         UserRewardEntity::class,
         UserRewardRedemptionEntity::class,
+        // достижения, материалы и ежедневный сундук (п. 16.9)
+        AchievementEntity::class,
+        MaterialInventoryEntity::class,
+        DailyChestEntity::class,
         // рутины и фокус
         RoutineEntity::class,
         RoutineStepEntity::class,
@@ -119,7 +126,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {

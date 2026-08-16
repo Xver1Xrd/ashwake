@@ -20,6 +20,7 @@ import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.migration.Migrations
 import javax.inject.Singleton
 
 @Module
@@ -31,8 +32,9 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AshwakeDatabase =
         Room.databaseBuilder(context, AshwakeDatabase::class.java, AshwakeDatabase.NAME)
             .apply {
-                // До 1.0 схема ещё двигается: в debug база просто пересоздаётся.
-                // В release этот путь недопустим — там будут явные миграции.
+                addMigrations(Migrations.MIGRATION_1_2)
+                // Схема зафиксирована с версии 2. В debug пересоздание
+                // остаётся как страховка для незакоммиченных экспериментов.
                 if (BuildConfig.DEBUG) fallbackToDestructiveMigration()
             }
             .build()

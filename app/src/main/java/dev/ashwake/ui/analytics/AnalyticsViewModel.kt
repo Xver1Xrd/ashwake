@@ -1,4 +1,4 @@
-package dev.ashwake.ui.stats
+package dev.ashwake.ui.analytics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -25,7 +25,7 @@ import java.time.temporal.TemporalAdjusters
 import javax.inject.Inject
 
 @HiltViewModel
-class StatsViewModel @Inject constructor(
+class AnalyticsViewModel @Inject constructor(
     private val ritual: RitualRepository,
     private val analyzer: CorrelationAnalyzer,
     private val imageExporter: ImageExporter,

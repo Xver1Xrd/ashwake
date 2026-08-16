@@ -1,4 +1,4 @@
-package dev.ashwake.ui.stats
+package dev.ashwake.ui.analytics
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -43,7 +43,7 @@ private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatsScreen(viewModel: StatsViewModel = hiltViewModel()) {
+fun AnalyticsScreen(viewModel: AnalyticsViewModel = hiltViewModel()) {
     val weekly by viewModel.weekly.collectAsStateWithLifecycle()
     val correlations by viewModel.correlations.collectAsStateWithLifecycle()
     val year by viewModel.year.collectAsStateWithLifecycle()
@@ -163,7 +163,7 @@ private fun TrendRow(label: String, trend: Trend, format: (Long) -> String) {
 
 @Composable
 private fun CorrelationsBlock(
-    viewModel: StatsViewModel,
+    viewModel: AnalyticsViewModel,
     report: dev.ashwake.domain.engine.analytics.CorrelationReport?
 ) {
     if (report == null) {
@@ -212,7 +212,7 @@ private fun CorrelationsBlock(
 }
 
 @Composable
-private fun PairRow(viewModel: StatsViewModel, pair: CorrelationPair) {
+private fun PairRow(viewModel: AnalyticsViewModel, pair: CorrelationPair) {
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(viewModel.describe(pair), style = MaterialTheme.typography.bodyMedium)
         Text(

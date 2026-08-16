@@ -1,15 +1,12 @@
 package dev.ashwake.platform.session
 
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.domain.engine.character.StatSource
 import dev.ashwake.domain.engine.focus.PomodoroPlanner
-import dev.ashwake.domain.engine.reward.RewardContext
-import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.model.focus.FocusMode
 import dev.ashwake.domain.model.focus.FocusPhase
 import dev.ashwake.domain.model.focus.PomodoroConfig
-import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.routines.FocusRepository
+import dev.ashwake.domain.usecase.focus.FinishFocusSessionUseCase
 import dev.ashwake.platform.tts.StepSpeaker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -60,7 +57,7 @@ data class FocusRunState(
 @Singleton
 class FocusController @Inject constructor(
     private val focus: FocusRepository,
-    private val character: CharacterRepository,
+    private val finishPhase: FinishFocusSessionUseCase,
     private val planner: PomodoroPlanner,
     private val speaker: StepSpeaker,
     private val clock: AppClock
@@ -140,8 +137,7 @@ class FocusController @Inject constructor(
         scope.launch {
             val current = _state.value
             if (current.sessionId != 0L) {
-                focus.finish(current.sessionId, current.elapsedSeconds, completed = false)
-                grantIfWork(current.phase, current.elapsedSeconds, completed = false)
+                finishPhase(current.sessionId, current.phase, current.elapsedSeconds, completed = false)
             }
             _state.value = FocusRunState()
         }
@@ -170,8 +166,7 @@ class FocusController @Inject constructor(
     private suspend fun completePhase(completed: Boolean) {
         val current = _state.value
         if (current.sessionId != 0L) {
-            focus.finish(current.sessionId, current.elapsedSeconds, completed)
-            grantIfWork(current.phase, current.elapsedSeconds, completed)
+            finishPhase(current.sessionId, current.phase, current.elapsedSeconds, completed)
         }
         speaker.vibrate(200)
 
@@ -205,24 +200,5 @@ class FocusController @Inject constructor(
             completedPomodoros = completedPomodoros
         )
         if (_config.value.autoStartNext) startTicker()
-    }
-
-    /** Награда только за рабочую фазу и только если она реально шла. */
-    private suspend fun grantIfWork(phase: FocusPhase, seconds: Int, completed: Boolean) {
-        if (phase != FocusPhase.WORK) return
-        if (!completed && seconds < MIN_REWARDABLE_SECONDS) return
-
-        character.grantReward(
-            RewardContext(
-                source = RewardSource.FOCUS_DONE,
-                time = clock.now().atZone(clock.zone()).toLocalTime()
-            )
-        )
-        character.grantStatPoints(StatSource.FOCUS_SESSION)
-    }
-
-    private companion object {
-        /** Пять минут: короче — это не сессия фокуса, а случайное нажатие. */
-        const val MIN_REWARDABLE_SECONDS = 300
     }
 }

@@ -28,6 +28,9 @@ interface RitualDao {
     @Upsert
     suspend fun upsertReview(review: DailyReviewEntity)
 
+    @Upsert
+    suspend fun upsertReviews(reviews: List<DailyReviewEntity>)
+
     @Query("DELETE FROM daily_review_top_tasks WHERE date = :date")
     suspend fun clearTopTasks(date: Int)
 
@@ -42,4 +45,9 @@ interface RitualDao {
 
     @Query("SELECT * FROM weekly_reports ORDER BY weekStartDate DESC LIMIT :limit")
     fun observeWeeklyReports(limit: Int = 12): Flow<List<WeeklyReportEntity>>
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM daily_reviews")
+    suspend fun countReviews(): Long
 }

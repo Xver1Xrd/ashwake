@@ -32,6 +32,9 @@ interface HabitDao {
     @Upsert
     suspend fun upsert(habit: HabitEntity): Long
 
+    @Upsert
+    suspend fun upsertAll(habits: List<HabitEntity>)
+
     @Query("UPDATE habits SET archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
 
@@ -59,6 +62,9 @@ interface HabitDao {
 
     @Upsert
     suspend fun upsertEntry(entry: HabitEntryEntity): Long
+
+    @Upsert
+    suspend fun upsertEntries(entries: List<HabitEntryEntity>)
 
     @Update
     suspend fun updateEntry(entry: HabitEntryEntity)
@@ -113,4 +119,15 @@ interface HabitDao {
 
     @Query("SELECT COUNT(*) FROM habit_skip_reasons")
     suspend fun skipReasonCount(): Int
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM habit_entries WHERE status IN ('DONE', 'MINIMUM')")
+    suspend fun countDoneEntries(): Long
+
+    @Query("SELECT * FROM habits ORDER BY position, id")
+    suspend fun allHabits(): List<HabitEntity>
+
+    @Query("SELECT * FROM habit_entries ORDER BY date, habitId")
+    suspend fun allEntries(): List<HabitEntryEntity>
 }

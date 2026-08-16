@@ -25,7 +25,10 @@ import dev.ashwake.ui.routines.RoutinesScreen
  * значило бы занять два места из пяти под одно и то же действие «запустить время».
  */
 @Composable
-fun TimersScreen(onRunRoutine: () -> Unit) {
+fun TimersScreen(
+    onRunRoutine: () -> Unit,
+    onEditRoutine: (routineId: Long) -> Unit
+) {
     var tab by rememberSaveable { mutableStateOf(0) }
 
     Column(Modifier.fillMaxSize()) {
@@ -45,7 +48,7 @@ fun TimersScreen(onRunRoutine: () -> Unit) {
         }
 
         when (tab) {
-            0 -> RoutinesScreen(onRun = onRunRoutine)
+            0 -> RoutinesScreen(onRun = onRunRoutine, onEdit = onEditRoutine)
             else -> FocusScreen()
         }
     }

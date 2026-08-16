@@ -44,6 +44,15 @@ data class RewardConfig(
     val ritualCoins: Int = 20,
     val ritualXp: Int = 10,
 
+    // ежедневный сундук (п. 16.9)
+    val chestCoins: Int = 50,
+    /** Шанс дополнительного материала DOUBLE в сундуке. */
+    val chestDoubleChance: Float = 0.4f,
+    /** Шанс материала RARE в сундуке. */
+    val chestRareChance: Float = 0.15f,
+    /** Шанс выпадения предмета из магазина. */
+    val chestItemChance: Float = 0.05f,
+
     // уровни
     val baseXpPerLevel: Int = 100,
     val xpGrowthPerLevel: Float = 1.25f

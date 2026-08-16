@@ -33,6 +33,9 @@ interface AbstinenceDao {
     @Upsert
     suspend fun upsert(entity: AbstinenceEntity): Long
 
+    @Upsert
+    suspend fun upsertAll(entities: List<AbstinenceEntity>)
+
     @Query("UPDATE abstinences SET archived = 1 WHERE id = :id")
     suspend fun archive(id: Long)
 
@@ -154,4 +157,15 @@ interface AbstinenceDao {
 
     @Insert
     suspend fun insertSubstitutes(items: List<AbstinenceSubstituteEntity>)
+
+    // --- счётчики для достижений -------------------------------------------
+
+    @Query("SELECT COUNT(*) FROM craving_events WHERE resisted = 1")
+    suspend fun countResistedCravings(): Long
+
+    @Query("SELECT * FROM abstinence_attempts ORDER BY startedAt")
+    suspend fun allAttempts(): List<AbstinenceAttemptEntity>
+
+    @Query("SELECT * FROM abstinences ORDER BY position, id")
+    suspend fun allAbstinences(): List<AbstinenceEntity>
 }

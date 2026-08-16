@@ -1,0 +1,26 @@
+{
+  "_comment": "Каталог достижений (п. 16.9). counter — счётчик из AchievementEngine, target — порог. rewards: coins/xp начисляются как обычная награда, material падает в инвентарь материалов.",
+  "achievements": [
+    { "id": "first_task",     "title": "Первый шаг",       "description": "Закрыть первую задачу",                        "counter": "TASKS_DONE",       "target": 1,   "coins": 25 },
+    { "id": "tasks_25",       "title": "Разгон",           "description": "Закрыть 25 задач",                              "counter": "TASKS_DONE",       "target": 25,  "coins": 100, "material": "COMMON", "materialAmount": 1 },
+    { "id": "tasks_100",      "title": "Сотня",            "description": "Закрыть 100 задач",                             "counter": "TASKS_DONE",       "target": 100, "coins": 300, "material": "COMMON", "materialAmount": 3 },
+    { "id": "tasks_five_day", "title": "Ударный день",     "description": "Закрыть 5 задач за день",                       "counter": "TASKS_DONE_TODAY", "target": 5,   "coins": 50 },
+    { "id": "habit_start",    "title": "Ритуал",           "description": "Первая отметка привычки",                       "counter": "HABITS_DONE",      "target": 1,   "coins": 25 },
+    { "id": "habit_100",      "title": "Сто отметок",      "description": "100 отметок привычек",                          "counter": "HABITS_DONE",      "target": 100, "coins": 150, "material": "COMMON", "materialAmount": 2 },
+    { "id": "craving_10",     "title": "Железная воля",    "description": "Переждать 10 эпизодов тяги",                     "counter": "CRAVINGS_RESISTED", "target": 10, "coins": 100 },
+    { "id": "craving_50",     "title": "Неприступный",     "description": "Переждать 50 эпизодов тяги",                     "counter": "CRAVINGS_RESISTED", "target": 50, "coins": 250, "material": "DOUBLE", "materialAmount": 1 },
+    { "id": "focus_10h",      "title": "Глубокая работа",  "description": "10 часов фокуса",                                "counter": "FOCUS_MINUTES",    "target": 600, "coins": 200, "material": "COMMON", "materialAmount": 2 },
+    { "id": "focus_100h",     "title": "Мастер фокуса",    "description": "100 часов фокуса",                               "counter": "FOCUS_MINUTES",    "target": 6000, "coins": 500, "material": "DOUBLE", "materialAmount": 2 },
+    { "id": "routine_10",     "title": "По расписанию",    "description": "Пройти 10 рутин",                                "counter": "ROUTINES_DONE",    "target": 10,  "coins": 100 },
+    { "id": "ritual_7",       "title": "Неделя итогов",    "description": "Завершить вечерний ритуал 7 раз",                "counter": "RITUALS_DONE",     "target": 7,   "coins": 150, "material": "DOUBLE", "materialAmount": 1 },
+    { "id": "ritual_30",      "title": "Месяц итогов",     "description": "Завершить вечерний ритуал 30 раз",               "counter": "RITUALS_DONE",     "target": 30,  "coins": 400, "material": "RARE", "materialAmount": 2 },
+    { "id": "clean_7",        "title": "Неделя чистоты",   "description": "7 чистых дней отказа",                           "counter": "ABSTINENCE_DAYS",  "target": 7,   "coins": 100 },
+    { "id": "clean_30",       "title": "Месяц чистоты",    "description": "30 чистых дней отказа",                          "counter": "ABSTINENCE_DAYS",  "target": 30,  "coins": 300, "material": "DOUBLE", "materialAmount": 2 },
+    { "id": "clean_100",      "title": "Сто дней",         "description": "100 чистых дней отказа",                         "counter": "ABSTINENCE_DAYS",  "target": 100, "coins": 700, "material": "RARE", "materialAmount": 3 },
+    { "id": "rich_1000",      "title": "Копилка",          "description": "Заработать 1000 монет",                           "counter": "COINS_EARNED",     "target": 1000, "coins": 50 },
+    { "id": "rich_5000",      "title": "Казначей",         "description": "Заработать 5000 монет",                          "counter": "COINS_EARNED",     "target": 5000, "coins": 200, "material": "DOUBLE", "materialAmount": 2 },
+    { "id": "collector_10",   "title": "Начинающий коллекционер", "description": "Собрать 10 предметов",                   "counter": "ITEMS_OWNED",      "target": 10,  "coins": 100 },
+    { "id": "collector_30",   "title": "Гардероб",         "description": "Собрать 30 предметов",                           "counter": "ITEMS_OWNED",      "target": 30,  "coins": 300, "material": "RARE", "materialAmount": 2 },
+    { "id": "level_10",       "title": "Десятый уровень",  "description": "Достичь 10 уровня",                              "counter": "LEVEL",            "target": 10,  "coins": 200 }
+  ]
+}

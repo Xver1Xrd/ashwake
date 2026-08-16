@@ -7,9 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import dev.ashwake.core.result.getOrNull
 import dev.ashwake.data.backup.BackupContents
 import dev.ashwake.data.backup.BackupManager
 import dev.ashwake.data.backup.BackupResult
+import dev.ashwake.data.backup.CsvExporter
 import dev.ashwake.data.backup.RestoreResult
 import dev.ashwake.data.importer.ImportReport
 import dev.ashwake.data.importer.ImportSource
@@ -37,10 +39,14 @@ data class ImportState(
     val busy: Boolean = false
 )
 
+/** Что именно выгружается в CSV-файл. */
+enum class CsvKind { TASKS, HABITS }
+
 @HiltViewModel
 class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backups: BackupManager,
+    private val csvExporter: CsvExporter,
     private val settings: AppSettings,
     private val loopParser: LoopCsvParser,
     private val tickTickParser: TickTickCsvParser,
@@ -57,6 +63,10 @@ class BackupViewModel @Inject constructor(
 
     private val _restorePreview = MutableStateFlow<BackupContents?>(null)
     val restorePreview: StateFlow<BackupContents?> = _restorePreview.asStateFlow()
+
+    /** Архив, прочитанный для предпросмотра: восстанавливается только он. */
+    private var pendingRestoreUri: Uri? = null
+    private var pendingRestorePassword: String = ""
 
     private val _import = MutableStateFlow(ImportState())
     val import: StateFlow<ImportState> = _import.asStateFlow()
@@ -101,16 +111,76 @@ class BackupViewModel @Inject constructor(
             when (
                 val result = backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
             ) {
-                is RestoreResult.Preview -> _restorePreview.value = result.contents
+                is RestoreResult.Preview -> {
+                    pendingRestoreUri = uri
+                    pendingRestorePassword = password.orEmpty()
+                    _restorePreview.value = result.contents
+                }
                 RestoreResult.NeedsPassword ->
                     _message.value = "Архив зашифрован — нужен пароль"
                 RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
                 is RestoreResult.Failed -> _message.value = result.reason
+                is RestoreResult.Restored -> Unit
             }
         }
     }
 
-    fun dismissRestorePreview() { _restorePreview.value = null }
+    fun dismissRestorePreview() {
+        pendingRestoreUri = null
+        pendingRestorePassword = ""
+        _restorePreview.value = null
+    }
+
+    /**
+     * Восстановление по кнопке подтверждения. Текущие данные заменяются
+     * архивом безвозвратно — кнопка появляется только после предпросмотра.
+     */
+    fun restoreBackup() {
+        val uri = pendingRestoreUri ?: return
+        viewModelScope.launch {
+            when (
+                val result = backups.restoreBackup(
+                    uri,
+                    pendingRestorePassword.takeIf { it.isNotBlank() }?.toCharArray()
+                )
+            ) {
+                is RestoreResult.Restored -> {
+                    _message.value =
+                        "Данные заменены: ${result.contents.total} записей из архива"
+                }
+                is RestoreResult.Failed -> _message.value = result.reason
+                RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
+                else -> _message.value = "Не удалось восстановить"
+            }
+            dismissRestorePreview()
+        }
+    }
+
+    // --- CSV-экспорт для таблиц --------------------------------------------
+
+    /** Запись CSV в файл, который выбрал пользователь (SAF). */
+    fun exportCsv(uri: Uri, kind: CsvKind) {
+        viewModelScope.launch {
+            val csv = withContext(Dispatchers.IO) {
+                when (kind) {
+                    CsvKind.TASKS -> csvExporter.exportTasksCsv()
+                    CsvKind.HABITS -> csvExporter.exportHabitsCsv()
+                }.getOrNull()
+            }
+            if (csv == null) {
+                _message.value = "Не удалось собрать таблицу"
+                return@launch
+            }
+            val written = withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use { output ->
+                        output.write(csv.toByteArray(Charsets.UTF_8))
+                    } != null
+                }.getOrDefault(false)
+            }
+            _message.value = if (written) "CSV сохранён" else "Файл не сохранился"
+        }
+    }
 
     // --- импорт ------------------------------------------------------------
 
