@@ -715,7 +715,7 @@
     <string name="abstinencewidget_ritual">☾ Ритуал</string>
     <string name="habitswidget_privychek_net">Привычек нет</string>
     <string name="taskswidget_zadach_na_segodnya_net">Задач на сегодня нет</string>
-    <string name="character_sunduk_otkryt_1_s">Сундук открыт: +%1$s монет</string>
+    <string name="character_sunduk_otkryt_1_s">Сундук открыт: +%1$d монет</string>
     <string name="character_sunduk_uzhe_otkryt">Сундук уже открыт — заходите завтра</string>
     <string name="character_sunduk_pust">Сундук пуст</string>
     <string name="character_dostizhenie_otkryto_1_s">Достижение открыто: %1$s</string>
