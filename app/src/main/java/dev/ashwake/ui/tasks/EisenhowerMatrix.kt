@@ -1,5 +1,7 @@
 package dev.ashwake.ui.tasks
 
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,7 +19,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,17 +39,23 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.EisenhowerQuadrant
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.theme.PriorityColors
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
-private val QUADRANT_TITLES = mapOf(
-    EisenhowerQuadrant.URGENT_IMPORTANT to ("Срочно и важно" to "сделать"),
-    EisenhowerQuadrant.NOT_URGENT_IMPORTANT to ("Важно, не срочно" to "запланировать"),
-    EisenhowerQuadrant.URGENT_NOT_IMPORTANT to ("Срочно, не важно" to "делегировать"),
-    EisenhowerQuadrant.NOT_URGENT_NOT_IMPORTANT to ("Не срочно, не важно" to "удалить")
+/** Заголовок квадранта и глагол под ним — что с такими задачами делают. */
+private val QUADRANT_TITLES: Map<EisenhowerQuadrant, Pair<Int, Int>> = mapOf(
+    EisenhowerQuadrant.URGENT_IMPORTANT to
+        (R.string.quadrant_urgent_important to R.string.quadrant_urgent_important_action),
+    EisenhowerQuadrant.NOT_URGENT_IMPORTANT to
+        (R.string.quadrant_important to R.string.quadrant_important_action),
+    EisenhowerQuadrant.URGENT_NOT_IMPORTANT to
+        (R.string.quadrant_urgent to R.string.quadrant_urgent_action),
+    EisenhowerQuadrant.NOT_URGENT_NOT_IMPORTANT to
+        (R.string.quadrant_neither to R.string.quadrant_neither_action)
 )
 
 /**
@@ -145,7 +152,9 @@ private fun QuadrantCell(
     onDrag: (Offset) -> Unit,
     onDragEnd: () -> Unit
 ) {
-    val (title, action) = QUADRANT_TITLES.getValue(quadrant)
+    val (titleRes, actionRes) = QUADRANT_TITLES.getValue(quadrant)
+    val title = stringResource(titleRes)
+    val action = stringResource(actionRes)
     val accent = PriorityColors[quadrant.ordinal]
 
     Column(
@@ -154,11 +163,11 @@ private fun QuadrantCell(
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (isHovered) accent.copy(alpha = 0.16f)
-                else MaterialTheme.colorScheme.surface
+                else AshTheme.colors.surface1
             )
             .border(
                 width = if (isHovered) 2.dp else 1.dp,
-                color = if (isHovered) accent else MaterialTheme.colorScheme.outline,
+                color = if (isHovered) accent else AshTheme.colors.separator,
                 shape = RoundedCornerShape(12.dp)
             )
             .padding(8.dp)
@@ -172,21 +181,21 @@ private fun QuadrantCell(
             )
             Text(
                 text = "  $title",
-                style = MaterialTheme.typography.labelLarge,
+                style = AshTheme.type.subhead,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = tasks.size.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         Text(
             text = action,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2,
             modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
         )
 
@@ -222,7 +231,7 @@ private fun TaskChip(task: Task, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(AshTheme.colors.surface2)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -234,7 +243,7 @@ private fun TaskChip(task: Task, modifier: Modifier = Modifier) {
         )
         Text(
             text = "  ${task.title}",
-            style = MaterialTheme.typography.bodySmall,
+            style = AshTheme.type.subhead,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )

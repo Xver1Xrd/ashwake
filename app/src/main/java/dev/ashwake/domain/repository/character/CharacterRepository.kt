@@ -17,6 +17,9 @@ import dev.ashwake.domain.model.character.StatValue
 import dev.ashwake.domain.model.character.Wallet
 import kotlinx.coroutines.flow.Flow
 
+/** Потолок улучшения предмета: уровни считаются с нуля, то есть 0..9. */
+const val MAX_UPGRADE_LEVEL = 10
+
 /** Всё состояние персонажа одним снимком — то, что рисует главный экран. */
 data class CharacterState(
     val profile: CharacterProfile = CharacterProfile(),
@@ -27,12 +30,14 @@ data class CharacterState(
     val equipped: Map<EquipSlot, EquipItem> = emptyMap(),
     val owned: List<OwnedItem> = emptyList(),
     val equipment: EquipmentResult? = null,
+    /** Инвентарь материалов улучшений (п. 16.9). */
     val materials: List<MaterialCount> = emptyList(),
     val achievements: List<AchievementState> = emptyList()
 ) {
     val statMap: Map<Stat, Int> get() = stats.associate { it.stat to it.value }
     fun effect(key: String): Float = equipment?.effect(key) ?: 0f
-    val materialMap: Map<MaterialType, Int> get() = materials.associate { it.type to it.amount }
+    val materialMap: Map<MaterialType, Int>
+        get() = materials.associate { it.type to it.amount }
 }
 
 sealed interface PurchaseResult {
@@ -43,21 +48,33 @@ sealed interface PurchaseResult {
     data object NotForSale : PurchaseResult
 }
 
+/**
+ * Результат улучшения. Отдельный от покупки тип: апгрейд стоит не только
+ * монет, но и материалов, и это должно быть видно в ответе, а не в тосте.
+ */
 sealed interface UpgradeResult {
     data object Success : UpgradeResult
     data object NotEnoughCoins : UpgradeResult
+    /** Не хватает материалов; карта — сколько какого не хватает. */
     data class NotEnoughMaterials(val missing: Map<MaterialType, Int>) : UpgradeResult
     data object NotForSale : UpgradeResult
 }
 
-/** Потолок прокачки предмета — один источник истины для репозитория и UI. */
-const val MAX_UPGRADE_LEVEL = 10
-
-/** Состояние ежедневного сундука: открыт ли сегодня и что выпало. */
+/** Состояние ежедневного сундука за конкретный день (epochDay). */
 data class ChestState(
-    val opened: Boolean,
+    val opened: Boolean = false,
     val reward: ChestReward? = null
 )
+
+/**
+ * Что именно отменяется.
+ *
+ * Одно событие начисляет сразу несколькими источниками: задача даёт монеты
+ * за закрытие и очки за срок и за разбор завала. Перечислять их в вызывающем
+ * коде значило бы держать знание о внутренностях начисления в трёх местах,
+ * поэтому наружу выходит только вид события.
+ */
+enum class RewardScope { TASK, HABIT }
 
 interface CharacterRepository {
 
@@ -75,7 +92,6 @@ interface CharacterRepository {
 
     suspend fun buy(itemId: String): PurchaseResult
 
-    /** Апгрейд: монеты плюс материалы по редкости предмета (п. 16.9). */
     suspend fun upgrade(itemId: String, coinCost: Int): UpgradeResult
 
     /** Три сохранённых образа с мгновенным переключением (п. 16.5.6). */
@@ -89,6 +105,20 @@ interface CharacterRepository {
      */
     suspend fun grantReward(context: RewardContext, refId: String? = null)
 
+    /**
+     * Отмена начисления за отменённое событие.
+     *
+     * Нужна там, где действие обратимо: задачу можно вернуть в работу,
+     * отметку привычки — снять. Без отмены обратимое действие превращается
+     * в бесконечный источник монет — достаточно нажимать чекбокс.
+     *
+     * Отменяется ровно то, что по этому событию сейчас начислено: журнал
+     * только дописывается, поэтому повторный вызов уже ничего не снимет.
+     *
+     * @param refId тот же идентификатор события, с которым шло начисление
+     */
+    suspend fun revokeReward(scope: RewardScope, refId: String)
+
     /** Очки характеристик за поведение. Купить их нельзя (п. 16.5.1). */
     suspend fun grantStatPoints(
         source: StatSource,
@@ -98,32 +128,31 @@ interface CharacterRepository {
 
     suspend fun ensureBuiltinData()
 
-    // --- материалы улучшений (п. 16.9) --------------------------------------
+    // --- материалы улучшений (п. 16.9) -------------------------------------
 
     fun observeMaterials(): Flow<List<MaterialCount>>
 
     suspend fun grantMaterial(type: MaterialType, amount: Int)
 
-    /** Списание материалов за апгрейд. @return false, если не хватает. */
+    /** Списывает материалы, если хватает всех сразу. @return удалось ли. */
     suspend fun spendMaterials(required: Map<MaterialType, Int>): Boolean
 
-    // --- достижения --------------------------------------------------------
+    // --- достижения (п. 16.9) ----------------------------------------------
 
     fun observeAchievements(): Flow<List<AchievementState>>
 
-    /** Снимок всех счётчиков достижений — строится из базы по требованию. */
+    /** Текущие счётчики условий: то, что сравнивает движок достижений. */
     suspend fun achievementSnapshot(): AchievementSnapshot
 
-    /** Отметить достижение открытым. @return false, если уже было открыто. */
+    /** @return false, если уже открыто (повторная раздача исключена). */
     suspend fun unlockAchievement(id: String, at: Long): Boolean
 
-    // --- ежедневный сундук -------------------------------------------------
+    // --- ежедневный сундук (п. 16.9) ---------------------------------------
 
-    /** Открыт ли сундук за день и что в нём лежало. */
     fun observeChest(epochDay: Int): Flow<ChestState>
 
     suspend fun chestState(epochDay: Int): ChestState
 
-    /** Применить раздачу сундука: монеты, материалы, предмет. */
-    suspend fun applyChest(reward: dev.ashwake.domain.engine.character.ChestReward, epochDay: Int)
+    /** Открытие сундука: начисляет награду и помечает день. */
+    suspend fun applyChest(reward: ChestReward, epochDay: Int)
 }

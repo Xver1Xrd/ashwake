@@ -1,9 +1,10 @@
 package dev.ashwake.platform.widget
 
+import androidx.glance.LocalContext
+import dev.ashwake.R
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
-import androidx.glance.ColorFilter
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.GlanceTheme
@@ -36,10 +37,8 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitWithProgress
-import dev.ashwake.ui.theme.Ember
-import dev.ashwake.ui.theme.Moss
+import dev.ashwake.ui.theme.WidgetPalette
 import kotlinx.coroutines.flow.first
-import java.time.temporal.ChronoUnit
 
 /**
  * Виджет привычек на сегодня с недельным прогрессом (п. 18).
@@ -78,7 +77,7 @@ class HabitsWidget : GlanceAppWidget() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Привычки",
+                    LocalContext.current.getString(R.string.habits_privychki),
                     style = TextStyle(
                         fontWeight = FontWeight.Bold,
                         color = GlanceTheme.colors.onSurface
@@ -93,7 +92,7 @@ class HabitsWidget : GlanceAppWidget() {
 
             if (habits.isEmpty()) {
                 Text(
-                    "На сегодня ничего не запланировано",
+                    LocalContext.current.getString(R.string.today_na_segodnya_nichego_ne_zaplanirovano),
                     style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant)
                 )
                 return@Column
@@ -115,7 +114,7 @@ class HabitsWidget : GlanceAppWidget() {
                         Text(
                             if (progress.doneToday) "●  " else "○  ",
                             style = TextStyle(
-                                color = if (progress.doneToday) ColorProvider(Moss)
+                                color = if (progress.doneToday) ColorProvider(WidgetPalette.success)
                                 else GlanceTheme.colors.onSurfaceVariant
                             )
                         )
@@ -158,7 +157,7 @@ class MarkHabitAction : ActionCallback {
 
         // Повторный тап снимает отметку: виджет ведёт себя как карточка в списке
         if (progress.doneToday) {
-            deps.habitRepository().clearMark(habitId, today)
+            deps.clearHabitMark().invoke(habitId, today)
         } else {
             deps.markHabit().invoke(
                 progress = progress,
@@ -210,7 +209,7 @@ class HabitHeatmapWidget : GlanceAppWidget() {
                 .padding(12.dp)
         ) {
             Text(
-                name ?: "Привычек нет",
+                name ?: LocalContext.current.getString(R.string.habitswidget_privychek_net),
                 style = TextStyle(
                     fontWeight = FontWeight.Bold,
                     color = GlanceTheme.colors.onSurface
@@ -235,12 +234,17 @@ class HabitHeatmapWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * Цвет отметки. Берётся из сырой палитры, а не из темы: виджет живёт
+     * на рабочем столе, где композиции темы нет и настройки приложения
+     * не читаются.
+     */
     private fun colorOf(status: EntryStatus?): ColorProvider = when (status) {
-        EntryStatus.DONE -> ColorProvider(Moss)
-        EntryStatus.MINIMUM -> ColorProvider(Moss.copy(alpha = 0.5f))
-        EntryStatus.SKIPPED -> ColorProvider(Ember.copy(alpha = 0.6f))
-        EntryStatus.FROZEN, EntryStatus.PAUSED -> ColorProvider(dev.ashwake.ui.theme.Steel)
-        null -> ColorProvider(dev.ashwake.ui.theme.Ash26)
+        EntryStatus.DONE -> ColorProvider(WidgetPalette.success)
+        EntryStatus.MINIMUM -> ColorProvider(WidgetPalette.success.copy(alpha = 0.5f))
+        EntryStatus.SKIPPED -> ColorProvider(WidgetPalette.warm.copy(alpha = 0.6f))
+        EntryStatus.FROZEN, EntryStatus.PAUSED -> ColorProvider(WidgetPalette.cold)
+        null -> ColorProvider(WidgetPalette.surface2)
     }
 
     private companion object {

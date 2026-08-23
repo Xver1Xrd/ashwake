@@ -4,6 +4,7 @@ import dev.ashwake.domain.engine.habit.ScorePoint
 import dev.ashwake.domain.model.habits.EntrySource
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.Habit
+import dev.ashwake.domain.model.habits.HabitAnchor
 import dev.ashwake.domain.model.habits.HabitEntry
 import dev.ashwake.domain.model.habits.HabitPause
 import dev.ashwake.domain.model.habits.HabitWithProgress
@@ -53,6 +54,20 @@ interface HabitRepository {
 
     /** Снять отметку целиком — повторное нажатие по уже отмеченной привычке. */
     suspend fun clearMark(habitId: Long, date: LocalDate)
+
+    /** Состояние одной привычки на день — нужно якорям и уведомлениям. */
+    suspend fun progressFor(habitId: Long, date: LocalDate): HabitWithProgress?
+
+    // --- якоря --------------------------------------------------------------
+
+    /** Якоря, которые будит отметка привычки [habitId], ещё не сработавшие в [today]. */
+    suspend fun anchorsTriggeredByHabit(habitId: Long, today: LocalDate): List<HabitAnchor>
+
+    suspend fun anchorsTriggeredByRoutine(routineId: Long, today: LocalDate): List<HabitAnchor>
+
+    suspend fun anchorsTriggeredByTag(tagId: Long, today: LocalDate): List<HabitAnchor>
+
+    suspend fun markAnchorFired(anchorId: Long, date: LocalDate)
 
     /** @return false, если месячная квота заморозок исчерпана. */
     suspend fun freeze(habitId: Long, date: LocalDate): Boolean

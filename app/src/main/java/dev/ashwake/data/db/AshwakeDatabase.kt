@@ -2,7 +2,10 @@ package dev.ashwake.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
@@ -25,18 +28,18 @@ import dev.ashwake.data.db.entity.blocking.BlockingRuleEntity
 import dev.ashwake.data.db.entity.blocking.BypassLogEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetEntity
 import dev.ashwake.data.db.entity.character.AppearancePresetItemEntity
-import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.CharacterProfileEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
-import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
 import dev.ashwake.data.db.entity.character.LedgerTransactionEntity
-import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.StatEventEntity
 import dev.ashwake.data.db.entity.character.UserRewardEntity
 import dev.ashwake.data.db.entity.character.UserRewardRedemptionEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
+import dev.ashwake.data.db.entity.character.AchievementEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.habits.HabitAnchorEntity
 import dev.ashwake.data.db.entity.routines.FocusSessionEntity
 import dev.ashwake.data.db.entity.routines.RoutineEntity
@@ -63,10 +66,10 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 /**
  * Единая база приложения.
  *
- * Схема спроектирована сразу под всё ТЗ (docs/02-database.md). До первого
- * релиза изменения схемы разработчику доставались пересозданием базы
- * (debug), с версии 2 схема зафиксирована и двигается только явными
- * миграциями — они живут в data/db/migration.
+ * Схема спроектирована сразу под всё ТЗ (docs/02-database.md), поэтому
+ * версия менялась ровно один раз и по делу. Миграции ведутся с самого
+ * начала: пересоздание базы допустимо только в debug-сборке, где терять
+ * нечего, а в релизе каждая версия обязана иметь путь вперёд.
  */
 @Database(
     entities = [
@@ -104,9 +107,8 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         LedgerTransactionEntity::class,
         UserRewardEntity::class,
         UserRewardRedemptionEntity::class,
-        // достижения, материалы и ежедневный сундук (п. 16.9)
-        AchievementEntity::class,
         MaterialInventoryEntity::class,
+        AchievementEntity::class,
         DailyChestEntity::class,
         // рутины и фокус
         RoutineEntity::class,
@@ -126,7 +128,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         BlockedAppEntity::class,
         BypassLogEntity::class
     ],
-    version = 2,
+    version = AshwakeDatabase.VERSION,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -141,8 +143,75 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun timeboxDao(): TimeboxDao
     abstract fun ritualDao(): RitualDao
     abstract fun blockingDao(): BlockingDao
+    abstract fun backupDao(): BackupDao
 
     companion object {
         const val NAME = "ashwake.db"
+
+        /**
+         * Версия схемы. Константой, а не числом в аннотации: её сверяет тест
+         * миграций с последней выгруженной схемой, и без имени сверять было
+         * бы нечего.
+         */
+        const val VERSION = 5
+
+        /**
+         * 1 → 2: у якоря появился день последнего срабатывания.
+         *
+         * Первая настоящая миграция. Она же образец для следующих: схема
+         * меняется только вперёд, данные не теряются, и в релизной сборке
+         * никакого fallbackToDestructiveMigration быть не может — там за
+         * строчкой кода стоит стёртая история человека.
+         */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE habit_anchors ADD COLUMN lastFiredDate INTEGER")
+            }
+        }
+
+        /** 2 → 3: у задачи появился значок-эмодзи. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN emoji TEXT")
+            }
+        }
+
+        /**
+         * 3 → 4: значок-картинка у задачи, привычки и отказа.
+         * Хранится имя файла в каталоге приложения, а не URI галереи:
+         * разрешение на чужой URI не переживает перезагрузку.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN iconPath TEXT")
+                db.execSQL("ALTER TABLE habits ADD COLUMN iconPath TEXT")
+                db.execSQL("ALTER TABLE abstinences ADD COLUMN iconPath TEXT")
+            }
+        }
+
+        /**
+         * 4 → 5: экономика персонажа — материалы улучшений, достижения
+         * и ежедневный сундук (п. 4).
+         */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS material_inventory (" +
+                        "materialId TEXT NOT NULL PRIMARY KEY, amount INTEGER NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS achievements (" +
+                        "id TEXT NOT NULL PRIMARY KEY, unlockedAt INTEGER, progress REAL NOT NULL)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS daily_chests (" +
+                        "date INTEGER NOT NULL PRIMARY KEY, openedAt INTEGER, " +
+                        "rerollsUsed INTEGER NOT NULL, rewardJson TEXT)"
+                )
+            }
+        }
+
+        val MIGRATIONS: Array<Migration> =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
     }
 }

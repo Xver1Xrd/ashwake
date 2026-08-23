@@ -79,8 +79,12 @@ class CatalogLoader @Inject constructor(
         val validation = validator.validate(expanded)
         if (validation.issues.isNotEmpty()) {
             val message = validation.issues.joinToString("\n") { it.toString() }
-            // Кривой каталог ломает экономику молча — в debug падаем громко
-            if (BuildConfig.DEBUG) error("Каталог не прошёл проверку:\n$message")
+            // Кривой каталог ломает экономику молча, поэтому о нём слышно всегда.
+            // Но падать здесь нельзя ни в одной сборке: каталог читается при
+            // открытии главного экрана, и одна опечатка в данных означала бы
+            // приложение, которое не запускается вообще. Валидатор уже вернул
+            // исправленные предметы — берём их, а опечатки ловит
+            // CatalogValidationTest на сборке.
             Log.w(TAG, "Каталог поправлен на лету:\n$message")
         }
 

@@ -69,14 +69,20 @@ class AlarmHabitReminderScheduler @Inject constructor(
         setAlarm(habitId, at)
     }
 
+    override fun scheduleAnchored(habitId: Long, delayMinutes: Int) {
+        val at = clock.now().atZone(clock.zone()).toLocalDateTime()
+            .plusMinutes(delayMinutes.coerceAtLeast(0).toLong())
+        setAlarm(habitId, at, anchored = true)
+    }
+
     override suspend fun rescheduleAll() {
         habits.get().habitsWithReminders().forEach(::schedule)
     }
 
-    private fun setAlarm(habitId: Long, at: LocalDateTime) {
+    private fun setAlarm(habitId: Long, at: LocalDateTime, anchored: Boolean = false) {
         val manager = alarmManager ?: return
         val triggerAt = at.atZone(clock.zone()).toInstant().toEpochMilli()
-        val pendingIntent = firePendingIntent(habitId)
+        val pendingIntent = firePendingIntent(habitId, anchored)
 
         val canExact = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             manager.canScheduleExactAlarms()
@@ -87,9 +93,12 @@ class AlarmHabitReminderScheduler @Inject constructor(
         }
     }
 
-    private fun firePendingIntent(habitId: Long): PendingIntent = PendingIntent.getBroadcast(
+    private fun firePendingIntent(
+        habitId: Long,
+        anchored: Boolean = false
+    ): PendingIntent = PendingIntent.getBroadcast(
         context,
-        REQUEST_OFFSET + habitId.toInt(),
+        (if (anchored) ANCHOR_REQUEST_OFFSET else REQUEST_OFFSET) + habitId.toInt(),
         Intent(context, HabitReminderReceiver::class.java)
             .setAction(HabitReminderReceiver.ACTION_FIRE)
             .putExtra(HabitReminderReceiver.EXTRA_HABIT_ID, habitId),
@@ -98,6 +107,13 @@ class AlarmHabitReminderScheduler @Inject constructor(
 
     private companion object {
         const val REQUEST_OFFSET = 1_000_000
+
+        /**
+         * Якорное напоминание не должно затирать напоминание по расписанию:
+         * PendingIntent различаются кодом запроса, поэтому у якорей свой
+         * диапазон. Иначе привычка с якорем и временем теряла бы будильник.
+         */
+        const val ANCHOR_REQUEST_OFFSET = 2_000_000
         const val MAX_LOOKAHEAD_DAYS = 60
     }
 }

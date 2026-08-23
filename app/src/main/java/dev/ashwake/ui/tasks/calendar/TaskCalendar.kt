@@ -1,5 +1,6 @@
 package dev.ashwake.ui.tasks.calendar
 
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -27,12 +28,10 @@ import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.tasks.CalendarScale
 import dev.ashwake.ui.tasks.CalendarUiState
@@ -50,12 +51,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
 import java.util.Locale
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val MONTH_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("LLLL yyyy")
 private val DAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-private val WEEKDAY_LABELS = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
 
 /** Высота часа в сетке дня. Из неё же считаются высоты блоков по оценке времени. */
 private val HOUR_HEIGHT = 56.dp
@@ -108,22 +109,22 @@ private fun CalendarHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { onShift(false) }) {
-            Icon(Icons.Filled.ChevronLeft, contentDescription = "Назад")
+            Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.detail_nazad))
         }
         Text(
             text = when (state.scale) {
                 CalendarScale.DAY -> state.anchor.format(DAY_FORMAT)
                 else -> state.anchor.format(MONTH_FORMAT)
             }.replaceFirstChar { it.titlecase(Locale.getDefault()) },
-            style = MaterialTheme.typography.titleSmall,
+            style = AshTheme.type.headline,
             modifier = Modifier.weight(1f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         IconButton(onClick = { onShift(true) }) {
-            Icon(Icons.Filled.ChevronRight, contentDescription = "Вперёд")
+            Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
         }
-        TextButton(onClick = onToday) { Text("Сегодня") }
+        TextAction(text = stringResource(R.string.calendar_segodnya), onClick = onToday)
     }
 
     SingleChoiceSegmentedButtonRow(
@@ -199,11 +200,11 @@ private fun WeekStrip(
 @Composable
 private fun WeekdayHeader() {
     Row(Modifier.fillMaxWidth()) {
-        WEEKDAY_LABELS.forEach { label ->
+        stringArrayResource(R.array.weekday_short).forEach { label ->
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.weight(1f).padding(vertical = 4.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
@@ -227,12 +228,12 @@ private fun DayCell(
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primaryContainer
-                else MaterialTheme.colorScheme.surface
+                if (isSelected) AshTheme.colors.surface2
+                else AshTheme.colors.surface1
             )
             .then(
                 if (isToday) Modifier.border(
-                    1.dp, MaterialTheme.colorScheme.secondary, RoundedCornerShape(8.dp)
+                    1.dp, AshTheme.colors.warm, RoundedCornerShape(8.dp)
                 ) else Modifier
             )
             .clickable(onClick = onClick)
@@ -242,11 +243,11 @@ private fun DayCell(
     ) {
         Text(
             text = date.dayOfMonth.toString(),
-            style = MaterialTheme.typography.labelMedium,
+            style = AshTheme.type.footnote,
             fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
             // Дни соседних месяцев приглушены, но кликабельны
-            color = if (isCurrentMonth) MaterialTheme.colorScheme.onSurface
-            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            color = if (isCurrentMonth) AshTheme.colors.text
+            else AshTheme.colors.text2.copy(alpha = 0.5f)
         )
         // Точки по приоритетам: больше трёх не показываем, дальше «+N»
         Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -262,8 +263,8 @@ private fun DayCell(
         if (tasks.size > 3) {
             Text(
                 "+${tasks.size - 3}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
     }
@@ -274,9 +275,9 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     if (tasks.isEmpty()) {
         Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
             Text(
-                "На этот день задач нет",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                stringResource(R.string.calendar_na_etot_den_zadach_net),
+                style = AshTheme.type.callout,
+                color = AshTheme.colors.text2
             )
         }
         return
@@ -291,7 +292,7 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(AshTheme.colors.surface1)
                     .clickable { onTaskClick(task) }
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -304,7 +305,7 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 )
                 Text(
                     text = "  " + (task.dueTime?.format(TIME_FORMAT)?.plus("  ") ?: "") + task.title,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AshTheme.type.callout,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -327,9 +328,9 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         if (untimed.isNotEmpty()) {
             Text(
-                "Без времени",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(R.string.calendar_bez_vremeni),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(start = 12.dp, top = 8.dp)
             )
             untimed.forEach { task ->
@@ -338,11 +339,11 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                         .fillMaxWidth()
                         .padding(horizontal = 12.dp, vertical = 3.dp)
                         .clip(RoundedCornerShape(6.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(AshTheme.colors.surface2)
                         .clickable { onTaskClick(task) }
                         .padding(8.dp)
                 ) {
-                    Text(task.title, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                    Text(task.title, style = AshTheme.type.subhead, maxLines = 1)
                 }
             }
             HorizontalDivider(Modifier.padding(top = 8.dp))
@@ -359,8 +360,8 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 ) {
                     Text(
                         text = "%02d".format(hour),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2,
                         modifier = Modifier.width(32.dp).padding(start = 6.dp, top = 2.dp)
                     )
                     HorizontalDivider(Modifier.padding(top = 6.dp))
@@ -389,7 +390,7 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 ) {
                     Text(
                         text = "${time.format(TIME_FORMAT)}  ${task.title}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AshTheme.type.footnote,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -399,10 +400,11 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     }
 }
 
+@Composable
 private fun scaleLabel(scale: CalendarScale): String = when (scale) {
-    CalendarScale.MONTH -> "Месяц"
-    CalendarScale.WEEK -> "Неделя"
-    CalendarScale.DAY -> "День"
+    CalendarScale.MONTH -> stringResource(R.string.calendar_mesyac)
+    CalendarScale.WEEK -> stringResource(R.string.stats_nedelya)
+    CalendarScale.DAY -> stringResource(R.string.calendar_den)
 }
 
 /** Локализованное имя дня недели — пригодится подписям в других экранах. */

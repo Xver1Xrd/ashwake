@@ -21,7 +21,6 @@ import dagger.assisted.AssistedInject
 import dev.ashwake.MainActivity
 import dev.ashwake.R
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.domain.engine.abstinence.AbstinenceCalculator
 import dev.ashwake.domain.engine.character.StatSource
 import dev.ashwake.domain.engine.reward.RewardContext
 import dev.ashwake.domain.engine.reward.RewardSource

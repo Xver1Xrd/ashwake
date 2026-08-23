@@ -12,17 +12,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.assets.HabitPresetCategory
 import dev.ashwake.domain.model.habits.Habit
 import dev.ashwake.domain.model.habits.HabitScheduleType
 import dev.ashwake.domain.model.habits.HabitType
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /** Каталог готовых привычек по категориям (п. 3). */
 @Composable
@@ -34,7 +36,7 @@ fun HabitCatalogDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Добавить привычку") },
+        title = { Text(stringResource(R.string.habits_dobavit_privychku)) },
         text = {
             LazyColumn(
                 modifier = Modifier.heightIn(max = 460.dp),
@@ -49,7 +51,7 @@ fun HabitCatalogDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null)
-                        Text("  Своя привычка", style = MaterialTheme.typography.bodyLarge)
+                        Text(stringResource(R.string.components_svoya_privychka), style = AshTheme.type.body)
                     }
                 }
 
@@ -57,8 +59,8 @@ fun HabitCatalogDialog(
                     item(key = "cat-${category.sphere}") {
                         Text(
                             category.title,
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.secondary,
+                            style = AshTheme.type.subhead,
+                            color = AshTheme.colors.warm,
                             modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                         )
                     }
@@ -70,35 +72,36 @@ fun HabitCatalogDialog(
                                 .clickable { onPick(habit) }
                                 .padding(vertical = 8.dp)
                         ) {
-                            Text(habit.name, style = MaterialTheme.typography.bodyMedium)
+                            Text(habit.name, style = AshTheme.type.callout)
                             Text(
                                 describe(habit),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } }
+        confirmButton = { TextAction(text = stringResource(R.string.components_zakryt), onClick = onDismiss) }
     )
 }
 
+@Composable
 private fun describe(habit: Habit): String {
     val schedule = when (habit.schedule.type) {
-        HabitScheduleType.DAILY -> "каждый день"
-        HabitScheduleType.TIMES_PER_WEEK -> "${habit.schedule.timesPerWeek} раза в неделю"
-        HabitScheduleType.EVERY_OTHER_DAY -> "через день"
-        HabitScheduleType.WEEKDAYS -> "по дням недели"
-        HabitScheduleType.BIWEEKLY -> "раз в две недели"
+        HabitScheduleType.DAILY -> stringResource(R.string.components_kazhdyy_den)
+        HabitScheduleType.TIMES_PER_WEEK -> stringResource(R.string.components_1_s_raza_v_nedelyu, habit.schedule.timesPerWeek)
+        HabitScheduleType.EVERY_OTHER_DAY -> stringResource(R.string.components_cherez_den)
+        HabitScheduleType.WEEKDAYS -> stringResource(R.string.components_po_dnyam_nedeli)
+        HabitScheduleType.BIWEEKLY -> stringResource(R.string.components_raz_v_dve_nedeli)
     }
     val target = when (habit.type) {
         HabitType.COUNTER ->
             " · ${formatValue(habit.targetValue)}${habit.unitName?.let { " $it" } ?: ""}"
-        HabitType.NEGATIVE -> " · отказ"
+        HabitType.NEGATIVE -> stringResource(R.string.components_otkaz)
         HabitType.CHECK -> ""
     }
-    val minimum = habit.minimumValue?.let { " · минимум ${formatValue(it)}" }.orEmpty()
+    val minimum = habit.minimumValue?.let { stringResource(R.string.components_minimum_1_s_2, formatValue(it)) }.orEmpty()
     return schedule + target + minimum
 }

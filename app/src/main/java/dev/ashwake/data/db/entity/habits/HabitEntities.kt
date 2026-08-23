@@ -19,6 +19,7 @@ data class HabitEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val icon: String? = null,
+    val iconPath: String? = null,
     val color: Int = 0,
     val type: String,
     val sphere: String,
@@ -127,5 +128,11 @@ data class HabitAnchorEntity(
     val refHabitId: Long? = null,
     val refRoutineId: Long? = null,
     val refTagId: Long? = null,
-    val delayMinutes: Int = 0
+    val delayMinutes: Int = 0,
+    /**
+     * День последнего срабатывания, epochDay. Якорь не срабатывает повторно
+     * в тот же день (п. 6 ТЗ): иначе привычка «после зарядки» звонила бы
+     * столько раз, сколько человек трогал зарядку.
+     */
+    val lastFiredDate: Int? = null
 )

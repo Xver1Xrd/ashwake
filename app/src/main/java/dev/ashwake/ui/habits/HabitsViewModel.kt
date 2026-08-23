@@ -14,6 +14,7 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.habits.SkipReason
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
+import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,7 +30,7 @@ data class HabitsUiState(
     val habits: List<HabitWithProgress> = emptyList(),
     val skipReasons: List<SkipReason> = emptyList(),
     val pauses: List<HabitPause> = emptyList(),
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = EPOCH_DAY,
     val showOnlyDueToday: Boolean = true
 ) {
     /** На сегодня ожидаются: остальные показываются отдельным свёрнутым блоком. */
@@ -44,6 +45,7 @@ class HabitsViewModel @Inject constructor(
     private val presetLoader: HabitPresetLoader,
     private val reminderScheduler: HabitReminderScheduler,
     private val markHabit: MarkHabitUseCase,
+    private val clearHabitMark: ClearHabitMarkUseCase,
     private val clock: AppClock
 ) : ViewModel() {
 
@@ -101,7 +103,7 @@ class HabitsViewModel @Inject constructor(
                     )
                 }
 
-                progress.doneToday -> habits.clearMark(habit.id, clock.today())
+                progress.doneToday -> clearHabitMark(habit.id, clock.today())
 
                 else -> markHabit(progress, EntryStatus.DONE)
             }
@@ -157,7 +159,7 @@ class HabitsViewModel @Inject constructor(
     }
 
     fun clearMark(progress: HabitWithProgress) {
-        viewModelScope.launch { habits.clearMark(progress.habit.id, clock.today()) }
+        viewModelScope.launch { clearHabitMark(progress.habit.id, clock.today()) }
     }
 
     /** @return false, если месячная квота заморозок исчерпана. */
@@ -213,3 +215,11 @@ class HabitsViewModel @Inject constructor(
         else -> 1f
     }
 }
+
+/**
+ * Заглушка «даты ещё нет» до первого значения из репозитория.
+ *
+ * Не `LocalDate.EPOCH`: это поле появилось только в API 34, а приложение
+ * живёт с 26. Компилятор такое пропускает молча, падает оно на устройстве.
+ */
+private val EPOCH_DAY: LocalDate = LocalDate.ofEpochDay(0)

@@ -9,13 +9,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.components.IconButtonSlot
+import dev.ashwake.ui.components.IconPicker
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -30,6 +32,8 @@ import dev.ashwake.domain.model.abstinence.AbstinenceMode
 import dev.ashwake.domain.model.abstinence.Baseline
 import java.time.Duration
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Создание отказа.
@@ -41,6 +45,8 @@ import java.time.Instant
 fun CreateAbstinenceDialog(
     onCreate: (
         name: String,
+        icon: String?,
+        iconPath: String?,
         mode: AbstinenceMode,
         startedAt: Instant,
         motivation: String?,
@@ -50,6 +56,9 @@ fun CreateAbstinenceDialog(
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
+    var icon by remember { mutableStateOf<String?>(null) }
+    var iconPath by remember { mutableStateOf<String?>(null) }
+    var showIconPicker by remember { mutableStateOf(false) }
     var mode by remember { mutableStateOf(AbstinenceMode.GENTLE) }
     var daysAgo by remember { mutableIntStateOf(0) }
     var motivation by remember { mutableStateOf("") }
@@ -61,63 +70,84 @@ fun CreateAbstinenceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый отказ") },
+        title = { Text(stringResource(R.string.abstinence_novyy_otkaz)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Название") },
-                    placeholder = { Text("Не курю") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    IconButtonSlot(
+                        emoji = icon,
+                        iconPath = iconPath,
+                        expanded = showIconPicker,
+                        onClick = { showIconPicker = !showIconPicker }
+                    )
+                    AshTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = stringResource(R.string.editor_nazvanie),
+                        placeholder = stringResource(R.string.editor_ne_kuryu),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
 
-                Text("Режим", style = MaterialTheme.typography.labelLarge)
+                if (showIconPicker) {
+                    IconPicker(
+                        emoji = icon,
+                        iconPath = iconPath,
+                        onEmoji = { picked -> icon = if (icon == picked) null else picked },
+                        onIcon = { iconPath = it }
+                    )
+                }
+
+                Text(stringResource(R.string.editor_rezhim), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AbstinenceMode.entries.forEach { option ->
-                        FilterChip(
-                            selected = mode == option,
-                            onClick = { mode = option },
-                            label = { Text(if (option == AbstinenceMode.GENTLE) "мягкий" else "строгий") }
-                        )
+                        ChipButton(
+                        text = if (option == AbstinenceMode.GENTLE) stringResource(R.string.editor_myagkiy) else stringResource(R.string.editor_strogiy),
+                        selected = mode == option,
+                        onClick = { mode = option }
+                    )
                     }
                 }
                 Text(
                     if (mode == AbstinenceMode.GENTLE)
-                        "Срыв отнимает семь дней, но не обнуляет счётчик"
-                    else "Срыв обнуляет счётчик, как в классических трекерах",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                        stringResource(R.string.editor_sryv_otnimaet_sem_dney_no_ne_obnulyaet_schet)
+                    else stringResource(R.string.editor_sryv_obnulyaet_schetchik_kak_v_klassicheskih),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
 
-                Text("Начало", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.editor_nachalo), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 1, 3, 7, 30).forEach { days ->
-                        FilterChip(
-                            selected = daysAgo == days,
-                            onClick = { daysAgo = days },
-                            label = { Text(if (days == 0) "сейчас" else "$days дн. назад") }
-                        )
+                        ChipButton(
+                        text = if (days == 0) stringResource(R.string.detail_seychas) else stringResource(R.string.editor_1_s_dn_nazad, days),
+                        selected = daysAgo == days,
+                        onClick = { daysAgo = days }
+                    )
                     }
                 }
 
-                OutlinedTextField(
+                AshTextField(
                     value = motivation,
                     onValueChange = { motivation = it },
-                    label = { Text("Зачем я это бросил") },
-                    placeholder = { Text("Покажется, когда станет тяжело") },
+                    label = stringResource(R.string.editor_zachem_ya_eto_brosil),
+                    placeholder = stringResource(R.string.editor_pokazhetsya_kogda_stanet_tyazhelo),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
 
-                OutlinedTextField(
+                AshTextField(
                     value = substitutes,
                     onValueChange = { substitutes = it },
-                    label = { Text("Чем заняться вместо, по строке") },
+                    label = stringResource(R.string.editor_chem_zanyatsya_vmesto_po_stroke),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
@@ -129,38 +159,38 @@ fun CreateAbstinenceDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Считать сэкономленное", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.editor_schitat_sekonomlennoe), style = AshTheme.type.subhead)
                         Text(
-                            "Без этих цифр блок экономии просто не показывается",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            stringResource(R.string.editor_bez_etih_cifr_blok_ekonomii_prosto_ne_pokazy),
+                            style = AshTheme.type.footnote,
+                            color = AshTheme.colors.text2
                         )
                     }
                     Switch(checked = baselineEnabled, onCheckedChange = { baselineEnabled = it })
                 }
 
                 if (baselineEnabled) {
-                    OutlinedTextField(
+                    AshTextField(
                         value = unitName,
                         onValueChange = { unitName = it },
-                        label = { Text("Чего именно") },
-                        placeholder = { Text("сигарет") },
+                        label = stringResource(R.string.editor_chego_imenno),
+                        placeholder = stringResource(R.string.editor_sigaret),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
+                        AshTextField(
                             value = unitsPerDay,
                             onValueChange = { unitsPerDay = it },
-                            label = { Text("В день") },
+                            label = stringResource(R.string.editor_v_den),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
-                        OutlinedTextField(
+                        AshTextField(
                             value = costPerUnit,
                             onValueChange = { costPerUnit = it },
-                            label = { Text("Цена за штуку") },
+                            label = stringResource(R.string.editor_cena_za_shtuku),
                             singleLine = true,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
@@ -170,7 +200,8 @@ fun CreateAbstinenceDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            TextAction(
+                text = stringResource(R.string.editor_sozdat),
                 enabled = name.isNotBlank(),
                 onClick = {
                     val baseline = if (baselineEnabled) {
@@ -181,9 +212,11 @@ fun CreateAbstinenceDialog(
                             Baseline(unitName.trim(), units, cost)
                         } else null
                     } else null
-
+            
                     onCreate(
                         name,
+                        icon,
+                        iconPath,
                         mode,
                         Instant.now().minus(Duration.ofDays(daysAgo.toLong())),
                         motivation.takeIf { it.isNotBlank() },
@@ -191,8 +224,8 @@ fun CreateAbstinenceDialog(
                         substitutes.split('\n').map { it.trim() }.filter { it.isNotEmpty() }
                     )
                 }
-            ) { Text("Создать") }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }

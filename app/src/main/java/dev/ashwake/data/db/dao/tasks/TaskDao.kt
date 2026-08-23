@@ -34,6 +34,7 @@ interface TaskDao {
         SELECT * FROM tasks
         WHERE isTemplate = 0
           AND parentTaskId IS NULL
+          AND status != 'DROPPED'
           AND (:includeDone = 1 OR status = 'ACTIVE')
           AND (:projectId IS NULL OR projectId = :projectId)
           AND (:priority IS NULL OR priority = :priority)
@@ -63,11 +64,36 @@ interface TaskDao {
           AND parentTaskId IS NULL
           AND dueDate IS NOT NULL
           AND dueDate BETWEEN :from AND :to
+          AND status != 'DROPPED'
           AND (:includeDone = 1 OR status = 'ACTIVE')
         ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
         """
     )
     fun observeTasksInRange(from: Int, to: Int, includeDone: Int): Flow<List<TaskWithRelations>>
+
+    /**
+     * Задачи для главного экрана.
+     *
+     * Ровно `dueDate = сегодня` — не то, что человек считает списком на день:
+     * вчерашняя несделанная задача никуда не делась, и если её не показать,
+     * она пропадёт из виду насовсем. Поэтому берутся все активные с датой
+     * не позже сегодняшней плюс закрытые сегодня — последние нужны, чтобы
+     * отметка не стирала строку из-под пальца.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND dueDate IS NOT NULL
+          AND dueDate <= :today
+          AND status != 'DROPPED'
+          AND (status = 'ACTIVE' OR dueDate = :today)
+        ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
+        """
+    )
+    fun observeTasksForDay(today: Int): Flow<List<TaskWithRelations>>
 
     /** Активные задачи с точным временем — их будильники переживают перезагрузку. */
     @Transaction
@@ -102,6 +128,86 @@ interface TaskDao {
 
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
+
+    /**
+     * Проставить серию, не трогая остального.
+     *
+     * Здесь нельзя обойтись `@Update` целой строкой: серия проставляется
+     * сразу после смены статуса, а строка на руках у вызывающего снята до
+     * неё — запись такой строки вернула бы задачу в «активна».
+     */
+    @Query("UPDATE tasks SET seriesId = :seriesId WHERE id = :id")
+    suspend fun setSeriesId(id: Long, seriesId: String)
+
+    @Query("SELECT * FROM task_postponements WHERE taskId = :taskId ORDER BY at DESC LIMIT 1")
+    suspend fun lastPostponement(taskId: Long): TaskPostponementEntity?
+
+    @Query("DELETE FROM task_postponements WHERE id = :id")
+    suspend fun deletePostponement(id: Long)
+
+    @Query(
+        """
+        UPDATE tasks
+        SET dueDate = :dueDate,
+            postponeCount = MAX(postponeCount - 1, 0),
+            updatedAt = :at
+        WHERE id = :id
+        """
+    )
+    suspend fun revertPostpone(id: Long, dueDate: Int?, at: Long)
+
+    /**
+     * Экземпляр серии, созданный закрытием задачи и с тех пор нетронутый.
+     *
+     * `updatedAt = createdAt` — признак того, что после создания его никто не
+     * правил: любая правка, перенос или закрытие сдвигают `updatedAt`.
+     * Берётся самый свежий, потому что серия могла закрываться и раньше.
+     */
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE seriesId = :seriesId
+          AND id != :excludeId
+          AND status = 'ACTIVE'
+          AND createdAt >= :createdAtLeast
+          AND updatedAt = createdAt
+        ORDER BY createdAt DESC
+        LIMIT 1
+        """
+    )
+    suspend fun untouchedSeriesInstance(
+        seriesId: String,
+        excludeId: Long,
+        createdAtLeast: Long
+    ): TaskEntity?
+
+    // --- корзина ------------------------------------------------------------
+    //
+    // Удаление задачи — не DELETE, а перевод в DROPPED. Промах по свайпу
+    // случается регулярно, и восстановление должно быть возможно; окончательно
+    // задачи вычищаются по времени.
+
+    @Query("UPDATE tasks SET status = 'DROPPED', updatedAt = :at WHERE id = :id")
+    suspend fun moveToTrash(id: Long, at: Long)
+
+    @Query("UPDATE tasks SET status = 'ACTIVE', updatedAt = :at WHERE id = :id")
+    suspend fun restoreFromTrash(id: Long, at: Long)
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE status = 'DROPPED' AND isTemplate = 0
+        ORDER BY updatedAt DESC
+        """
+    )
+    fun observeTrash(): Flow<List<TaskWithRelations>>
+
+    @Query("DELETE FROM tasks WHERE status = 'DROPPED' AND updatedAt < :before")
+    suspend fun purgeTrashOlderThan(before: Long): Int
+
+    @Query("DELETE FROM tasks WHERE status = 'DROPPED'")
+    suspend fun emptyTrash()
 
     @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now WHERE id = :id")
     suspend fun setStatus(id: Long, status: String, completedAt: Long?, now: Long)

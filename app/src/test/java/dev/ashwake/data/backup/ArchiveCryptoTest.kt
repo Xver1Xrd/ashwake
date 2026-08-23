@@ -109,4 +109,14 @@ class ArchiveCryptoTest {
         assertEquals(33, ArchiveCrypto.HEADER_SIZE)
         assertTrue(archive.size > ArchiveCrypto.HEADER_SIZE)
     }
+
+    @Test
+    fun `пустой пароль это тоже пароль`() {
+        // Пустая строка — не «шифрование выключено»: архив ей шифруется,
+        // ей же открывается, и чужой пароль к нему не подходит
+        val archive = crypto.encrypt("данные".toByteArray(), CharArray(0))
+
+        assertTrue(crypto.decrypt(archive, CharArray(0)) is DecryptResult.Success)
+        assertEquals(DecryptResult.WrongPassword, crypto.decrypt(archive, password))
+    }
 }

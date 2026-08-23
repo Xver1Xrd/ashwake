@@ -12,21 +12,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material.icons.filled.HourglassBottom
 import androidx.compose.material.icons.filled.ViewTimeline
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,11 +36,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.tasks.calendar.TaskCalendar
 import dev.ashwake.ui.timebox.TimeboxScreen
 import dev.ashwake.ui.tasks.components.ProjectsDialog
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshLargeTitle
+import dev.ashwake.ui.components.IconAction
+import dev.ashwake.ui.components.ToastHost
+import dev.ashwake.ui.components.rememberToastState
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.tasks.components.QuickAddBar
 import dev.ashwake.ui.tasks.components.StaleTaskDialog
 import dev.ashwake.ui.tasks.components.SubtaskList
 import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +62,9 @@ fun TasksScreen(
     val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
     val voice by viewModel.voiceState.collectAsStateWithLifecycle()
     var showProjects by remember { mutableStateOf(false) }
+    val toast = rememberToastState()
+    val postponedText = stringResource(R.string.toast_postponed)
+    val undoText = stringResource(R.string.toast_undo)
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
@@ -71,35 +74,41 @@ fun TasksScreen(
     val context = LocalContext.current
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Задачи") },
+            AshLargeTitle(
+                title = stringResource(R.string.tasks_zadachi),
                 actions = {
-                    IconButton(onClick = onOpenRitual) {
-                        Icon(Icons.Filled.NightsStay, contentDescription = "Вечерний ритуал")
-                    }
-                    IconButton(onClick = onOpenStats) {
-                        Icon(Icons.Filled.BarChart, contentDescription = "Статистика")
-                    }
-                    IconButton(onClick = viewModel::toggleStaleFilter) {
-                        Icon(
-                            Icons.Filled.HourglassBottom,
-                            contentDescription = "Залежавшиеся",
-                            tint = if (state.filter.onlyStale) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }) {
-                        Icon(
-                            when (state.viewMode) {
-                                TasksViewMode.LIST -> Icons.Filled.GridView
-                                TasksViewMode.MATRIX -> Icons.Filled.CalendarMonth
-                                TasksViewMode.CALENDAR -> Icons.Filled.ViewTimeline
-                                TasksViewMode.TIMEBOX -> Icons.AutoMirrored.Filled.List
-                            },
-                            contentDescription = "Режим отображения"
-                        )
-                    }
+                    IconAction(
+                        icon = AshIcons.Moon,
+                        contentDescription = stringResource(R.string.ritual_vecherniy_ritual),
+                        tint = AshTheme.colors.text2,
+                        onClick = onOpenRitual
+                    )
+                    IconAction(
+                        icon = AshIcons.BarChart,
+                        contentDescription = stringResource(R.string.stats_statistika),
+                        tint = AshTheme.colors.text2,
+                        onClick = onOpenStats
+                    )
+                    IconAction(
+                        icon = AshIcons.Hourglass,
+                        contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
+                        tint = if (state.filter.onlyStale) AshTheme.colors.accent
+                        else AshTheme.colors.text2,
+                        onClick = viewModel::toggleStaleFilter
+                    )
+                    IconAction(
+                        icon = when (state.viewMode) {
+                            TasksViewMode.LIST -> AshIcons.GridView
+                            TasksViewMode.MATRIX -> AshIcons.CalendarMonth
+                            TasksViewMode.CALENDAR -> AshIcons.ViewTimeline
+                            TasksViewMode.TIMEBOX -> AshIcons.ListIcon
+                        },
+                        contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya),
+                        tint = AshTheme.colors.text2,
+                        onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }
+                    )
                 }
             )
         },
@@ -120,7 +129,8 @@ fun TasksScreen(
             )
         }
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+        Box(Modifier.fillMaxSize().padding(padding)) {
+        Column(Modifier.fillMaxSize()) {
             if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
@@ -161,7 +171,12 @@ fun TasksScreen(
                                     task = task,
                                     today = state.today,
                                     onComplete = { viewModel.complete(task) },
-                                    onPostpone = { viewModel.postponeToTomorrow(task) },
+                                    onPostpone = {
+                                        viewModel.postponeToTomorrow(task)
+                                        toast.show(postponedText, undoText) {
+                                            viewModel.undoPostpone(task.id)
+                                        }
+                                    },
                                     onClick = { onOpenTask(task.id) },
                                     expanded = task.id in state.expandedTaskIds,
                                     onExpandToggle = { viewModel.toggleExpanded(task.id) }
@@ -205,6 +220,8 @@ fun TasksScreen(
                 }
             }
         }
+            ToastHost(toast)
+        }
     }
 }
 
@@ -223,14 +240,14 @@ private fun EmptyState(onlyStale: Boolean) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            if (onlyStale) "Залежавшихся задач нет" else "Пусто",
-            style = MaterialTheme.typography.titleMedium
+            if (onlyStale) stringResource(R.string.tasks_zalezhavshihsya_zadach_net) else stringResource(R.string.tasks_pusto),
+            style = AshTheme.type.title3
         )
         Text(
-            if (onlyStale) "Сюда попадают задачи после трёх переносов"
-            else "Добавьте задачу строкой снизу — дата, время, приоритет и теги разберутся сами",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (onlyStale) stringResource(R.string.tasks_syuda_popadayut_zadachi_posle_treh_perenosov)
+            else stringResource(R.string.tasks_dobavte_zadachu_strokoy_snizu_data_vremya_pr),
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center
         )
     }

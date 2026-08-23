@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.LaunchedEffect
@@ -25,31 +26,34 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.sp
 import dev.ashwake.domain.model.character.EquipSlot
-import dev.ashwake.ui.theme.Ash1A
-import dev.ashwake.ui.theme.Ash3A
-import dev.ashwake.ui.theme.AshE8
+import dev.ashwake.ui.theme.AshTheme
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Слой персонажа: слот, цвет палитры и подпись для плейсхолдера. */
+/**
+ * Слой персонажа: что рисовать, каким цветом и в каком слоте.
+ *
+ * [spriteId] — базовый id предмета из каталога, без палитры: один силуэт
+ * куртки красится в двенадцать цветов, а не заводит двенадцать спрайтов.
+ */
 data class CharacterLayer(
     val slot: EquipSlot,
     val color: Color,
     val label: String,
+    val spriteId: String = "",
     val frames: Int = 1
 )
 
 /**
- * Плейсхолдерный рендер персонажа (п. 15.12).
+ * Рендер персонажа (п. 15.12).
  *
- * До появления арта каждый слот рисуется прямоугольником своего цвета
- * с подписью. Смысл в том, что вся система — каталог, характеристики,
- * магазин, сеты, перекрытия слоёв — собирается и проверяется
- * **без единого готового спрайта**.
+ * Рисуется спрайтами из [CharacterSprites]: тело первым слоем, поверх —
+ * надетое в порядке z-таблицы слотов. Предмет, которому спрайта ещё нет,
+ * остаётся подписанным прямоугольником — это лучше, чем не показать вещь,
+ * которую человек купил и надел.
  *
- * Правила из п. 15.1 соблюдаются уже сейчас, чтобы подмена плейсхолдеров
- * на спрайты не потребовала переписывать разметку:
+ * Правила из п. 15.1 соблюдаются:
  * - холст ровно [CANVAS] пикселей, предмет знает своё место сам;
  * - масштаб только целочисленный, `floor(доступная высота / 128)`, минимум 2;
  * - пол на строке 116, центр симметрии — колонка 64.
@@ -97,25 +101,59 @@ fun PixelCharacter(
 ) {
     var breathOffset by remember { mutableIntStateOf(0) }
     var glowPhase by remember { mutableFloatStateOf(0f) }
+    var cloakOffset by remember { mutableIntStateOf(0) }
+    var scene by remember { mutableStateOf(CharacterScene.NONE) }
     val measurer = rememberTextMeasurer()
 
+    // «Уменьшить движение» оставляет только дыхание (раздел 6 дизайн-системы),
+    // и это же экономит кадры: при выключенном движении цикл не запускается
+    // вовсе, а не крутится вхолостую, выставляя одни и те же нули
     LaunchedEffect(reduceMotion) {
+        if (reduceMotion) {
+            breathOffset = 0
+            glowPhase = 0f
+            cloakOffset = 0
+            scene = CharacterScene.NONE
+            return@LaunchedEffect
+        }
+
         var start = 0L
+        var nextSceneAt = SCENE_MIN_GAP_MS
         while (true) {
             withFrameNanos { nanos ->
                 if (start == 0L) start = nanos
                 val elapsedMs = (nanos - start) / 1_000_000
+
                 // Дыхание: 4 кадра, цикл 500 мс, смещение ровно на 1 пиксель холста
                 breathOffset = ((elapsedMs / (BREATH_CYCLE_MS / 4)) % 4).toInt().let {
                     if (it == 1 || it == 2) 1 else 0
                 }
-                glowPhase = if (reduceMotion) 0f
-                else sin(elapsedMs / 1000.0 * Math.PI).toFloat()
+                glowPhase = sin(elapsedMs / 1000.0 * Math.PI).toFloat()
+
+                // Плащ живёт своим циклом: если он качается в такт дыханию,
+                // персонаж выглядит одной деталью, а не тканью поверх тела
+                cloakOffset = ((elapsedMs / (CLOAK_CYCLE_MS / 4)) % 4).toInt().let {
+                    if (it == 1) 1 else if (it == 3) -1 else 0
+                }
+
+                // Случайная сценка раз в 12–20 секунд (п. 15.6)
+                if (elapsedMs >= nextSceneAt) {
+                    scene = CharacterScene.entries.random()
+                    nextSceneAt = elapsedMs + SCENE_DURATION_MS +
+                        SCENE_MIN_GAP_MS + (0..SCENE_GAP_JITTER_MS).random()
+                } else if (scene != CharacterScene.NONE &&
+                    elapsedMs > nextSceneAt - SCENE_MIN_GAP_MS - SCENE_GAP_JITTER_MS
+                ) {
+                    scene = CharacterScene.NONE
+                }
             }
         }
     }
 
     BoxWithConstraints(modifier = modifier, contentAlignment = Alignment.Center) {
+        // Тема читается здесь: внутри Canvas композиции уже нет
+        val outline = AshTheme.colors.surface1
+        val labelColor = AshTheme.colors.text
         val density = androidx.compose.ui.platform.LocalDensity.current
         val availablePx = with(density) { minOf(maxWidth, maxHeight).toPx() }
         // Дробный масштаб запрещён: пиксель-арт обязан ложиться на целые пиксели
@@ -128,19 +166,55 @@ fun PixelCharacter(
 
                 drawShadow(originX, originY, scale, breathOffset)
 
+                // Тело рисуется всегда и первым: персонаж без вещей — это
+                // человек без вещей, а не пустое место
+                drawSprite(
+                    sprite = CharacterSprites.body,
+                    tint = Color.White,
+                    alpha = 1f,
+                    originX = originX,
+                    originY = originY,
+                    scale = scale,
+                    yShift = if (reduceMotion) 0 else -breathOffset
+                )
+
                 layers.forEach { layer ->
-                    val rect = SLOT_RECTS[layer.slot] ?: return@forEach
                     // Корпус и голова дышат, ноги не двигаются вообще (п. 15.6)
                     val breathes = layer.slot.breathes
-                    val yShift = if (breathes && !reduceMotion) -breathOffset else 0
+                    val yShift = when {
+                        reduceMotion -> 0
+                        layer.slot.isCloak -> -cloakOffset
+                        scene == CharacterScene.HOP && layer.slot != EquipSlot.BACKGROUND_FX -> -2
+                        breathes -> -breathOffset
+                        else -> 0
+                    }
                     val alpha = when {
                         layer.slot == EquipSlot.FACE && dimFace -> FACE_DIM_ALPHA
+                        layer.slot == EquipSlot.FACE && scene == CharacterScene.BLINK -> 0.55f
                         else -> 1f
                     }
+                    val sprite = CharacterSprites.items[layer.spriteId]
+                    if (sprite != null) {
+                        drawSprite(
+                            sprite = sprite,
+                            tint = layer.color.desaturate(decay),
+                            alpha = alpha,
+                            originX = originX,
+                            originY = originY,
+                            scale = scale,
+                            yShift = yShift
+                        )
+                        return@forEach
+                    }
+                    // Спрайта нет — остаётся подписанный прямоугольник: лучше
+                    // видеть «сюда не нарисовано», чем не видеть предмет вообще
+                    val rect = SLOT_RECTS[layer.slot] ?: return@forEach
                     drawSlot(
                         rect = rect,
                         color = layer.color.desaturate(decay),
                         alpha = alpha,
+                        outline = outline,
+                        labelColor = labelColor,
                         originX = originX,
                         originY = originY,
                         scale = scale,
@@ -150,6 +224,47 @@ fun PixelCharacter(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Спрайт на холсте: пиксель куклы — квадрат [SpriteShading.STEP] на [scale].
+ *
+ * Рисуется прямоугольниками, а не через Bitmap: спрайтов немного, они
+ * мелкие, и любое масштабирование растра тут же размывает пиксель-арт.
+ */
+private fun DrawScope.drawSprite(
+    sprite: CharacterSprites.Sprite,
+    tint: Color,
+    alpha: Float,
+    originX: Float,
+    originY: Float,
+    scale: Int,
+    yShift: Int
+) {
+    sprite.rows.forEachIndexed { row, chars ->
+        val top = originY + (SpriteShading.canvasY(sprite.y + row) + yShift) * scale
+        val bottom = originY + (SpriteShading.canvasY(sprite.y + row + 1) + yShift) * scale
+        // Подряд идущие пиксели одного цвета рисуются одним прямоугольником:
+        // так между ними не остаётся щели от округления, и вызовов меньше
+        // в разы — спрайт из тысячи пикселей это тысяча drawRect на кадр
+        var start = 0
+        while (start < chars.length) {
+            val char = chars[start]
+            var end = start
+            while (end + 1 < chars.length && chars[end + 1] == char) end++
+            val color = SpriteShading.colorFor(char, tint)
+            if (color != null) {
+                val left = originX + SpriteShading.canvasX(sprite.x + start) * scale
+                val right = originX + SpriteShading.canvasX(sprite.x + end + 1) * scale
+                drawRect(
+                    color = color.copy(alpha = color.alpha * alpha),
+                    topLeft = Offset(left, top),
+                    size = Size(right - left, bottom - top)
+                )
+            }
+            start = end + 1
         }
     }
 }
@@ -172,6 +287,10 @@ private fun DrawScope.drawSlot(
     rect: FloatArray,
     color: Color,
     alpha: Float,
+    // Цвета контура и подписи приходят снаружи: рисование не композиция,
+    // и тему отсюда не прочитать
+    outline: Color,
+    labelColor: Color,
     originX: Float,
     originY: Float,
     scale: Int,
@@ -190,7 +309,7 @@ private fun DrawScope.drawSlot(
         size = Size(width, height)
     )
     drawRect(
-        color = Ash1A.copy(alpha = alpha),
+        color = outline.copy(alpha = alpha),
         topLeft = Offset(left, top),
         size = Size(width, height),
         style = Stroke(width = scale.toFloat())
@@ -200,7 +319,7 @@ private fun DrawScope.drawSlot(
     if (width > MIN_LABEL_WIDTH * scale) {
         val text = measurer.measure(
             label,
-            style = TextStyle(fontSize = (3.5f * scale).sp, color = AshE8.copy(alpha = alpha))
+            style = TextStyle(fontSize = (3.5f * scale).sp, color = labelColor.copy(alpha = alpha))
         )
         drawText(
             textLayoutResult = text,
@@ -225,6 +344,16 @@ private fun Color.desaturate(amount: Float): Color {
     )
 }
 
+/**
+ * Короткая сценка, которая оживляет простой. Появляется редко и длится
+ * недолго: постоянное движение на главном экране отвлекает от списка дел.
+ */
+enum class CharacterScene { NONE, BLINK, HOP, CLOAK_GUST }
+
+/** Слои плаща качаются отдельно от дыхания. */
+private val EquipSlot.isCloak: Boolean
+    get() = this == EquipSlot.CLOAK_FRONT || this == EquipSlot.CLOAK_BACK
+
 /** Слоты, которые участвуют в дыхании: ноги и обувь стоят на месте. */
 private val EquipSlot.breathes: Boolean
     get() = this !in setOf(EquipSlot.LEGS, EquipSlot.BOOTS, EquipSlot.BACKGROUND_FX)
@@ -234,9 +363,14 @@ fun rarityOutline(color: Color, phase: Float): Color =
     color.copy(alpha = 0.4f + 0.4f * ((phase + 1f) / 2f))
 
 private const val BREATH_CYCLE_MS = 500L
+private const val CLOAK_CYCLE_MS = 1_700L
+private const val SCENE_DURATION_MS = 700L
+private const val SCENE_MIN_GAP_MS = 12_000L
+private const val SCENE_GAP_JITTER_MS = 8_000
 private const val FACE_DIM_ALPHA = 0.4f
 private const val MAX_DECAY = 0.7f
 private const val MIN_LABEL_WIDTH = 14f
 
 /** Заглушка фона диорамы до появления арта. */
-val PlaceholderFloor: Color = Ash3A
+val PlaceholderFloor: Color
+    @Composable get() = AshTheme.colors.surface3

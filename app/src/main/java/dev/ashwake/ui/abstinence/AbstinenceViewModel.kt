@@ -57,6 +57,8 @@ class AbstinenceViewModel @Inject constructor(
      */
     fun create(
         name: String,
+        icon: String?,
+        iconPath: String?,
         mode: AbstinenceMode,
         startedAt: Instant,
         motivationText: String?,
@@ -68,6 +70,8 @@ class AbstinenceViewModel @Inject constructor(
             abstinences.create(
                 Abstinence(
                     name = name.trim(),
+                    icon = icon,
+                    iconPath = iconPath,
                     mode = mode,
                     motivationText = motivationText?.takeIf { it.isNotBlank() },
                     baseline = baseline,

@@ -25,11 +25,12 @@ import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.StatEventEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
+import dev.ashwake.data.db.mapper.abstinence.toDomain
 import dev.ashwake.domain.engine.achievement.AchievementSnapshot
 import dev.ashwake.domain.engine.abstinence.AbstinenceCalculator
+import dev.ashwake.domain.engine.character.ChestReward
 import dev.ashwake.domain.engine.character.EquipmentEngine
 import dev.ashwake.domain.engine.character.MaterialCost
-import dev.ashwake.domain.engine.character.ChestReward
 import dev.ashwake.domain.engine.character.StatProgressCalculator
 import dev.ashwake.domain.engine.character.StatSource
 import dev.ashwake.domain.engine.reward.RewardContext
@@ -47,10 +48,10 @@ import dev.ashwake.domain.model.character.Wallet
 import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.character.CharacterState
 import dev.ashwake.domain.repository.character.ChestState
-import dev.ashwake.domain.repository.character.PurchaseResult
-import dev.ashwake.domain.repository.character.UpgradeResult
 import dev.ashwake.domain.repository.character.MAX_UPGRADE_LEVEL
-import dev.ashwake.data.db.mapper.abstinence.toDomain
+import dev.ashwake.domain.repository.character.PurchaseResult
+import dev.ashwake.domain.repository.character.RewardScope
+import dev.ashwake.domain.repository.character.UpgradeResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -275,42 +276,116 @@ class CharacterRepositoryImpl @Inject constructor(
 
     override suspend fun grantStatPoints(source: StatSource, sphere: Sphere?, refId: String?) {
         db.withTransaction {
-            val now = clock.now().toEpochMilli()
             statCalculator.pointsFor(source, sphere).forEach { (stat, points) ->
-                val existing = dao.stat(stat.name)
-                val total = (existing?.points ?: 0L) + points
-                dao.upsertStat(
-                    CharacterStatEntity(
-                        stat = stat.name,
-                        points = total,
-                        value = statCalculator.valueOf(total)
-                    )
-                )
-                dao.insertStatEvent(
-                    StatEventEntity(
-                        at = now, stat = stat.name, points = points,
-                        source = source.name, refId = refId
-                    )
-                )
+                addStatPoints(stat, points, source.name, refId)
             }
         }
     }
 
+    /**
+     * Отмена начисления.
+     *
+     * Считается не «сколько полагалось», а сколько по этому событию сейчас
+     * реально висит в журнале: множители экипировки на момент начисления
+     * могли быть другими, а отменить надо ровно выданное. Сумма включает и
+     * прошлые отмены, поэтому второй вызов подряд снимает ноль и ничего
+     * не портит — а именно так и выглядит частое нажатие чекбокса.
+     */
+    override suspend fun revokeReward(scope: RewardScope, refId: String) {
+        db.withTransaction {
+            val ledgerSources = scope.ledgerSources()
+            val statSources = scope.statSources()
+
+            val coins = dao.netLedgerAmount(refId, CURRENCY_COIN, ledgerSources)
+            if (coins != 0L) applyCoins(-coins, scope.revokeSource(), refId, 1f)
+
+            val xp = dao.netLedgerAmount(refId, CURRENCY_XP, ledgerSources)
+            if (xp != 0L) applyXp(-xp, scope.revokeSource(), refId)
+
+            dao.netStatPoints(refId, statSources).forEach { row ->
+                if (row.points == 0) return@forEach
+                val stat = runCatching { Stat.valueOf(row.stat) }.getOrNull() ?: return@forEach
+                addStatPoints(stat, -row.points, scope.revokeSource(), refId)
+            }
+        }
+    }
+
+    /**
+     * Общий путь изменения характеристики: и начисление, и отмена.
+     *
+     * Итог не уходит ниже нуля — иначе отмена события, начисленного до
+     * восстановления из бэкапа, увела бы характеристику в минус, а
+     * `sqrt` от отрицательного не считается.
+     */
+    private suspend fun addStatPoints(stat: Stat, points: Int, source: String, refId: String?) {
+        val existing = dao.stat(stat.name)
+        val total = ((existing?.points ?: 0L) + points).coerceAtLeast(0L)
+        dao.upsertStat(
+            CharacterStatEntity(
+                stat = stat.name,
+                points = total,
+                value = statCalculator.valueOf(total)
+            )
+        )
+        dao.insertStatEvent(
+            StatEventEntity(
+                at = clock.now().toEpochMilli(),
+                stat = stat.name,
+                points = points,
+                source = source,
+                refId = refId
+            )
+        )
+    }
+
     override suspend fun ensureBuiltinData() {
         db.withTransaction {
-            if (dao.profile() == null) dao.upsertProfile(CharacterProfileEntity())
+            val firstRun = dao.profile() == null
+            if (firstRun) dao.upsertProfile(CharacterProfileEntity())
             walletOrCreate()
             Stat.entries.forEach { stat ->
                 if (dao.stat(stat.name) == null) {
                     dao.upsertStat(CharacterStatEntity(stat = stat.name))
                 }
             }
+            // Строка инвентаря на каждый материал: отсутствие строки и ноль —
+            // одно и то же, но запись упрощает чтение и отладку
             MaterialType.entries.forEach { type ->
                 if (dao.material(type.name) == null) {
                     dao.upsertMaterial(MaterialInventoryEntity(materialId = type.name))
                 }
             }
+            if (firstRun) grantStarterKit()
         }
+    }
+
+    /**
+     * Стартовый комплект.
+     *
+     * Голая фигура на главном экране — плохая первая встреча: непонятно, что
+     * это вообще персонаж и зачем он тут. Поэтому при первом запуске человек
+     * получает одетого героя и небольшой кошелёк — хватает на пару вещей из
+     * магазина, чтобы попробовать, как работает покупка, но не настолько,
+     * чтобы обесценить всё, что зарабатывается делами.
+     *
+     * Предметы кладутся во владение с источником `STARTER`: по нему видно,
+     * что они не куплены и не выданы за достижение.
+     */
+    private suspend fun grantStarterKit() {
+        val catalog = catalogLoader.load()
+        val now = clock.now().toEpochMilli()
+
+        STARTER_ITEMS.forEach { itemId ->
+            val item = catalog.item(itemId) ?: return@forEach
+            if (dao.owned(itemId) == null) {
+                dao.insertOwned(
+                    OwnedItemEntity(itemId = itemId, acquiredAt = now, source = "STARTER")
+                )
+            }
+            dao.equip(EquippedItemEntity(slot = item.slot.name, itemId = itemId))
+        }
+
+        applyCoins(STARTER_COINS, "STARTER", null, 1f)
     }
 
     // --- материалы ----------------------------------------------------------
@@ -355,12 +430,13 @@ class CharacterRepositoryImpl @Inject constructor(
 
     override fun observeAchievements(): Flow<List<AchievementState>> =
         dao.observeAchievements().map { rows ->
-            rows.map { AchievementState(id = it.id, unlockedAt = it.unlockedAt, progress = it.progress) }
+            rows.map {
+                AchievementState(id = it.id, unlockedAt = it.unlockedAt, progress = it.progress)
+            }
         }
 
     override suspend fun achievementSnapshot(): AchievementSnapshot {
         val dayStart = clock.today().toEpochDay().toLong()
-        val nowMillis = clock.now().toEpochMilli()
 
         // Чистые дни отказа: сумма по всем отказам, как считает движок отказов
         val abstinences = abstinenceDao.allAbstinences()
@@ -455,10 +531,14 @@ class CharacterRepositoryImpl @Inject constructor(
         val json = org.json.JSONObject().apply {
             put("coins", reward.coins)
             put("materials", org.json.JSONArray().apply {
-                reward.materials.forEach { put(org.json.JSONObject().apply {
-                    put("id", it.type.name)
-                    put("amount", it.amount)
-                }) }
+                reward.materials.forEach {
+                    put(
+                        org.json.JSONObject().apply {
+                            put("id", it.type.name)
+                            put("amount", it.amount)
+                        }
+                    )
+                }
             })
             reward.itemId?.let { put("itemId", it) }
         }
@@ -470,22 +550,27 @@ class CharacterRepositoryImpl @Inject constructor(
         return runCatching {
             val root = org.json.JSONObject(json)
             val materials = root.optJSONArray("materials")?.let { array ->
-                (0 until array.length()).mapNotNull { index ->
-                    val item = array.getJSONObject(index)
-                    MaterialType.entries.firstOrNull { it.name == item.getString("id") }
-                        ?.let { MaterialCount(it, item.getInt("amount")) }
+                buildList {
+                    for (i in 0 until array.length()) {
+                        val row = array.getJSONObject(i)
+                        MaterialType.entries.firstOrNull { it.name == row.getString("id") }
+                            ?.let { add(MaterialCount(it, row.getInt("amount"))) }
+                    }
                 }
-            }.orEmpty()
+            } ?: emptyList()
             ChestReward(
                 coins = root.optInt("coins", 0),
                 materials = materials,
-                itemId = root.optString("itemId").takeIf { it.isNotBlank() }
+                itemId = root.optString("itemId").takeIf { it.isNotEmpty() }
             )
         }.getOrNull()
     }
 
     private fun dayStartMillis(epochDay: Long): Long =
-        java.time.LocalDate.ofEpochDay(epochDay).atStartOfDay(clock.zone()).toInstant().toEpochMilli()
+        java.time.LocalDate.ofEpochDay(epochDay)
+            .atStartOfDay(clock.zone())
+            .toInstant()
+            .toEpochMilli()
 
     // --- вспомогательное ----------------------------------------------------
 
@@ -495,6 +580,15 @@ class CharacterRepositoryImpl @Inject constructor(
     private suspend fun walletOrCreate(): WalletEntity =
         dao.wallet() ?: WalletEntity().also { dao.upsertWallet(it) }
 
+    /**
+     * Движение монет.
+     *
+     * Баланс не уходит в минус, и в журнал пишется **фактически применённое**,
+     * а не запрошенное. Иначе списание с нулевого счёта записывало бы сумму,
+     * которой не было: сложение всех строк журнала перестало бы сходиться
+     * с балансом, а именно этой суммой считается, сколько по событию сейчас
+     * начислено — то есть отмена награды начала бы отменять чужое.
+     */
     private suspend fun applyCoins(
         amount: Long,
         source: String,
@@ -503,12 +597,15 @@ class CharacterRepositoryImpl @Inject constructor(
     ) {
         val wallet = walletOrCreate()
         val balance = (wallet.coins + amount).coerceAtLeast(0L)
+        val applied = balance - wallet.coins
+        if (applied == 0L) return
+
         dao.upsertWallet(wallet.copy(coins = balance))
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
-                currency = "COIN",
-                amount = amount,
+                currency = CURRENCY_COIN,
+                amount = applied,
                 source = source,
                 refId = refId,
                 multiplierApplied = multiplier,
@@ -517,15 +614,19 @@ class CharacterRepositoryImpl @Inject constructor(
         )
     }
 
+    /** То же правило, что и у монет: в журнал идёт применённое. */
     private suspend fun applyXp(amount: Long, source: String, refId: String?) {
         val wallet = walletOrCreate()
         val xp = (wallet.xp + amount).coerceAtLeast(0L)
+        val applied = xp - wallet.xp
+        if (applied == 0L) return
+
         dao.upsertWallet(wallet.copy(xp = xp, level = rewardEngine.levelForXp(xp)))
         dao.insertTransaction(
             LedgerTransactionEntity(
                 at = clock.now().toEpochMilli(),
-                currency = "XP",
-                amount = amount,
+                currency = CURRENCY_XP,
+                amount = applied,
                 source = source,
                 refId = refId,
                 balanceAfter = xp
@@ -556,4 +657,65 @@ class CharacterRepositoryImpl @Inject constructor(
         decayEnabled = decayEnabled,
         parallaxEnabled = parallaxEnabled
     )
+
+    /**
+     * Источники, которыми начисляет событие. Знание о том, что закрытие
+     * задачи трогает три источника очков, живёт здесь и только здесь.
+     */
+    private fun RewardScope.ledgerSources(): List<String> = when (this) {
+        RewardScope.TASK -> listOf(RewardSource.TASK_DONE.name, revokeSource())
+        RewardScope.HABIT -> listOf(
+            RewardSource.HABIT_DONE.name,
+            RewardSource.HABIT_MINIMUM.name,
+            revokeSource()
+        )
+    }
+
+    private fun RewardScope.statSources(): List<String> = when (this) {
+        RewardScope.TASK -> listOf(
+            StatSource.TASK_DONE.name,
+            StatSource.TASK_ON_TIME.name,
+            StatSource.STALE_TASK_CLOSED.name,
+            revokeSource()
+        )
+
+        RewardScope.HABIT -> listOf(
+            StatSource.HABIT_DONE.name,
+            StatSource.HABIT_MINIMUM.name,
+            StatSource.STREAK_DAY.name,
+            revokeSource()
+        )
+    }
+
+    /**
+     * Источник встречной записи. У каждого вида события свой, чтобы отмена
+     * задачи не попала в сумму по привычке с тем же номером.
+     */
+    private fun RewardScope.revokeSource(): String = when (this) {
+        RewardScope.TASK -> "TASK_REWARD_REVOKED"
+        RewardScope.HABIT -> "HABIT_REWARD_REVOKED"
+    }
+
+    private companion object {
+        const val CURRENCY_COIN = "COIN"
+        const val CURRENCY_XP = "XP"
+
+        /**
+         * Комплект первого запуска: волосы, лицо и повседневная одежда.
+         * Ни доспехов, ни оружия — их человек должен захотеть сам, иначе
+         * магазину нечего предложить.
+         */
+        val STARTER_ITEMS = listOf(
+            "hair_short",
+            "face_clean",
+            "under_shirt",
+            "chest_hoodie",
+            "legs_jeans",
+            "boots_sneakers",
+            "main_mug"
+        )
+
+        /** Стартовый кошелёк: примерно две недорогие вещи. */
+        const val STARTER_COINS = 400L
+    }
 }

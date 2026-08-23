@@ -60,6 +60,10 @@ class TaskRepositoryImpl @Inject constructor(
             includeDone = if (includeDone) 1 else 0
         ).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeTasksForDay(today: LocalDate): Flow<List<Task>> =
+        dao.observeTasksForDay(today.toEpochDayInt())
+            .map { rows -> rows.map { it.toDomain() } }
+
     override suspend fun tasksWithReminders(): List<Task> =
         dao.tasksWithReminders().map { it.toDomain() }
 
@@ -125,9 +129,13 @@ class TaskRepositoryImpl @Inject constructor(
         )
         val newId = dao.insert(nextEntity)
 
-        // Серию задним числом проставляем и закрытому экземпляру, чтобы история склеивалась.
+        // Серию задним числом проставляем и закрытому экземпляру, чтобы история
+        // склеивалась. Точечным запросом, а не записью строки целиком: `row`
+        // снят до смены статуса, и запись его вернула бы задачу в работу —
+        // повторяющаяся задача из-за этого не закрывалась вовсе, а только
+        // плодила копии.
         if (row.task.seriesId == null) {
-            dao.update(row.task.copy(seriesId = series))
+            dao.setSeriesId(id, series)
         }
         // Теги переносим на следующий экземпляр.
         val tagIds = row.tags.map { it.id }
@@ -140,6 +148,31 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun reopen(id: Long) {
         val now = clock.now().toEpochMilli()
         dao.setStatus(id, TaskStatus.ACTIVE.name, null, now)
+    }
+
+    override suspend fun discardSpawnedRecurrence(taskId: Long): Long? = db.withTransaction {
+        val row = dao.getTask(taskId) ?: return@withTransaction null
+        val series = row.task.seriesId ?: return@withTransaction null
+        // Порождённый экземпляр создан в тот же момент, что закрыта задача.
+        // Секунда запаса — на случай, если вставка и запись completedAt
+        // разошлись по времени внутри транзакции
+        val completedAt = row.task.completedAt ?: return@withTransaction null
+
+        val spawned = dao.untouchedSeriesInstance(
+            seriesId = series,
+            excludeId = taskId,
+            createdAtLeast = completedAt - SPAWN_WINDOW_MILLIS
+        ) ?: return@withTransaction null
+
+        dao.deleteById(spawned.id)
+        spawned.id
+    }
+
+    override suspend fun undoLastPostpone(taskId: Long): Boolean = db.withTransaction {
+        val last = dao.lastPostponement(taskId) ?: return@withTransaction false
+        dao.revertPostpone(taskId, last.fromDate, clock.now().toEpochMilli())
+        dao.deletePostponement(last.id)
+        true
     }
 
     override suspend fun postpone(id: Long, toDate: LocalDate?, source: PostponeSource) {
@@ -167,7 +200,25 @@ class TaskRepositoryImpl @Inject constructor(
         dao.setQuadrant(id, quadrant.name, priority?.name, clock.now().toEpochMilli())
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    override suspend fun delete(id: Long) {
+        dao.moveToTrash(id, clock.now().toEpochMilli())
+    }
+
+    override fun observeTrash(): Flow<List<Task>> =
+        dao.observeTrash().map { list -> list.map { it.toDomain() } }
+
+    override suspend fun restoreFromTrash(id: Long) {
+        dao.restoreFromTrash(id, clock.now().toEpochMilli())
+    }
+
+    override suspend fun purge(id: Long) = dao.deleteById(id)
+
+    override suspend fun emptyTrash() = dao.emptyTrash()
+
+    override suspend fun purgeTrashOlderThan(days: Long): Int {
+        val before = clock.now().minus(java.time.Duration.ofDays(days)).toEpochMilli()
+        return dao.purgeTrashOlderThan(before)
+    }
 
     override suspend fun setDelegate(id: Long, delegateTo: String?) {
         dao.setDelegate(id, delegateTo, clock.now().toEpochMilli())
@@ -200,5 +251,14 @@ class TaskRepositoryImpl @Inject constructor(
                 )
             }
         }
+    }
+
+    private companion object {
+        /**
+         * Насколько раньше закрытия мог быть создан порождённый экземпляр.
+         * Вставка и запись completedAt идут в одной транзакции, но берут
+         * «сейчас» по отдельности, поэтому запас нужен.
+         */
+        const val SPAWN_WINDOW_MILLIS = 1_000L
     }
 }

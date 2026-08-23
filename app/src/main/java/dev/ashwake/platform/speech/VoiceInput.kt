@@ -1,5 +1,6 @@
 package dev.ashwake.platform.speech
 
+import dev.ashwake.R
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -41,7 +42,7 @@ class VoiceInput @Inject constructor(
 
     fun listen(): Flow<VoiceResult> = callbackFlow {
         if (!SpeechRecognizer.isRecognitionAvailable(context)) {
-            trySend(VoiceResult.Failed("Распознавание речи недоступно"))
+            trySend(VoiceResult.Failed(context.getString(R.string.voiceinput_raspoznavanie_rechi_nedostupno)))
             close()
             return@callbackFlow
         }
@@ -69,7 +70,7 @@ class VoiceInput @Inject constructor(
             override fun onResults(results: Bundle?) {
                 val text = firstResult(results)
                 if (text.isNullOrBlank()) {
-                    trySend(VoiceResult.Failed("Ничего не распознано"))
+                    trySend(VoiceResult.Failed(context.getString(R.string.voiceinput_nichego_ne_raspoznano)))
                 } else {
                     trySend(VoiceResult.Final(text))
                 }
@@ -102,14 +103,14 @@ class VoiceInput @Inject constructor(
         bundle?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()
 
     private fun describeError(code: Int): String = when (code) {
-        SpeechRecognizer.ERROR_AUDIO -> "Ошибка записи звука"
-        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Нет доступа к микрофону"
+        SpeechRecognizer.ERROR_AUDIO -> context.getString(R.string.voiceinput_oshibka_zapisi_zvuka)
+        SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> context.getString(R.string.voiceinput_net_dostupa_k_mikrofonu)
         SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_NETWORK_TIMEOUT ->
             // Офлайн-распознавание есть не на всех устройствах — говорим прямо
-            "Распознавание требует языкового пакета на устройстве"
-        SpeechRecognizer.ERROR_NO_MATCH -> "Ничего не распознано"
-        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> "Не расслышал"
-        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> "Распознавание уже идёт"
-        else -> "Не получилось распознать"
+            context.getString(R.string.voiceinput_raspoznavanie_trebuet_yazykovogo_paketa_na_u)
+        SpeechRecognizer.ERROR_NO_MATCH -> context.getString(R.string.voiceinput_nichego_ne_raspoznano)
+        SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> context.getString(R.string.voiceinput_ne_rasslyshal)
+        SpeechRecognizer.ERROR_RECOGNIZER_BUSY -> context.getString(R.string.voiceinput_raspoznavanie_uzhe_idet)
+        else -> context.getString(R.string.voiceinput_ne_poluchilos_raspoznat)
     }
 }

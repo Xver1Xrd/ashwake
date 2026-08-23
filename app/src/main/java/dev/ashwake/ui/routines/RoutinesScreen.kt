@@ -22,11 +22,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,7 +38,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.platform.service.formatTime
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,10 +60,10 @@ fun RoutinesScreen(
     LaunchedEffect(run.active) { if (run.active) onRun() }
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Рутины") }) },
+        containerColor = AshTheme.colors.background,
         floatingActionButton = {
             FloatingActionButton(onClick = { showPresets = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Добавить рутину")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.routines_dobavit_rutinu))
             }
         }
     ) { padding ->
@@ -71,12 +73,11 @@ fun RoutinesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Рутин пока нет", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.routines_rutin_poka_net), style = AshTheme.type.title3)
                 Text(
-                    "Рутина — это список шагов с таймером: запустил и не думаешь, " +
-                        "что дальше",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.routines_rutina_eto_spisok_shagov_s_taymerom_zapustil),
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2,
                     textAlign = TextAlign.Center
                 )
             }
@@ -91,25 +92,25 @@ fun RoutinesScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(AshTheme.colors.surface1)
                             .clickable { viewModel.start(routine) }
                             .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text(routine.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(routine.name, style = AshTheme.type.body)
                             Text(
-                                "${routine.steps.size} шагов · ${formatTime(routine.plannedSeconds)}" +
-                                    (routine.startTime?.let { " · в $it" } ?: ""),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                stringResource(R.string.routines_1_s_shagov_2_s, routine.steps.size, formatTime(routine.plannedSeconds)) +
+                                    (routine.startTime?.let { stringResource(R.string.routines_v_1_s, it) } ?: ""),
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                         }
                         IconButton(onClick = { onEdit(routine.id) }) {
                             Icon(Icons.Filled.Edit, contentDescription = "Изменить")
                         }
                         IconButton(onClick = { viewModel.start(routine) }) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Запустить")
+                            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.routines_zapustit))
                         }
                     }
                 }
@@ -119,7 +120,7 @@ fun RoutinesScreen(
         if (showPresets) {
             AlertDialog(
                 onDismissRequest = { showPresets = false },
-                title = { Text("Шаблоны рутин") },
+                title = { Text(stringResource(R.string.routines_shablony_rutin)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(
@@ -141,18 +142,21 @@ fun RoutinesScreen(
                                     }
                                     .padding(vertical = 8.dp)
                             ) {
-                                Text(preset.name, style = MaterialTheme.typography.bodyMedium)
+                                Text(preset.name, style = AshTheme.type.callout)
                                 Text(
-                                    "${preset.steps.size} шагов · ${formatTime(preset.totalSeconds)}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    stringResource(R.string.routines_1_s_shagov_2_s, preset.steps.size, formatTime(preset.totalSeconds)),
+                                    style = AshTheme.type.footnote,
+                                    color = AshTheme.colors.text2
                                 )
                             }
                         }
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showPresets = false }) { Text("Закрыть") }
+                    TextAction(
+                        text = stringResource(R.string.components_zakryt),
+                        onClick = { showPresets = false }
+                    )
                 }
             )
         }
@@ -163,6 +167,6 @@ fun RoutinesScreen(
 @Composable
 internal fun RoutinePlaceholder(text: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text, color = AshTheme.colors.text2)
     }
 }

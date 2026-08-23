@@ -20,20 +20,15 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,20 +42,29 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.character.EffectKeys
 import dev.ashwake.domain.model.character.EquipItem
 import dev.ashwake.domain.model.character.EquipSlot
 import dev.ashwake.domain.model.character.Rarity
 import dev.ashwake.ui.character.render.CharacterLayer
+import dev.ashwake.ui.character.render.buildCharacterLayers
 import dev.ashwake.ui.character.render.PixelCharacter
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CharacterScreen(
+    onBack: () -> Unit = {},
     onOpenSettings: () -> Unit = {},
     viewModel: CharacterViewModel = hiltViewModel()
 ) {
@@ -88,20 +92,22 @@ fun CharacterScreen(
     }
 
     val layers = remember(displayed, catalog) {
-        buildLayers(displayed.values.toList(), catalog.paletteTints)
+        buildCharacterLayers(displayed.values.toList(), catalog.paletteTints)
     }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text(state.profile.name) },
+            AshNavBar(
+                title = state.profile.name,
+                onBack = onBack,
                 actions = {
                     IconButton(onClick = onOpenSettings) {
-                        Icon(Icons.Filled.Settings, contentDescription = "Настройки")
+                        Icon(Icons.Filled.Settings, contentDescription = stringResource(R.string.character_nastroyki))
                     }
                     Text(
                         "${state.wallet.coins} ◈",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = AshTheme.type.title3,
                         color = Gold,
                         modifier = Modifier.padding(end = 16.dp)
                     )
@@ -121,7 +127,7 @@ fun CharacterScreen(
                         .fillMaxWidth()
                         .height(280.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(AshTheme.colors.surface1)
                 ) {
                     PixelCharacter(
                         layers = layers,
@@ -130,9 +136,9 @@ fun CharacterScreen(
                     )
                     if (layers.isEmpty()) {
                         Text(
-                            "Наденьте что-нибудь из магазина ниже",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            stringResource(R.string.character_nadente_chto_nibud_iz_magazina_nizhe),
+                            style = AshTheme.type.callout,
+                            color = AshTheme.colors.text2,
                             modifier = Modifier.align(Alignment.Center)
                         )
                     }
@@ -165,14 +171,20 @@ fun CharacterScreen(
 
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick = viewModel::savePortrait) { Text("Сохранить портрет") }
-                    TextButton(onClick = viewModel::sharePortrait) { Text("Поделиться") }
+                    TextAction(
+                        text = stringResource(R.string.character_sohranit_portret),
+                        onClick = viewModel::savePortrait
+                    )
+                    TextAction(
+                        text = stringResource(R.string.character_podelitsya),
+                        onClick = viewModel::sharePortrait
+                    )
                 }
             }
 
             item {
                 HorizontalDivider()
-                Text("Магазин", style = MaterialTheme.typography.titleMedium)
+                Text(stringResource(R.string.character_magazin), style = AshTheme.type.title3)
                 ShopFilters(viewModel, filter)
             }
 
@@ -180,9 +192,9 @@ fun CharacterScreen(
             if (visibleItems.isEmpty()) {
                 item {
                     Text(
-                        "По этим фильтрам ничего нет",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        stringResource(R.string.character_po_etim_filtram_nichego_net),
+                        style = AshTheme.type.callout,
+                        color = AshTheme.colors.text2
                     )
                 }
             }
@@ -212,11 +224,11 @@ private fun LevelBlock(level: Int, progress: Float, xp: Long) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("Уровень $level", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.character_uroven_1_s, level), style = AshTheme.type.headline)
             Text(
                 "$xp XP",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         LinearProgressIndicator(
@@ -232,8 +244,8 @@ private fun ChestBlock(chest: dev.ashwake.domain.repository.character.ChestState
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))
+            .clip(AshTheme.shapes.card)
+            .background(AshTheme.colors.surface2)
             .padding(12.dp)
     ) {
         Row(
@@ -242,22 +254,25 @@ private fun ChestBlock(chest: dev.ashwake.domain.repository.character.ChestState
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Ежедневный сундук", style = MaterialTheme.typography.titleSmall)
+                Text("Ежедневный сундук", style = AshTheme.type.headline)
                 Text(
-                    if (chest.opened) "Уже открыт — заходите завтра" else "Одна раздача в день: монеты, материалы, иногда предмет",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    if (chest.opened) "Уже открыт — заходите завтра"
+                    else "Одна раздача в день: монеты, материалы, иногда предмет",
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
-            Button(
-                onClick = onOpen,
-                enabled = !chest.opened
-            ) {
-                Text(if (chest.opened) "Открыт" else "Открыть")
-            }
+            PrimaryButton(
+                text = if (chest.opened) "Открыт" else "Открыть",
+                enabled = !chest.opened,
+                onClick = onOpen
+            )
         }
         chest.reward?.let { reward ->
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = AshTheme.colors.separator
+            )
             val parts = buildList {
                 add("+${reward.coins} монет")
                 reward.materials.forEach { add("${it.type.title} ×${it.amount}") }
@@ -265,7 +280,7 @@ private fun ChestBlock(chest: dev.ashwake.domain.repository.character.ChestState
             }
             Text(
                 parts.joinToString(" · "),
-                style = MaterialTheme.typography.bodySmall,
+                style = AshTheme.type.footnote,
                 color = Gold
             )
         }
@@ -281,7 +296,7 @@ private fun MaterialsBlock(
 ) {
     if (materials.isEmpty()) return
     Column(Modifier.fillMaxWidth()) {
-        Text("Материалы", style = MaterialTheme.typography.titleSmall)
+        Text("Материалы", style = AshTheme.type.headline)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -289,9 +304,14 @@ private fun MaterialsBlock(
             dev.ashwake.domain.model.character.MaterialType.entries.forEach { type ->
                 val amount = materialMap[type] ?: 0
                 if (amount > 0) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("${type.title}: $amount") }
+                    Text(
+                        "${type.title}: $amount",
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2,
+                        modifier = Modifier
+                            .clip(AshTheme.shapes.pill)
+                            .background(AshTheme.colors.surface2)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -309,7 +329,7 @@ private fun AchievementsBlock(
     if (definitions.isEmpty()) return
     val unlockedAt = unlocked.associateBy { it.id }
     Column(Modifier.fillMaxWidth()) {
-        Text("Достижения", style = MaterialTheme.typography.titleSmall)
+        Text("Достижения", style = AshTheme.type.headline)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -317,23 +337,19 @@ private fun AchievementsBlock(
             definitions.forEach { def ->
                 val state = unlockedAt[def.id]
                 val isUnlocked = state?.unlockedAt != null
-                AssistChip(
-                    onClick = {},
-                    label = {
-                        Text(
-                            if (isUnlocked) "★ ${def.title}" else def.title,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                Text(
+                    if (isUnlocked) "★ ${def.title}" else def.title,
+                    style = AshTheme.type.footnote,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isUnlocked) Gold else AshTheme.colors.text2,
+                    modifier = Modifier
+                        .clip(AshTheme.shapes.pill)
+                        .background(
+                            if (isUnlocked) Gold.copy(alpha = 0.15f)
+                            else AshTheme.colors.surface2
                         )
-                    },
-                    colors = if (isUnlocked) {
-                        AssistChipDefaults.assistChipColors(
-                            containerColor = Gold.copy(alpha = 0.15f),
-                            labelColor = Gold
-                        )
-                    } else {
-                        AssistChipDefaults.assistChipColors()
-                    }
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
         }
@@ -344,11 +360,11 @@ private fun AchievementsBlock(
 @Composable
 private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterState) {
     Column(Modifier.fillMaxWidth()) {
-        Text("Характеристики", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_harakteristiki), style = AshTheme.type.headline)
         Text(
-            "Растут от поведения, а не за монеты",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            stringResource(R.string.character_rastut_ot_povedeniya_a_ne_za_monety),
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
         FlowRow(
             modifier = Modifier.padding(top = 6.dp),
@@ -360,7 +376,7 @@ private fun StatsBlock(state: dev.ashwake.domain.repository.character.CharacterS
                     onClick = {},
                     label = {
                         Text(
-                            statTitle(stat.stat) + " " + (stat.value + bonus) +
+                            stringResource(stat.stat.titleRes) + " " + (stat.value + bonus) +
                                 if (bonus > 0) " (+$bonus)" else ""
                         )
                     }
@@ -376,29 +392,28 @@ private fun ActiveEffectsBlock(state: dev.ashwake.domain.repository.character.Ch
     if (equipment.effects.isEmpty() && equipment.activeSets.isEmpty()) return
 
     Column(Modifier.fillMaxWidth()) {
-        Text("Активные бонусы", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.character_aktivnye_bonusy), style = AshTheme.type.headline)
         equipment.activeSets.forEach { active ->
             Text(
-                "Сет «${active.set.title}» — ${active.pieces} " +
-                    "част${if (active.pieces == 1) "ь" else "и"}: " +
+                "Сет «${active.set.title}» — ${active.pieces} част${if (active.pieces == 1) "ь" else "и"}: " +
                     active.tiers.joinToString("/") { "$it" },
-                style = MaterialTheme.typography.labelMedium,
+                style = AshTheme.type.footnote,
                 color = Moss
             )
         }
         equipment.effects.entries.sortedBy { it.key }.forEach { (key, value) ->
             Text(
                 "${effectTitle(key)}: ${formatEffect(key, value)}",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (value < 0) Ember else MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = if (value < 0) Ember else AshTheme.colors.text2
             )
         }
         if (equipment.blockedItems.isNotEmpty()) {
             Text(
-                "Не работают из-за требований: " +
+                stringResource(R.string.character_ne_rabotayut_iz_za_trebovaniy) +
                     equipment.blockedItems.joinToString { it.name },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.danger
             )
         }
     }
@@ -411,15 +426,21 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("Образы", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.character_obrazy), style = AshTheme.type.subhead)
         (0..2).forEach { index ->
             AssistChip(
                 onClick = { viewModel.applyPreset(index) },
                 label = { Text("${index + 1}") }
             )
-            TextButton(onClick = { viewModel.savePreset(index) }) { Text("сохр") }
+            TextAction(
+                text = stringResource(R.string.character_sohr),
+                onClick = { viewModel.savePreset(index) }
+            )
         }
-        TextButton(onClick = viewModel::unequipAll) { Text("Снять всё") }
+        TextAction(
+            text = stringResource(R.string.character_snyat_vse),
+            onClick = viewModel::unequipAll
+        )
     }
 }
 
@@ -427,39 +448,39 @@ private fun PresetsRow(viewModel: CharacterViewModel) {
 @Composable
 private fun ShopFilters(viewModel: CharacterViewModel, filter: ShopFilter) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        FilterChip(
-            selected = filter.slot == null,
-            onClick = { viewModel.setSlotFilter(null) },
-            label = { Text("все слоты") }
-        )
+        ChipButton(
+                        text = stringResource(R.string.character_vse_sloty),
+                        selected = filter.slot == null,
+                        onClick = { viewModel.setSlotFilter(null) }
+                    )
         EquipSlot.entries.filter { it.isUserFacing }.forEach { slot ->
-            FilterChip(
-                selected = filter.slot == slot,
-                onClick = { viewModel.setSlotFilter(if (filter.slot == slot) null else slot) },
-                label = { Text(slot.title) }
-            )
+            ChipButton(
+                        text = slot.title,
+                        selected = filter.slot == slot,
+                        onClick = { viewModel.setSlotFilter(if (filter.slot == slot) null else slot) }
+                    )
         }
     }
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Rarity.entries.forEach { rarity ->
-            FilterChip(
-                selected = filter.rarity == rarity,
-                onClick = {
+            ChipButton(
+                        text = rarity.title,
+                        selected = filter.rarity == rarity,
+                        onClick = {
                     viewModel.setRarityFilter(if (filter.rarity == rarity) null else rarity)
-                },
-                label = { Text(rarity.title) }
-            )
+                }
+                    )
         }
-        FilterChip(
-            selected = filter.onlyOwned,
-            onClick = viewModel::toggleOwnedOnly,
-            label = { Text("только мои") }
-        )
-        FilterChip(
-            selected = filter.onlyAffordable,
-            onClick = viewModel::toggleAffordable,
-            label = { Text("по карману") }
-        )
+        ChipButton(
+                        text = stringResource(R.string.character_tolko_moi),
+                        selected = filter.onlyOwned,
+                        onClick = viewModel::toggleOwnedOnly
+                    )
+        ChipButton(
+                        text = stringResource(R.string.character_po_karmanu),
+                        selected = filter.onlyAffordable,
+                        onClick = viewModel::toggleAffordable
+                    )
     }
 }
 
@@ -480,7 +501,7 @@ private fun ShopRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .background(AshTheme.colors.surface1)
             .clickable(onClick = onPreview)
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -495,78 +516,69 @@ private fun ShopRow(
             Column(Modifier.weight(1f).padding(start = 8.dp)) {
                 Text(
                     item.name,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = AshTheme.type.callout,
                     fontWeight = if (equipped) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     "${item.slot.title} · ${item.rarity.title} · ${item.style.title}",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AshTheme.type.footnote,
                     color = rarityColor(item.rarity)
                 )
             }
             when {
                 equipped -> Text(
-                    "надето",
-                    style = MaterialTheme.typography.labelMedium,
+                    stringResource(R.string.character_nadeto),
+                    style = AshTheme.type.footnote,
                     color = Moss
                 )
-                owned -> TextButton(onClick = onEquip) { Text("Надеть") }
+                owned -> TextAction(text = stringResource(R.string.character_nadet), onClick = onEquip)
                 item.price == null -> Text(
-                    "за достижение",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.character_za_dostizhenie),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
-                else -> Button(onClick = onBuy) { Text("${item.price} ◈") }
+                else -> PrimaryButton(text = "${item.price} ◈", onClick = onBuy)
             }
         }
 
         if (item.effects.isNotEmpty()) {
+            // Названия эффектов собираются через map, а не внутри joinToString:
+            // joinToString не inline, и composable-вызов из его лямбды не сделать
+            val effects = item.effects.map { "${effectTitle(it.key)} ${formatEffect(it.key, it.value)}" }
             Text(
-                item.effects.joinToString(" · ") {
-                    "${effectTitle(it.key)} ${formatEffect(it.key, it.value)}"
-                },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                effects.joinToString(" · "),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         if (missing.isNotEmpty()) {
             // Предмет виден в магазине, но не надевается — с подписью, чего не хватает
+            // Названия собираются через map: joinToString не inline, и
+            // composable-вызов из его лямбды не сделать
+            val lack = missing.entries.map { "${stringResource(it.key.titleRes)} +${it.value}" }
             Text(
-                "нужно: " + missing.entries.joinToString { "${statTitle(it.key)} +${it.value}" },
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error
+                stringResource(R.string.character_nuzhno) + lack.joinToString(),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.danger
             )
         }
         if (item.lore.isNotBlank()) {
             Text(
                 item.lore,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
         }
         if (owned && item.price != 0) {
-            TextButton(onClick = onUpgrade) { Text("Улучшить · $upgradeCost ◈") }
+            TextAction(text = stringResource(R.string.character_uluchshit_1_s, upgradeCost), onClick = onUpgrade)
         }
     }
 }
 
-private fun buildLayers(items: List<EquipItem>, tints: Map<String, Int>): List<CharacterLayer> {
-    val hidden = items.flatMap { it.hides }.toSet()
-    return items
-        .filterNot { it.slot in hidden }
-        .sortedBy { it.layer }
-        .map { item ->
-            CharacterLayer(
-                slot = item.slot,
-                color = Color(tints[item.paletteId] ?: 0xFF6E7BA6.toInt()),
-                label = item.slot.title,
-                frames = item.frames
-            )
-        }
-}
 
+@Composable
 private fun rarityColor(rarity: Rarity): Color = when (rarity) {
     Rarity.COMMON -> Steel
     Rarity.UNCOMMON -> Moss
@@ -576,26 +588,27 @@ private fun rarityColor(rarity: Rarity): Color = when (rarity) {
     Rarity.RELIC -> Ember
 }
 
+@Composable
 private fun effectTitle(key: String): String = when (EffectKeys.baseKey(key)) {
-    EffectKeys.COIN_MULT -> "монеты"
-    EffectKeys.COIN_MULT_SPHERE -> "монеты за ${EffectKeys.parameter(key)?.lowercase()}"
-    EffectKeys.COIN_MULT_MORNING -> "монеты утром"
-    EffectKeys.COIN_MULT_NIGHT -> "монеты ночью"
-    EffectKeys.XP_MULT -> "опыт"
-    EffectKeys.SCORE_DECAY_SLOW -> "стойкость score"
-    EffectKeys.FREEZE_CAP -> "заморозки"
-    EffectKeys.STREAK_SHIELD -> "щит серии"
-    EffectKeys.PUNCTUAL_BONUS -> "за пунктуальность"
-    EffectKeys.EARLY_BONUS -> "за раннее выполнение"
-    EffectKeys.COMBO_BONUS -> "за комбо"
-    EffectKeys.ABSTINENCE_COIN -> "за день отказа"
-    EffectKeys.CRAVING_WARD -> "за переждённую тягу"
-    EffectKeys.FOCUS_COIN -> "за помодоро"
-    EffectKeys.ROUTINE_BONUS -> "за рутину"
-    EffectKeys.TASK_PRIORITY_BONUS -> "за P1-задачи"
-    EffectKeys.LOOT_LUCK -> "удача в наградах"
-    EffectKeys.REROLL_CHEST -> "перебросы награды"
-    EffectKeys.OVERDUE_RELIEF -> "смягчение просрочки"
+    EffectKeys.COIN_MULT -> stringResource(R.string.character_monety)
+    EffectKeys.COIN_MULT_SPHERE -> stringResource(R.string.character_monety_za_1_s, EffectKeys.parameter(key)?.lowercase().orEmpty())
+    EffectKeys.COIN_MULT_MORNING -> stringResource(R.string.character_monety_utrom)
+    EffectKeys.COIN_MULT_NIGHT -> stringResource(R.string.character_monety_nochyu)
+    EffectKeys.XP_MULT -> stringResource(R.string.character_opyt)
+    EffectKeys.SCORE_DECAY_SLOW -> stringResource(R.string.character_stoykost_score)
+    EffectKeys.FREEZE_CAP -> stringResource(R.string.detail_zamorozki)
+    EffectKeys.STREAK_SHIELD -> stringResource(R.string.character_schit_serii)
+    EffectKeys.PUNCTUAL_BONUS -> stringResource(R.string.character_za_punktualnost)
+    EffectKeys.EARLY_BONUS -> stringResource(R.string.character_za_rannee_vypolnenie)
+    EffectKeys.COMBO_BONUS -> stringResource(R.string.character_za_kombo)
+    EffectKeys.ABSTINENCE_COIN -> stringResource(R.string.character_za_den_otkaza)
+    EffectKeys.CRAVING_WARD -> stringResource(R.string.character_za_perezhdennuyu_tyagu)
+    EffectKeys.FOCUS_COIN -> stringResource(R.string.character_za_pomodoro)
+    EffectKeys.ROUTINE_BONUS -> stringResource(R.string.character_za_rutinu)
+    EffectKeys.TASK_PRIORITY_BONUS -> stringResource(R.string.character_za_srochnye_zadachi)
+    EffectKeys.LOOT_LUCK -> stringResource(R.string.character_udacha_v_nagradah)
+    EffectKeys.REROLL_CHEST -> stringResource(R.string.character_perebrosy_nagrady)
+    EffectKeys.OVERDUE_RELIEF -> stringResource(R.string.character_smyagchenie_prosrochki)
     else -> key
 }
 

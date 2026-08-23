@@ -1,5 +1,6 @@
 package dev.ashwake.platform.blocking
 
+import dev.ashwake.R
 import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -49,11 +50,11 @@ class BlockingOverlay @Inject constructor(
             setBackgroundColor(BACKGROUND_COLOR)
             setPadding(PADDING, PADDING, PADDING, PADDING)
 
-            addView(title(verdict.ruleName ?: "Приложение заблокировано"))
-            addView(subtitle("Сначала — вот это:"))
+            addView(title(verdict.ruleName ?: context.getString(R.string.blockingoverlay_prilozhenie_zablokirovano)))
+            addView(subtitle(context.getString(R.string.blockingoverlay_snachala_vot_eto)))
             verdict.remaining.forEach { addView(item("· $it")) }
 
-            addView(primaryButton("Открыть Ashwake") { onOpenApp() })
+            addView(primaryButton(context.getString(R.string.blockingoverlay_otkryt_ashwake)) { onOpenApp() })
             addView(bypassButton(onBypass))
         }
 
@@ -85,9 +86,9 @@ class BlockingOverlay @Inject constructor(
     /** Обновление обратного отсчёта перед обходом. */
     fun updateCountdown(secondsLeft: Int) {
         countdownText?.text = if (secondsLeft > 0) {
-            "Экстренный обход через $secondsLeft"
+            context.getString(R.string.blockingoverlay_ekstrennyy_obhod_cherez_1_s, secondsLeft)
         } else {
-            "Экстренный обход"
+            context.getString(R.string.blockingoverlay_ekstrennyy_obhod)
         }
         countdownText?.isEnabled = secondsLeft <= 0
     }
@@ -127,7 +128,7 @@ class BlockingOverlay @Inject constructor(
      * не наказание, а пауза, за которую порыв «просто гляну» часто проходит сам.
      */
     private fun bypassButton(onClick: () -> Unit) = Button(context).apply {
-        text = "Экстренный обход"
+        text = context.getString(R.string.blockingoverlay_ekstrennyy_obhod)
         isEnabled = false
         setOnClickListener { onClick() }
         countdownText = this

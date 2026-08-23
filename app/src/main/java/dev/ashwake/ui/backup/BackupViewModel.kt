@@ -1,5 +1,6 @@
 package dev.ashwake.ui.backup
 
+import dev.ashwake.R
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -7,11 +8,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.ashwake.core.result.getOrNull
+import dev.ashwake.core.result.onFailure
+import dev.ashwake.core.result.onSuccess
 import dev.ashwake.data.backup.BackupContents
 import dev.ashwake.data.backup.BackupManager
 import dev.ashwake.data.backup.BackupResult
-import dev.ashwake.data.backup.CsvExporter
 import dev.ashwake.data.backup.RestoreResult
 import dev.ashwake.data.importer.ImportReport
 import dev.ashwake.data.importer.ImportSource
@@ -19,7 +20,6 @@ import dev.ashwake.data.importer.LoopCsvParser
 import dev.ashwake.data.importer.TickTickCsvParser
 import dev.ashwake.data.importer.TodoistCsvParser
 import dev.ashwake.data.settings.AppSettings
-import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import kotlinx.coroutines.Dispatchers
@@ -39,20 +39,17 @@ data class ImportState(
     val busy: Boolean = false
 )
 
-/** Что именно выгружается в CSV-файл. */
-enum class CsvKind { TASKS, HABITS }
-
 @HiltViewModel
 class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val backups: BackupManager,
-    private val csvExporter: CsvExporter,
     private val settings: AppSettings,
     private val loopParser: LoopCsvParser,
     private val tickTickParser: TickTickCsvParser,
     private val todoistParser: TodoistCsvParser,
     private val tasks: TaskRepository,
-    private val habits: HabitRepository
+    private val habits: HabitRepository,
+    private val csvExporter: dev.ashwake.data.backup.CsvExporter
 ) : ViewModel() {
 
     val backupFolder: StateFlow<String?> = settings.backupFolderUri
@@ -64,9 +61,11 @@ class BackupViewModel @Inject constructor(
     private val _restorePreview = MutableStateFlow<BackupContents?>(null)
     val restorePreview: StateFlow<BackupContents?> = _restorePreview.asStateFlow()
 
-    /** Архив, прочитанный для предпросмотра: восстанавливается только он. */
-    private var pendingRestoreUri: Uri? = null
-    private var pendingRestorePassword: String = ""
+    private val _restoring = MutableStateFlow(false)
+    val restoring: StateFlow<Boolean> = _restoring.asStateFlow()
+
+    /** Архив, который показан в предпросмотре и ждёт подтверждения. */
+    private var pendingRestore: Pair<Uri, String?>? = null
 
     private val _import = MutableStateFlow(ImportState())
     val import: StateFlow<ImportState> = _import.asStateFlow()
@@ -89,7 +88,7 @@ class BackupViewModel @Inject constructor(
                 )
             }
             settings.setBackupFolder(uri.toString())
-            _message.value = "Папка выбрана. Копия делается раз в сутки"
+            _message.value = context.getString(R.string.backup_papka_vybrana_kopiya_delaetsya_raz_v_sutki)
         }
     }
 
@@ -99,8 +98,8 @@ class BackupViewModel @Inject constructor(
                 val result = backups.createBackup(password?.takeIf { it.isNotBlank() }?.toCharArray())
             ) {
                 is BackupResult.Success ->
-                    "Сохранено: ${result.fileName} · ${result.contents.total} записей"
-                BackupResult.NoFolder -> "Сначала выберите папку"
+                    context.getString(R.string.backup_sohraneno_1_s_2_s_zapisey, result.fileName, result.contents.total)
+                BackupResult.NoFolder -> context.getString(R.string.backup_snachala_vyberite_papku)
                 is BackupResult.Failed -> result.reason
             }
         }
@@ -108,77 +107,70 @@ class BackupViewModel @Inject constructor(
 
     fun readBackup(uri: Uri, password: String?) {
         viewModelScope.launch {
-            when (
-                val result = backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
-            ) {
-                is RestoreResult.Preview -> {
-                    pendingRestoreUri = uri
-                    pendingRestorePassword = password.orEmpty()
-                    _restorePreview.value = result.contents
-                }
-                RestoreResult.NeedsPassword ->
-                    _message.value = "Архив зашифрован — нужен пароль"
-                RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
-                is RestoreResult.Failed -> _message.value = result.reason
-                is RestoreResult.Restored -> Unit
+            pendingRestore = uri to password
+            handleRestoreResult(
+                backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
+            )
+        }
+    }
+
+    /**
+     * Применение архива. Отдельным шагом после предпросмотра: замена данных
+     * необратима, и подтверждать её человек должен уже увидев, что внутри.
+     */
+    fun applyRestore() {
+        val (uri, password) = pendingRestore ?: return
+        viewModelScope.launch {
+            _restoring.value = true
+            handleRestoreResult(
+                backups.restore(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
+            )
+            _restoring.value = false
+        }
+    }
+
+    private fun handleRestoreResult(result: RestoreResult) {
+        when (result) {
+            is RestoreResult.Preview -> _restorePreview.value = result.contents
+            is RestoreResult.Restored -> {
+                _restorePreview.value = null
+                pendingRestore = null
+                _message.value = context.getString(R.string.backup_dannye_vosstanovleny_1_s_zapisey, result.contents.total)
             }
+            RestoreResult.NeedsPassword -> _message.value = context.getString(R.string.backup_arhiv_zashifrovan_nuzhen_parol)
+            RestoreResult.WrongPassword -> _message.value = context.getString(R.string.backup_parol_ne_podoshel)
+            is RestoreResult.Failed -> _message.value = result.reason
         }
     }
 
     fun dismissRestorePreview() {
-        pendingRestoreUri = null
-        pendingRestorePassword = ""
         _restorePreview.value = null
+        pendingRestore = null
     }
 
-    /**
-     * Восстановление по кнопке подтверждения. Текущие данные заменяются
-     * архивом безвозвратно — кнопка появляется только после предпросмотра.
-     */
-    fun restoreBackup() {
-        val uri = pendingRestoreUri ?: return
-        viewModelScope.launch {
-            when (
-                val result = backups.restoreBackup(
-                    uri,
-                    pendingRestorePassword.takeIf { it.isNotBlank() }?.toCharArray()
-                )
-            ) {
-                is RestoreResult.Restored -> {
-                    _message.value =
-                        "Данные заменены: ${result.contents.total} записей из архива"
-                }
-                is RestoreResult.Failed -> _message.value = result.reason
-                RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
-                else -> _message.value = "Не удалось восстановить"
-            }
-            dismissRestorePreview()
-        }
-    }
+    // --- экспорт CSV --------------------------------------------------------
 
-    // --- CSV-экспорт для таблиц --------------------------------------------
-
-    /** Запись CSV в файл, который выбрал пользователь (SAF). */
+    /** Экспорт истории в CSV в выбранный файл (п. 10). */
     fun exportCsv(uri: Uri, kind: CsvKind) {
         viewModelScope.launch {
-            val csv = withContext(Dispatchers.IO) {
-                when (kind) {
-                    CsvKind.TASKS -> csvExporter.exportTasksCsv()
-                    CsvKind.HABITS -> csvExporter.exportHabitsCsv()
-                }.getOrNull()
+            val csv = when (kind) {
+                CsvKind.TASKS -> csvExporter.exportTasksCsv()
+                CsvKind.HABITS -> csvExporter.exportHabitsCsv()
             }
-            if (csv == null) {
-                _message.value = "Не удалось собрать таблицу"
-                return@launch
+            csv.onSuccess { content ->
+                val written = runCatching {
+                    context.contentResolver.openOutputStream(uri)?.use {
+                        it.write(content.toByteArray())
+                    }
+                }.isSuccess
+                _message.value = if (written) {
+                    context.getString(R.string.backup_csv_zapisan)
+                } else {
+                    context.getString(R.string.backup_fayl_ne_chitaetsya)
+                }
+            }.onFailure { reason, _ ->
+                _message.value = reason
             }
-            val written = withContext(Dispatchers.IO) {
-                runCatching {
-                    context.contentResolver.openOutputStream(uri)?.use { output ->
-                        output.write(csv.toByteArray(Charsets.UTF_8))
-                    } != null
-                }.getOrDefault(false)
-            }
-            _message.value = if (written) "CSV сохранён" else "Файл не сохранился"
         }
     }
 
@@ -196,7 +188,7 @@ class BackupViewModel @Inject constructor(
             }
             if (content == null) {
                 _import.value = ImportState()
-                _message.value = "Файл не читается"
+                _message.value = context.getString(R.string.backup_fayl_ne_chitaetsya)
                 return@launch
             }
 
@@ -263,7 +255,7 @@ class BackupViewModel @Inject constructor(
             pendingTasks = emptyList()
             pendingHabits = null
             _import.value = ImportState(applied = true)
-            _message.value = "Импорт применён"
+            _message.value = context.getString(R.string.backup_import_primenen)
         }
     }
 
@@ -275,3 +267,5 @@ class BackupViewModel @Inject constructor(
 
     fun consumeMessage() { _message.value = null }
 }
+
+enum class CsvKind { TASKS, HABITS }

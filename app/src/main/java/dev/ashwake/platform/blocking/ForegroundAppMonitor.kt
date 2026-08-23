@@ -1,5 +1,6 @@
 package dev.ashwake.platform.blocking
 
+import android.os.Build
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -25,11 +26,24 @@ class ForegroundAppMonitor @Inject constructor(
 
     fun hasUsageAccess(): Boolean {
         val appOps = context.getSystemService<AppOpsManager>() ?: return false
-        val mode = appOps.unsafeCheckOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            Process.myUid(),
-            context.packageName
-        )
+        // `unsafeCheckOpNoThrow` появился в API 29, до него то же самое
+        // называлось `checkOpNoThrow`. Вызов без развилки компилируется молча
+        // и падает NoSuchMethodError на Android 8 и 9 — там, где блокировка
+        // приложений как раз нужнее всего
+        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                context.packageName
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(),
+                context.packageName
+            )
+        }
         return mode == AppOpsManager.MODE_ALLOWED
     }
 

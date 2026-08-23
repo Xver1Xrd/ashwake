@@ -1,5 +1,7 @@
 package dev.ashwake.ui.habits.detail
 
+import dev.ashwake.R
+import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.engine.habit.ScorePoint
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitEntry
@@ -59,7 +61,7 @@ fun HabitHeatmap(
 ) {
     val firstMonday = from.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
     val weeks = ((to.toEpochDay() - firstMonday.toEpochDay()) / 7 + 1).toInt().coerceAtLeast(1)
-    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
+    val emptyColor = AshTheme.colors.surface2
 
     Column(modifier = modifier) {
         Row(
@@ -72,8 +74,8 @@ fun HabitHeatmap(
                     // Подпись месяца ставится над неделей, в которую он начинается
                     Text(
                         text = if (weekStart.dayOfMonth <= 7) weekStart.format(MONTH_LABEL) else "",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2,
                         modifier = Modifier.height(14.dp)
                     )
                     repeat(7) { dayIndex ->
@@ -107,10 +109,10 @@ private fun HeatmapLegend() {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LegendItem(Moss, "выполнено")
-        LegendItem(Moss.copy(alpha = 0.5f), "минимум")
-        LegendItem(Ember.copy(alpha = 0.6f), "пропуск")
-        LegendItem(Steel, "заморозка")
+        LegendItem(Moss, stringResource(R.string.detail_vypolneno))
+        LegendItem(Moss.copy(alpha = 0.5f), stringResource(R.string.detail_minimum))
+        LegendItem(Ember.copy(alpha = 0.6f), stringResource(R.string.detail_propusk))
+        LegendItem(Steel, stringResource(R.string.detail_zamorozka))
     }
 }
 
@@ -120,12 +122,13 @@ private fun LegendItem(color: Color, label: String) {
         Box(Modifier.size(10.dp).clip(RoundedCornerShape(2.dp)).background(color))
         Text(
             "  $label",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
 
+@Composable
 private fun colorOf(entry: HabitEntry?, excluded: Boolean, emptyColor: Color): Color = when {
     entry?.status == EntryStatus.DONE -> Moss
     entry?.status == EntryStatus.MINIMUM -> Moss.copy(alpha = 0.5f)
@@ -146,15 +149,15 @@ fun ScoreChart(
 ) {
     if (series.size < 2) {
         Text(
-            "Данных пока мало для графика",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            stringResource(R.string.detail_dannyh_poka_malo_dlya_grafika),
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2,
             modifier = modifier
         )
         return
     }
 
-    val lineColor = MaterialTheme.colorScheme.primary
+    val lineColor = AshTheme.colors.accent
     val gridColor = Ash3A
     val targetColor = Gold
 

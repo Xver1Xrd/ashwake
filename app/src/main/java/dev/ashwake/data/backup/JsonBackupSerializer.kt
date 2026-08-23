@@ -1,9 +1,9 @@
 package dev.ashwake.data.backup
 
 import androidx.room.withTransaction
-import dev.ashwake.core.model.Sphere
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
+import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.ritual.RitualDao
@@ -18,7 +18,7 @@ import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
-import dev.ashwake.domain.engine.character.StatProgressCalculator
+import dev.ashwake.data.icons.IconStore
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
 import org.json.JSONObject
@@ -46,12 +46,13 @@ data class BackupContents(
 @Singleton
 class JsonBackupSerializer @Inject constructor(
     private val db: AshwakeDatabase,
+    private val icons: IconStore,
     private val taskDao: TaskDao,
     private val habitDao: HabitDao,
     private val abstinenceDao: AbstinenceDao,
     private val ritualDao: RitualDao,
     private val characterDao: CharacterDao,
-    private val statCalculator: StatProgressCalculator
+    private val backupDao: BackupDao
 ) {
 
     suspend fun export(): Pair<String, BackupContents> {
@@ -81,6 +82,8 @@ class JsonBackupSerializer @Inject constructor(
                     put("targetValue", habit.targetValue)
                     put("unitName", habit.unitName)
                     put("minimumValue", habit.minimumValue)
+                    put("icon", habit.icon)
+                    put("iconPath", habit.iconPath)
                     put("scheduleType", habit.scheduleType)
                     put("timesPerWeek", habit.timesPerWeek)
                     put("weekdaysMask", habit.weekdaysMask)
@@ -96,15 +99,27 @@ class JsonBackupSerializer @Inject constructor(
                     put("mode", item.mode)
                     put("gentlePenaltyDays", item.gentlePenaltyDays)
                     put("motivationText", item.motivationText)
+                    put("icon", item.icon)
+                    put("iconPath", item.iconPath)
+                    put("paletteId", item.paletteId)
+                    put("milestonesEnabled", item.milestonesEnabled)
+                    put("baselineUnitName", item.baselineUnitName)
+                    put("baselineUnitsPerDay", item.baselineUnitsPerDay)
+                    put("baselineCostPerUnit", item.baselineCostPerUnit)
+                    put("baselineCurrency", item.baselineCurrency)
+                    put("stickyNotification", item.stickyNotification)
                     put("createdAt", item.createdAt)
                 }
             }))
             put("abstinenceAttempts", JSONArray(attempts.map { attempt ->
                 JSONObject().apply {
+                    put("id", attempt.id)
                     put("abstinenceId", attempt.abstinenceId)
                     put("ordinal", attempt.ordinal)
                     put("startedAt", attempt.startedAt)
                     put("endedAt", attempt.endedAt)
+                    put("relapseReasonId", attempt.relapseReasonId)
+                    put("note", attempt.note)
                     put("penaltyDays", attempt.penaltyDays)
                 }
             }))
@@ -122,13 +137,35 @@ class JsonBackupSerializer @Inject constructor(
             put("wallet", JSONObject().apply {
                 put("coins", wallet?.coins ?: 0)
                 put("xp", wallet?.xp ?: 0)
+                put("level", wallet?.level ?: 1)
             })
-            put("ownedItems", JSONArray(owned.map { it.itemId }))
+            // Не список id, а записи целиком: апгрейд предмета — это вложенные
+            // монеты, и терять его при восстановлении нельзя (сценарий 18)
+            put("ownedItems", JSONArray(owned.map { item ->
+                JSONObject().apply {
+                    put("itemId", item.itemId)
+                    put("acquiredAt", item.acquiredAt)
+                    put("source", item.source)
+                    put("upgradeLevel", item.upgradeLevel)
+                    put("favorite", item.favorite)
+                }
+            }))
             put("equippedItems", JSONObject().apply {
                 equipped.forEach { put(it.slot, it.itemId) }
             })
+            // Картинки значков едут внутри архива: имя файла без самого файла
+            // восстанавливает пустой кружок, а починить его будет уже нечем
+            put("icons", JSONObject().apply {
+                icons.exportAll(backupDao.usedIconPaths().toSet())
+                    .forEach { (name, encoded) -> put(name, encoded) }
+            })
             put("stats", JSONObject().apply {
-                stats.forEach { put(it.stat, it.points) }
+                stats.forEach { stat ->
+                    put(stat.stat, JSONObject().apply {
+                        put("points", stat.points)
+                        put("value", stat.value)
+                    })
+                }
             })
         }
 
@@ -158,176 +195,241 @@ class JsonBackupSerializer @Inject constructor(
     }.getOrNull()
 
     /**
-     * Полное восстановление: база очищается и наполняется из архива.
+     * Запись архива в базу — полная замена данных.
      *
-     * Необратимо, поэтому вызывается только после явного подтверждения —
-     * UI показывает содержимое архива заранее через [peek].
+     * Всё внутри одной транзакции: наполовину восстановленная база хуже,
+     * чем не восстановленная вовсе. Если разбор упадёт на середине,
+     * откатится и очистка.
      *
-     * id сохраняются как в архиве: связи между записями (отметки → привычки,
-     * попытки → отказы) переживают переезд на другое устройство только так.
+     * Возвращает то, что реально записано, — чтобы отчёт показывал факт,
+     * а не намерение.
      */
-    suspend fun restore(json: String) {
+    suspend fun import(json: String): BackupContents = db.withTransaction {
         val root = JSONObject(json)
-        val now = System.currentTimeMillis()
 
-        db.withTransaction {
-            // clearAllTables сбрасывает и автоинкременты, и все связи —
-            // после восстановления в базе нет ничего, чего не было в архиве
-            db.clearAllTables()
+        val tasks = root.optJSONArray("tasks").objects().map { it.toTaskEntity() }
+        val habits = root.optJSONArray("habits").objects().map { it.toHabitEntity() }
+        val entries = root.optJSONArray("habitEntries").objects().map { it.toEntryEntity() }
+        val abstinences = root.optJSONArray("abstinences").objects().map { it.toAbstinenceEntity() }
+        val attempts = root.optJSONArray("abstinenceAttempts").objects().map { it.toAttemptEntity() }
+        val reviews = root.optJSONArray("dailyReviews").objects().map { it.toReviewEntity() }
 
-            taskDao.insertAll(
-                root.optJSONArray("tasks").orEmpty().map { task ->
-                    TaskEntity(
-                        id = task.getLong("id"),
-                        title = task.getString("title"),
-                        note = task.optString("note").takeIf { it.isNotBlank() },
-                        priority = task.optString("priority", "P4"),
-                        dueDate = if (task.isNull("dueDate")) null else task.getInt("dueDate"),
-                        dueTime = if (task.isNull("dueTime")) null else task.getInt("dueTime"),
-                        estimateMinutes = if (task.isNull("estimateMinutes")) null else task.getInt("estimateMinutes"),
-                        status = task.optString("status", "ACTIVE"),
-                        completedAt = if (task.isNull("completedAt")) null else task.getLong("completedAt"),
-                        postponeCount = task.optInt("postponeCount", 0),
-                        createdAt = task.optLong("createdAt", now),
-                        updatedAt = now
-                    )
-                }
+        // Картинки кладём до записи строк: иначе между восстановлением задачи
+        // и появлением файла список успевает нарисовать пустой кружок
+        root.optJSONObject("icons")?.let { node ->
+            icons.importAll(node.keys().asSequence().associateWith { node.optString(it) })
+        }
+
+        // Порядок очистки: сначала ссылающиеся таблицы, потом те, на которые
+        // ссылаются. Полагаться на CASCADE при полной замене нельзя
+        backupDao.clearHabitEntries()
+        backupDao.clearHabitFreezes()
+        backupDao.clearHabitPauses()
+        backupDao.clearHabitAnchors()
+        backupDao.clearHabits()
+
+        backupDao.clearTaskTags()
+        backupDao.clearPostponements()
+        backupDao.clearTasks()
+
+        backupDao.clearAttempts()
+        backupDao.clearCravings()
+        backupDao.clearMilestones()
+        backupDao.clearAbstinences()
+
+        backupDao.clearReviewTopTasks()
+        backupDao.clearReviews()
+
+        backupDao.clearEquipped()
+        backupDao.clearOwned()
+        backupDao.clearStats()
+        backupDao.clearLedger()
+
+        backupDao.insertTasks(tasks)
+        backupDao.insertHabits(habits)
+        backupDao.insertHabitEntries(entries)
+        backupDao.insertAbstinences(abstinences)
+        backupDao.insertAttempts(attempts)
+        backupDao.insertReviews(reviews)
+
+        root.optJSONObject("wallet")?.let { wallet ->
+            backupDao.upsertWallet(
+                WalletEntity(
+                    id = 1,
+                    coins = wallet.optLong("coins"),
+                    xp = wallet.optLong("xp"),
+                    level = wallet.optInt("level", 1)
+                )
             )
+        }
 
-            val habits = root.optJSONArray("habits").orEmpty()
-            habitDao.upsertAll(
-                habits.map { habit ->
-                    HabitEntity(
-                        id = habit.getLong("id"),
-                        name = habit.getString("name"),
-                        type = habit.getString("type"),
-                        sphere = habit.getString("sphere"),
-                        targetValue = habit.optDouble("targetValue", 1.0).toFloat(),
-                        unitName = habit.optString("unitName").takeIf { it.isNotBlank() },
-                        minimumValue = if (habit.isNull("minimumValue")) null
-                        else habit.getDouble("minimumValue").toFloat(),
-                        scheduleType = habit.getString("scheduleType"),
-                        timesPerWeek = habit.optInt("timesPerWeek", 3),
-                        weekdaysMask = habit.optInt("weekdaysMask", 0b1111111),
-                        archived = habit.optBoolean("archived", false),
-                        createdAt = habit.optLong("createdAt", now)
-                    )
-                }
+        backupDao.insertOwned(readOwnedItems(root))
+
+        root.optJSONObject("equippedItems")?.let { equipped ->
+            backupDao.insertEquipped(
+                equipped.keys().asSequence().map { slot ->
+                    EquippedItemEntity(slot = slot, itemId = equipped.getString(slot))
+                }.toList()
             )
+        }
 
-            habitDao.upsertEntries(
-                root.optJSONArray("habitEntries").orEmpty().map { entry ->
-                    HabitEntryEntity(
-                        habitId = entry.getLong("habitId"),
-                        date = entry.getInt("date"),
-                        status = entry.getString("status"),
-                        value = entry.optDouble("value", 0.0).toFloat(),
-                        note = entry.optString("note").takeIf { it.isNotBlank() },
-                        source = "RESTORE"
-                    )
-                }
-            )
-
-            val abstinences = root.optJSONArray("abstinences").orEmpty()
-            abstinenceDao.upsertAll(
-                abstinences.map { item ->
-                    AbstinenceEntity(
-                        id = item.getLong("id"),
-                        name = item.getString("name"),
-                        mode = item.getString("mode"),
-                        gentlePenaltyDays = item.optInt("gentlePenaltyDays", 7),
-                        motivationText = item.optString("motivationText").takeIf { it.isNotBlank() },
-                        createdAt = item.optLong("createdAt", now)
-                    )
-                }
-            )
-
-            abstinences.forEach { item ->
-                val abstinenceId = item.getLong("id")
-                val attempts = root.optJSONArray("abstinenceAttempts").orEmpty()
-                // Попытки в архиве идут общим списком — отбираем свои
-                attempts
-                    .filter { it.getLong("abstinenceId") == abstinenceId }
-                    .forEach { attempt ->
-                        abstinenceDao.insertAttempt(
-                            AbstinenceAttemptEntity(
-                                abstinenceId = abstinenceId,
-                                ordinal = attempt.getInt("ordinal"),
-                                startedAt = attempt.getLong("startedAt"),
-                                endedAt = if (attempt.isNull("endedAt")) null else attempt.getLong("endedAt"),
-                                penaltyDays = attempt.optInt("penaltyDays", 0)
-                            )
+        root.optJSONObject("stats")?.let { stats ->
+            backupDao.insertStats(
+                stats.keys().asSequence().map { key ->
+                    // Формат 1 хранил очки числом, формат 2 — объектом
+                    when (val value = stats.get(key)) {
+                        is JSONObject -> CharacterStatEntity(
+                            stat = key,
+                            points = value.optLong("points"),
+                            value = value.optInt("value")
+                        )
+                        else -> CharacterStatEntity(
+                            stat = key,
+                            points = (value as? Number)?.toLong() ?: 0L
                         )
                     }
-            }
-
-            ritualDao.upsertReviews(
-                root.optJSONArray("dailyReviews").orEmpty().map { review ->
-                    DailyReviewEntity(
-                        date = review.getInt("date"),
-                        dayRating = if (review.isNull("dayRating")) null else review.getInt("dayRating"),
-                        mood = if (review.isNull("mood")) null else review.getInt("mood"),
-                        energy = if (review.isNull("energy")) null else review.getInt("energy"),
-                        note = review.optString("note").takeIf { it.isNotBlank() },
-                        completedAt = review.getLong("completedAt"),
-                        completedAs = review.optString("completedAs", "EVENING")
-                    )
-                }
+                }.toList()
             )
+        }
 
-            val wallet = root.optJSONObject("wallet")
-            if (wallet != null) {
-                characterDao.upsertWallet(
-                    WalletEntity(
-                        coins = wallet.optLong("coins", 0L),
-                        xp = wallet.optLong("xp", 0L)
-                    )
+        BackupContents(
+            tasks = tasks.size,
+            habits = habits.size,
+            habitEntries = entries.size,
+            abstinences = abstinences.size,
+            reviews = reviews.size
+        )
+    }
+
+    /**
+     * Предметы. В первой версии формата это был массив строк-id, во второй —
+     * записи с уровнем апгрейда. Читаются обе: архив, сделанный до обновления,
+     * должен восстанавливаться, иначе резервная копия ничего не гарантирует.
+     */
+    private fun readOwnedItems(root: JSONObject): List<OwnedItemEntity> {
+        val array = root.optJSONArray("ownedItems") ?: return emptyList()
+        return (0 until array.length()).mapNotNull { index ->
+            when (val raw = array.get(index)) {
+                is JSONObject -> OwnedItemEntity(
+                    itemId = raw.getString("itemId"),
+                    acquiredAt = raw.optLong("acquiredAt"),
+                    source = raw.optString("source", "restore"),
+                    upgradeLevel = raw.optInt("upgradeLevel"),
+                    favorite = raw.optBoolean("favorite")
                 )
-            }
-
-            characterDao.insertOwnedAll(
-                root.optJSONArray("ownedItems").orEmpty().map { itemId ->
-                    OwnedItemEntity(
-                        itemId = itemId as String,
-                        acquiredAt = now,
-                        source = "RESTORE"
-                    )
-                }
-            )
-
-            val equipped = root.optJSONObject("equippedItems")
-            if (equipped != null) {
-                equipped.keys().forEach { slot ->
-                    characterDao.equip(
-                        EquippedItemEntity(slot = slot, itemId = equipped.getString(slot))
-                    )
-                }
-            }
-
-            val stats = root.optJSONObject("stats")
-            if (stats != null) {
-                characterDao.upsertStats(
-                    stats.keys().asSequence().map { stat ->
-                        val points = stats.getLong(stat)
-                        CharacterStatEntity(
-                            stat = stat,
-                            points = points,
-                            value = statCalculator.valueOf(points)
-                        )
-                    }.toList()
+                is String -> OwnedItemEntity(
+                    itemId = raw,
+                    acquiredAt = 0L,
+                    source = "restore"
                 )
+                else -> null
             }
         }
     }
 
-    private fun JSONArray?.orEmpty(): List<JSONObject> {
-        if (this == null) return emptyList()
-        return (0 until length()).map { getJSONObject(it) }
-    }
+    private fun JSONArray?.objects(): List<JSONObject> =
+        if (this == null) emptyList()
+        else (0 until length()).mapNotNull { optJSONObject(it) }
+
+    private fun JSONObject.toTaskEntity() = TaskEntity(
+        id = optLong("id"),
+        title = optString("title"),
+        emoji = optStringOrNull("emoji"),
+        iconPath = optStringOrNull("iconPath"),
+        note = optStringOrNull("note"),
+        priority = optString("priority", "P4"),
+        dueDate = optIntOrNull("dueDate"),
+        dueTime = optIntOrNull("dueTime"),
+        estimateMinutes = optIntOrNull("estimateMinutes"),
+        status = optString("status", "ACTIVE"),
+        completedAt = optLongOrNull("completedAt"),
+        postponeCount = optInt("postponeCount"),
+        sourceLink = optStringOrNull("sourceLink"),
+        createdAt = optLong("createdAt"),
+        updatedAt = optLong("createdAt")
+    )
+
+    private fun JSONObject.toHabitEntity() = HabitEntity(
+        id = optLong("id"),
+        name = optString("name"),
+        type = optString("type", "CHECK"),
+        sphere = optString("sphere", "HEALTH"),
+        targetValue = optDouble("targetValue", 1.0).toFloat(),
+        unitName = optStringOrNull("unitName"),
+        minimumValue = if (isNull("minimumValue")) null else optDouble("minimumValue").toFloat(),
+        scheduleType = optString("scheduleType", "DAILY"),
+        timesPerWeek = optInt("timesPerWeek", 3),
+        weekdaysMask = optInt("weekdaysMask", 0b1111111),
+        archived = optBoolean("archived"),
+        icon = optStringOrNull("icon"),
+        iconPath = optStringOrNull("iconPath"),
+        createdAt = optLong("createdAt")
+    )
+
+    private fun JSONObject.toEntryEntity() = HabitEntryEntity(
+        habitId = optLong("habitId"),
+        date = optInt("date"),
+        status = optString("status", "DONE"),
+        value = optDouble("value").toFloat(),
+        note = optStringOrNull("note"),
+        source = optString("source", "MANUAL")
+    )
+
+    private fun JSONObject.toAbstinenceEntity() = AbstinenceEntity(
+        id = optLong("id"),
+        name = optString("name"),
+        icon = optStringOrNull("icon"),
+        iconPath = optStringOrNull("iconPath"),
+        paletteId = optString("paletteId", "default"),
+        mode = optString("mode", "STRICT"),
+        gentlePenaltyDays = optInt("gentlePenaltyDays", 7),
+        milestonesEnabled = optBoolean("milestonesEnabled", true),
+        motivationText = optStringOrNull("motivationText"),
+        baselineUnitName = optStringOrNull("baselineUnitName"),
+        baselineUnitsPerDay = if (isNull("baselineUnitsPerDay")) null
+        else optDouble("baselineUnitsPerDay").toFloat(),
+        baselineCostPerUnit = if (isNull("baselineCostPerUnit")) null
+        else optDouble("baselineCostPerUnit").toFloat(),
+        baselineCurrency = optStringOrNull("baselineCurrency"),
+        stickyNotification = optBoolean("stickyNotification"),
+        createdAt = optLong("createdAt")
+    )
+
+    private fun JSONObject.toAttemptEntity() = AbstinenceAttemptEntity(
+        id = optLong("id"),
+        abstinenceId = optLong("abstinenceId"),
+        ordinal = optInt("ordinal", 1),
+        startedAt = optLong("startedAt"),
+        endedAt = optLongOrNull("endedAt"),
+        relapseReasonId = optLongOrNull("relapseReasonId"),
+        note = optStringOrNull("note"),
+        penaltyDays = optInt("penaltyDays")
+    )
+
+    private fun JSONObject.toReviewEntity() = DailyReviewEntity(
+        date = optInt("date"),
+        dayRating = optIntOrNull("dayRating"),
+        mood = optIntOrNull("mood"),
+        energy = optIntOrNull("energy"),
+        note = optStringOrNull("note"),
+        completedAt = optLong("completedAt"),
+        completedAs = optString("completedAs", "EVENING")
+    )
+
+    private fun JSONObject.optStringOrNull(key: String): String? =
+        if (isNull(key)) null else optString(key).takeIf { it.isNotEmpty() }
+
+    private fun JSONObject.optIntOrNull(key: String): Int? =
+        if (isNull(key)) null else optInt(key)
+
+    private fun JSONObject.optLongOrNull(key: String): Long? =
+        if (isNull(key)) null else optLong(key)
 
     private fun TaskEntity.toJson() = JSONObject().apply {
         put("id", id)
         put("title", title)
+        put("emoji", emoji)
+        put("iconPath", iconPath)
         put("note", note)
         put("priority", priority)
         put("dueDate", dueDate)
@@ -348,7 +450,7 @@ class JsonBackupSerializer @Inject constructor(
     }
 
     private companion object {
-        const val FORMAT_VERSION = 1
+        const val FORMAT_VERSION = 2
         /** Диапазон epochDay с запасом: от 1970 до 2100 года. */
         const val MIN_DAY = 0
         const val MAX_DAY = 47_500

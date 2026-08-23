@@ -11,12 +11,19 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.data.icons.IconStore
+import dev.ashwake.data.settings.AppSettings
+import dev.ashwake.ui.theme.ThemeSettings
 import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.widget.AppRoutes
+import dev.ashwake.ui.components.LocalIconStore
 import dev.ashwake.ui.navigation.AshwakeRoot
 import dev.ashwake.ui.theme.AshwakeTheme
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +36,10 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var saveTask: SaveTaskUseCase
     @Inject lateinit var parser: QuickInputParser
     @Inject lateinit var clock: AppClock
+    @Inject lateinit var tasks: TaskRepository
+    @Inject lateinit var settings: AppSettings
+    @Inject lateinit var iconStore: IconStore
+    @Inject lateinit var backupDao: dev.ashwake.data.db.dao.backup.BackupDao
 
     /**
      * Куда открыться при запуске из виджета, плитки или шортката.
@@ -44,12 +55,34 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         requestNotificationPermissionIfNeeded()
+        purgeOldTrash()
+        sweepIcons()
         handleShare(intent)
         handleRoute(intent)
 
         setContent {
-            AshwakeTheme {
-                AshwakeRoot(pendingRoute = pendingRoute)
+            // Тема читается из настроек прямо здесь: она нужна раньше любого
+            // экрана, и прокидывать её через навигацию было бы дороже
+            val theme by settings.theme
+                .collectAsStateWithLifecycle(initialValue = ThemeSettings())
+            // null — ещё не прочитали: показывать знакомство до ответа
+            // хранилища значит мигать им при каждом запуске
+            val onboardingDone by settings.onboardingDone
+                .collectAsStateWithLifecycle(initialValue = null as Boolean?)
+
+            AshwakeTheme(settings = theme) {
+                // Значки читают файлы из хранилища прямо в строке списка,
+                // а зависимости туда не прокинуть: кладём одно на приложение
+                androidx.compose.runtime.CompositionLocalProvider(
+                    LocalIconStore provides iconStore
+                ) {
+                    if (onboardingDone != null) {
+                        AshwakeRoot(
+                            pendingRoute = pendingRoute,
+                            showOnboarding = onboardingDone == false
+                        )
+                    }
+                }
             }
         }
     }
@@ -59,6 +92,28 @@ class MainActivity : ComponentActivity() {
         setIntent(intent)
         handleShare(intent)
         handleRoute(intent)
+    }
+
+    /**
+     * Корзина не должна превращаться во вторую базу: задачи старше месяца
+     * вычищаются при запуске. Запрос идёт по индексу и стоит копейки,
+     * поэтому отдельного воркера ради него заводить незачем.
+     */
+    private fun purgeOldTrash() {
+        lifecycleScope.launch { tasks.purgeTrashOlderThan(TRASH_KEEP_DAYS) }
+    }
+
+    /**
+     * Значки без хозяина.
+     *
+     * Картинка переживает свою задачу: её удалили, заменили другой или
+     * откатили правку — файл остаётся. Подметание на запуске стоит один
+     * проход по каталогу с десятком файлов и снимает вопрос навсегда.
+     */
+    private fun sweepIcons() {
+        lifecycleScope.launch {
+            runCatching { iconStore.sweep(backupDao.usedIconPaths().toSet()) }
+        }
     }
 
     private fun handleRoute(intent: Intent?) {
@@ -109,5 +164,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         val LINK_REGEX = Regex("https?://\\S+")
+
+        /** Сколько дней задача лежит в корзине до окончательного удаления. */
+        const val TRASH_KEEP_DAYS = 30L
     }
 }

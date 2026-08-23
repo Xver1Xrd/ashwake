@@ -45,6 +45,55 @@ class HabitScoreCalculatorTest {
     }
 
     @Test
+    fun `идеальная ежедневная привычка за 60 дней даёт около 96 процентов`() {
+        val days = (0L until 60L).map { start.plusDays(it) }
+        val score = calculator.currentScore(
+            habit = habit(),
+            entries = entries(days),
+            from = start,
+            to = start.plusDays(59)
+        )
+        assertEquals(0.96f, score, 0.03f)
+    }
+
+    @Test
+    fun `идеальная ежедневная привычка за 90 дней даёт около 99 процентов`() {
+        val days = (0L until 90L).map { start.plusDays(it) }
+        val score = calculator.currentScore(
+            habit = habit(),
+            entries = entries(days),
+            from = start,
+            to = start.plusDays(89)
+        )
+        assertEquals(0.99f, score, 0.03f)
+    }
+
+    /**
+     * Главная проверка на подмену: если после трёх пропусков score падает
+     * в ноль, значит реализован обычный стрик, а не score.
+     */
+    @Test
+    fun `три пропуска подряд роняют score, но он остаётся выше 60 процентов`() {
+        val perfect = (0L until 90L).map { start.plusDays(it) }
+        val before = calculator.currentScore(
+            habit = habit(),
+            entries = entries(perfect),
+            from = start,
+            to = start.plusDays(89)
+        )
+        assertTrue("до пропусков score должен быть высоким", before > 0.9f)
+
+        val after = calculator.currentScore(
+            habit = habit(),
+            entries = entries(perfect),
+            from = start,
+            to = start.plusDays(92)
+        )
+        assertTrue("score обязан снизиться", after < before)
+        assertTrue("падение в ноль означает стрик вместо score, было $after", after > 0.6f)
+    }
+
+    @Test
     fun `привычка три раза в неделю растёт за месяц не медленнее ежедневной`() {
         // Три раза в неделю, норма выполняется каждую неделю.
         val schedule = HabitSchedule(HabitScheduleType.TIMES_PER_WEEK, timesPerWeek = 3)

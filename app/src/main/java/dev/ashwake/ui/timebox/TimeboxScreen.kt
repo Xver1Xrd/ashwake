@@ -28,15 +28,11 @@ import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
@@ -55,6 +51,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.BlockKind
 import dev.ashwake.domain.model.tasks.TimeboxBlock
 import dev.ashwake.ui.theme.Ember
@@ -63,6 +63,8 @@ import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
 import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM, EEEE")
 private val HOUR_HEIGHT = 64.dp
@@ -83,15 +85,16 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
     var selectedBlock by remember { mutableStateOf<TimeboxBlock?>(null) }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Шкала дня") },
+            AshNavBar(
+                title = stringResource(R.string.timebox_shkala_dnya),
                 actions = {
                     IconButton(onClick = { viewModel.shiftDate(-1) }) {
-                        Icon(Icons.Filled.ChevronLeft, contentDescription = "Назад")
+                        Icon(Icons.Filled.ChevronLeft, contentDescription = stringResource(R.string.detail_nazad))
                     }
                     IconButton(onClick = { viewModel.shiftDate(1) }) {
-                        Icon(Icons.Filled.ChevronRight, contentDescription = "Вперёд")
+                        Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
                     }
                 }
             )
@@ -100,7 +103,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
             ExtendedFloatingActionButton(
                 onClick = viewModel::planDay,
                 icon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null) },
-                text = { Text(if (planning) "Раскладываю…" else "Разложить день") }
+                text = { Text(if (planning) stringResource(R.string.timebox_raskladyvayu) else stringResource(R.string.timebox_razlozhit_den)) }
             )
         }
     ) { padding ->
@@ -112,7 +115,7 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
         ) {
             Text(
                 date.format(DATE_FORMAT).replaceFirstChar { it.uppercase() },
-                style = MaterialTheme.typography.titleSmall,
+                style = AshTheme.type.headline,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -121,10 +124,9 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "${settings.workStartMinute / 60}:00–${settings.workEndMinute / 60}:00 · " +
-                        "буфер ${settings.bufferMinutes} мин",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.timebox_1_s_00_2_s_00_bufer_3_s_min, settings.workStartMinute / 60, settings.workEndMinute / 60, settings.bufferMinutes),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -133,34 +135,32 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 listOf(0, 5, 10, 15).forEach { buffer ->
-                    FilterChip(
+                    ChipButton(
+                        text = stringResource(R.string.timebox_bufer_1_s, buffer),
                         selected = settings.bufferMinutes == buffer,
-                        onClick = { viewModel.setBuffer(buffer) },
-                        label = { Text("буфер $buffer") }
+                        onClick = { viewModel.setBuffer(buffer) }
                     )
                 }
-                FilterChip(
-                    selected = useCalendar,
-                    onClick = { viewModel.setUseCalendar(!useCalendar) },
-                    label = { Text("календарь") }
-                )
+                ChipButton(
+                        text = stringResource(R.string.timebox_kalendar),
+                        selected = useCalendar,
+                        onClick = { viewModel.setUseCalendar(!useCalendar) }
+                    )
             }
 
             if (useCalendar && !viewModel.calendarPermissionGranted()) {
                 Text(
-                    "Нет доступа к календарю — события учитываться не будут. " +
-                        "Разрешение запрашивается в настройках системы",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
+                    stringResource(R.string.timebox_net_dostupa_k_kalendaryu_sobytiya_uchityvats),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.danger,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
             }
 
             if (day.deficitMinutes > 0) {
                 Text(
-                    "Не влезло ${formatDuration(day.deficitMinutes)} — " +
-                        "часть задач придётся вынести на завтра",
-                    style = MaterialTheme.typography.labelMedium,
+                    stringResource(R.string.timebox_ne_vlezlo_1_s_chast_zadach_pridetsya_vynesti, formatDuration(day.deficitMinutes)),
+                    style = AshTheme.type.footnote,
                     color = Ember,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                 )
@@ -176,50 +176,54 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                 onSelect = { selectedBlock = it }
             )
 
-            TextButton(
-                onClick = viewModel::clearDay,
-                modifier = Modifier.padding(16.dp)
-            ) { Text("Очистить день") }
+            TextAction(
+                text = stringResource(R.string.timebox_ochistit_den),
+                modifier = Modifier.padding(16.dp),
+                onClick = viewModel::clearDay
+            )
         }
     }
 
     outcome?.let { data ->
         AlertDialog(
             onDismissRequest = viewModel::dismissOutcome,
-            title = { Text(if (data.deficitMinutes == 0) "День разложен" else "День не вмещает всё") },
+            title = { Text(if (data.deficitMinutes == 0) stringResource(R.string.timebox_den_razlozhen) else stringResource(R.string.timebox_den_ne_vmeschaet_vse)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     if (data.deficitMinutes > 0) {
                         Text(
-                            "Не хватает ${formatDuration(data.deficitMinutes)}",
-                            style = MaterialTheme.typography.bodyMedium,
+                            stringResource(R.string.timebox_ne_hvataet_1_s, formatDuration(data.deficitMinutes)),
+                            style = AshTheme.type.callout,
                             color = Ember
                         )
-                        Text("На завтра стоит вынести:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.timebox_na_zavtra_stoit_vynesti), style = AshTheme.type.subhead)
                         data.deferredTitles.take(6).forEach {
-                            Text("· $it", style = MaterialTheme.typography.bodySmall)
+                            Text("· $it", style = AshTheme.type.subhead)
                         }
                     } else {
-                        Text("Всё поместилось", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.timebox_vse_pomestilos), style = AshTheme.type.callout)
                     }
 
                     if (data.withoutEstimateTitles.isNotEmpty()) {
                         HorizontalDivider(Modifier.padding(vertical = 4.dp))
                         Text(
-                            "Без оценки времени — не раскладываются:",
-                            style = MaterialTheme.typography.labelLarge
+                            stringResource(R.string.timebox_bez_ocenki_vremeni_ne_raskladyvayutsya),
+                            style = AshTheme.type.subhead
                         )
                         data.withoutEstimateTitles.take(6).forEach {
                             Text(
                                 "· $it",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.subhead,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }
                 }
             },
-            confirmButton = { TextButton(onClick = viewModel::dismissOutcome) { Text("Понятно") } }
+            confirmButton = { TextAction(
+                                  text = stringResource(R.string.detail_ponyatno),
+                                  onClick = viewModel::dismissOutcome
+                              ) }
         )
     }
 
@@ -274,8 +278,8 @@ private fun DayGrid(
             ) {
                 Text(
                     "%02d:00".format(startHour + index),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(44.dp).padding(start = 8.dp, top = 2.dp)
                 )
                 HorizontalDivider(Modifier.padding(top = 8.dp))
@@ -336,14 +340,14 @@ private fun DayGrid(
                     if (block.pinned) {
                         Icon(
                             Icons.Filled.PushPin,
-                            contentDescription = "Закреплён",
+                            contentDescription = stringResource(R.string.timebox_zakreplen),
                             modifier = Modifier.width(14.dp),
                             tint = colorOf(block.kind)
                         )
                     }
                     Text(
                         text = " ${block.startTime()} ${block.title}",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = AshTheme.type.footnote,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -369,27 +373,29 @@ private fun BlockActionsDialog(
                 Text(
                     "${block.startTime()}–${block.endTime()} · " +
                         formatDuration(block.durationMinutes),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = AshTheme.type.callout
                 )
-                TextButton(onClick = onPin) {
-                    Text(if (block.pinned) "Открепить" else "Закрепить: не двигать")
-                }
-                Text("Затянулось на", style = MaterialTheme.typography.labelLarge)
+                TextAction(
+                    text = if (block.pinned) stringResource(R.string.timebox_otkrepit) else stringResource(R.string.timebox_zakrepit_ne_dvigat),
+                    onClick = onPin
+                )
+                Text(stringResource(R.string.timebox_zatyanulos_na), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(15, 30, 60).forEach { minutes ->
-                        TextButton(onClick = { onOverran(minutes) }) { Text("+$minutes") }
+                        TextAction(text = "+$minutes", onClick = { onOverran(minutes) })
                     }
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Закрыть") } },
-        dismissButton = { TextButton(onClick = onDelete) { Text("Убрать блок") } }
+        confirmButton = { TextAction(text = stringResource(R.string.components_zakryt), onClick = onDismiss) },
+        dismissButton = { TextAction(text = stringResource(R.string.timebox_ubrat_blok), onClick = onDelete) }
     )
 }
 
 @Composable
 private fun minuteHeight(minutes: Int): Dp = HOUR_HEIGHT * (minutes / 60f)
 
+@Composable
 private fun colorOf(kind: BlockKind): Color = when (kind) {
     BlockKind.TASK -> Steel
     BlockKind.ROUTINE -> Moss
@@ -398,11 +404,12 @@ private fun colorOf(kind: BlockKind): Color = when (kind) {
     BlockKind.MANUAL -> Steel
 }
 
+@Composable
 internal fun formatDuration(minutes: Int): String {
     val safe = minutes.coerceAtLeast(0)
     return when {
-        safe < 60 -> "$safe мин"
-        safe % 60 == 0 -> "${safe / 60} ч"
-        else -> "${safe / 60} ч ${safe % 60} мин"
+        safe < 60 -> stringResource(R.string.duration_minutes, safe)
+        safe % 60 == 0 -> stringResource(R.string.duration_hours, safe / 60)
+        else -> stringResource(R.string.duration_hours_minutes, safe / 60, safe % 60)
     }
 }

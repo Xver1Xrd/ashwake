@@ -95,7 +95,10 @@ data class Substitute(
 data class Abstinence(
     val id: Long = 0,
     val name: String,
+    /** Значок: одна эмодзи. */
     val icon: String? = null,
+    /** Имя файла картинки-значка. Перекрывает эмодзи. */
+    val iconPath: String? = null,
     val paletteId: String = "default",
     val mode: AbstinenceMode = AbstinenceMode.GENTLE,
     /** Сколько дней снимает один срыв в режиме GENTLE. */

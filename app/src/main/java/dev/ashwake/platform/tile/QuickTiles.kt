@@ -1,9 +1,9 @@
 package dev.ashwake.platform.tile
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.os.Build
 import android.service.quicksettings.TileService
-import androidx.annotation.RequiresApi
 import dev.ashwake.platform.widget.AppRoutes
 import dev.ashwake.platform.widget.appIntent
 
@@ -28,7 +28,10 @@ abstract class RouteTileService(private val route: String) : TileService() {
                 )
             )
         } else {
+            // До API 34 другого способа нет: вариант с PendingIntent там
+            // отсутствует. Развилка выше как раз для этого и стоит
             @Suppress("DEPRECATION")
+            @SuppressLint("StartActivityAndCollapseDeprecated")
             startActivityAndCollapse(intent)
         }
     }

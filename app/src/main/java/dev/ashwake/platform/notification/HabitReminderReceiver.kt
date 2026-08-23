@@ -19,6 +19,7 @@ import dev.ashwake.domain.model.habits.EntrySource
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.scheduler.HabitReminderScheduler
+import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,6 +37,7 @@ class HabitReminderReceiver : BroadcastReceiver() {
 
     @Inject lateinit var habits: HabitRepository
     @Inject lateinit var scheduler: HabitReminderScheduler
+    @Inject lateinit var markHabit: MarkHabitUseCase
     @Inject lateinit var clock: AppClock
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -56,10 +58,17 @@ class HabitReminderReceiver : BroadcastReceiver() {
                     }
 
                     ACTION_DONE -> {
-                        habits.mark(
-                            habitId, clock.today(), EntryStatus.DONE,
-                            source = EntrySource.NOTIFICATION
-                        )
+                        // Через use case, а не напрямую в репозиторий: иначе
+                        // отметка из шторки не приносит ни монет, ни очков
+                        // характеристик и не будит связанные привычки
+                        val progress = habits.progressFor(habitId, clock.today())
+                        if (progress != null) {
+                            markHabit(
+                                progress = progress,
+                                status = EntryStatus.DONE,
+                                source = EntrySource.NOTIFICATION
+                            )
+                        }
                         cancelNotification(context, habitId)
                         scheduler.schedule(habit)
                     }
@@ -100,13 +109,13 @@ class HabitReminderReceiver : BroadcastReceiver() {
         val notification = NotificationCompat.Builder(context, AshwakeNotifications.CHANNEL_HABITS)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(name)
-            .setContentText("Отметить за сегодня")
+            .setContentText(context.getString(R.string.habitreminderrec_otmetit_za_segodnya))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .setContentIntent(contentIntent)
-            .addAction(0, "Выполнено", actionIntent(context, habitId, ACTION_DONE, 1))
-            .addAction(0, "Пропустить", actionIntent(context, habitId, ACTION_SKIP, 2))
-            .addAction(0, "Через час", actionIntent(context, habitId, ACTION_SNOOZE, 3))
+            .addAction(0, context.getString(R.string.editor_vypolneno), actionIntent(context, habitId, ACTION_DONE, 1))
+            .addAction(0, context.getString(R.string.onboarding_propustit), actionIntent(context, habitId, ACTION_SKIP, 2))
+            .addAction(0, context.getString(R.string.habitreminderrec_cherez_chas), actionIntent(context, habitId, ACTION_SNOOZE, 3))
             .build()
 
         context.getSystemService<NotificationManager>()

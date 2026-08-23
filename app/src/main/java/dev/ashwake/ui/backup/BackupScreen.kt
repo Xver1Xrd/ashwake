@@ -10,23 +10,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -38,9 +28,17 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.data.importer.ImportSource
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Moss
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,11 +49,13 @@ fun BackupScreen(
     val folder by viewModel.backupFolder.collectAsStateWithLifecycle()
     val message by viewModel.message.collectAsStateWithLifecycle()
     val restorePreview by viewModel.restorePreview.collectAsStateWithLifecycle()
+    val restoring by viewModel.restoring.collectAsStateWithLifecycle()
     val import by viewModel.import.collectAsStateWithLifecycle()
 
     val snackbar = remember { SnackbarHostState() }
     var password by remember { mutableStateOf("") }
     var importSource by remember { mutableStateOf(ImportSource.TICKTICK_CSV) }
+    var csvKind by remember { mutableStateOf(CsvKind.TASKS) }
 
     LaunchedEffect(message) {
         message?.let {
@@ -76,15 +76,16 @@ fun BackupScreen(
         ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { viewModel.parseImport(it, importSource) } }
 
+    val saveCsv = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/csv")
+    ) { uri -> uri?.let { viewModel.exportCsv(it, csvKind) } }
+
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Данные") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                    }
-                }
+            AshNavBar(
+                title = stringResource(R.string.backup_dannye),
+                onBack = onBack
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
@@ -97,100 +98,95 @@ fun BackupScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Резервные копии", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_rezervnye_kopii), style = AshTheme.type.headline)
             Text(
-                "Копия пишется в выбранную папку раз в сутки. Положите её туда, " +
-                    "где работает ваша синхронизация — приложение само никуда " +
-                    "ничего не отправляет",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                stringResource(R.string.backup_kopiya_pishetsya_v_vybrannuyu_papku_raz_v_su),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             Text(
-                folder?.let { "Папка выбрана" } ?: "Папка не выбрана",
-                style = MaterialTheme.typography.bodyMedium,
+                folder?.let { stringResource(R.string.backup_papka_vybrana) } ?: stringResource(R.string.backup_papka_ne_vybrana),
+                style = AshTheme.type.callout,
                 color = if (folder != null) Moss else Ember
             )
-            OutlinedButton(
-                onClick = { pickFolder.launch(null) },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (folder == null) "Выбрать папку" else "Сменить папку") }
+            ChipButton(
+                text = if (folder == null) stringResource(R.string.backup_vybrat_papku) else stringResource(R.string.backup_smenit_papku),
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { pickFolder.launch(null) }
+            )
 
             HorizontalDivider()
-            Text("Пароль архива", style = MaterialTheme.typography.titleSmall)
-            OutlinedTextField(
+            Text(stringResource(R.string.backup_parol_arhiva), style = AshTheme.type.headline)
+            AshTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Пароль") },
+                label = stringResource(R.string.backup_parol),
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
                 if (password.isBlank()) {
-                    "Без пароля копия сохраняется открытым текстом — её сможет " +
-                        "прочитать всё, что имеет доступ к папке"
+                    stringResource(R.string.backup_bez_parolya_kopiya_sohranyaetsya_otkrytym_te)
                 } else {
-                    "Пароль нигде не хранится. Забытый пароль означает потерянный архив"
+                    stringResource(R.string.backup_parol_nigde_ne_hranitsya_zabytyy_parol_oznac)
                 },
-                style = MaterialTheme.typography.labelSmall,
-                color = if (password.isBlank()) Ember else MaterialTheme.colorScheme.onSurfaceVariant
+                style = AshTheme.type.footnote,
+                color = if (password.isBlank()) Ember else AshTheme.colors.text2
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = { viewModel.backupNow(password) },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Сделать копию") }
-                OutlinedButton(
-                    onClick = { pickArchive.launch(arrayOf("*/*")) },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Открыть архив") }
+                PrimaryButton(
+                    text = stringResource(R.string.backup_sdelat_kopiyu),
+                    modifier = Modifier.weight(1f),
+                    onClick = { viewModel.backupNow(password) }
+                )
+                ChipButton(
+                    text = stringResource(R.string.backup_otkryt_arhiv),
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickArchive.launch(arrayOf("*/*")) }
+                )
             }
 
             HorizontalDivider()
-            Text("Экспорт для таблиц", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.backup_import_iz_drugogo_prilozheniya), style = AshTheme.type.headline)
             Text(
-                "CSV без пароля: открывается в любом табличном редакторе",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            val saveTasksCsv = rememberLauncherForActivityResult(
-                ActivityResultContracts.CreateDocument("text/csv")
-            ) { uri -> uri?.let { viewModel.exportCsv(it, dev.ashwake.ui.backup.CsvKind.TASKS) } }
-            val saveHabitsCsv = rememberLauncherForActivityResult(
-                ActivityResultContracts.CreateDocument("text/csv")
-            ) { uri -> uri?.let { viewModel.exportCsv(it, dev.ashwake.ui.backup.CsvKind.HABITS) } }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(
-                    onClick = { saveTasksCsv.launch("ashwake-tasks.csv") },
-                    modifier = Modifier.weight(1f)
-                ) { Text("CSV задач") }
-                OutlinedButton(
-                    onClick = { saveHabitsCsv.launch("ashwake-habits.csv") },
-                    modifier = Modifier.weight(1f)
-                ) { Text("CSV привычек") }
-            }
-
-            HorizontalDivider()
-            Text("Импорт из другого приложения", style = MaterialTheme.typography.titleSmall)
-            Text(
-                "Разбор показывается до применения: ничего не меняется, " +
-                    "пока вы не нажмёте «Применить»",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                stringResource(R.string.backup_razbor_pokazyvaetsya_do_primeneniya_nichego),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
             )
 
             ImportSource.entries.forEach { source ->
-                OutlinedButton(
+                ChipButton(
+                    text = sourceLabel(source),
+                    modifier = Modifier.fillMaxWidth(),
                     onClick = {
                         importSource = source
                         pickImport.launch(arrayOf("text/*", "text/csv", "text/comma-separated-values"))
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(sourceLabel(source)) }
+                    }
+                )
+            }
+
+            HorizontalDivider()
+            Text(stringResource(R.string.backup_eksport_istoriya), style = AshTheme.type.headline)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChipButton(
+                    text = stringResource(R.string.backup_csv_zadach),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        csvKind = CsvKind.TASKS
+                        saveCsv.launch("ashwake-tasks-${System.currentTimeMillis()}.csv")
+                    }
+                )
+                ChipButton(
+                    text = stringResource(R.string.backup_csv_privychek),
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        csvKind = CsvKind.HABITS
+                        saveCsv.launch("ashwake-habits-${System.currentTimeMillis()}.csv")
+                    }
+                )
             }
         }
     }
@@ -198,40 +194,41 @@ fun BackupScreen(
     import.report?.let { report ->
         AlertDialog(
             onDismissRequest = viewModel::cancelImport,
-            title = { Text("Что распозналось") },
+            title = { Text(stringResource(R.string.backup_chto_raspoznalos)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "Импортируется ${report.imported}, пропущено ${report.skipped}",
-                        style = MaterialTheme.typography.bodyMedium
+                        stringResource(R.string.backup_importiruetsya_1_s_propuscheno_2_s, report.imported, report.skipped),
+                        style = AshTheme.type.callout
                     )
                     if (report.previewTitles.isNotEmpty()) {
-                        Text("Например:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_naprimer), style = AshTheme.type.subhead)
                         report.previewTitles.forEach {
-                            Text("· $it", style = MaterialTheme.typography.bodySmall)
+                            Text("· $it", style = AshTheme.type.subhead)
                         }
                     }
                     if (report.reasons.isNotEmpty()) {
                         HorizontalDivider()
-                        Text("Пропущено:", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.backup_propuscheno), style = AshTheme.type.subhead)
                         report.reasons.forEach { (reason, count) ->
                             Text(
                                 "$reason — $count",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.subhead,
+                                color = AshTheme.colors.text2
                             )
                         }
                     }
                 }
             },
             confirmButton = {
-                Button(
-                    onClick = viewModel::applyImport,
-                    enabled = !import.busy && report.imported > 0
-                ) { Text("Применить") }
+                PrimaryButton(
+                    text = stringResource(R.string.backup_primenit),
+                    enabled = !import.busy && report.imported > 0,
+                    onClick = viewModel::applyImport
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::cancelImport) { Text("Отмена") }
+                TextAction(text = stringResource(R.string.detail_otmena), onClick = viewModel::cancelImport)
             }
         )
     }
@@ -239,29 +236,34 @@ fun BackupScreen(
     restorePreview?.let { contents ->
         AlertDialog(
             onDismissRequest = viewModel::dismissRestorePreview,
-            title = { Text("Что в архиве") },
+            title = { Text(stringResource(R.string.backup_chto_v_arhive)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Задач: ${contents.tasks}")
-                    Text("Привычек: ${contents.habits}, отметок: ${contents.habitEntries}")
-                    Text("Отказов: ${contents.abstinences}")
-                    Text("Записей ритуала: ${contents.reviews}")
+                    Text(stringResource(R.string.backup_zadach_1_s, contents.tasks))
+                    Text(stringResource(R.string.backup_privychek_1_s_otmetok_2_s, contents.habits, contents.habitEntries))
+                    Text(stringResource(R.string.backup_otkazov_1_s, contents.abstinences))
+                    Text(stringResource(R.string.backup_zapisey_rituala_1_s, contents.reviews))
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Восстановление заменяет все текущие данные и необратимо. " +
-                            "Убедитесь, что это именно тот архив, который нужен",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Ember
+                        stringResource(R.string.backup_vosstanovlenie_zamenit_tekuschie_dannye_celi),
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.text2
                     )
                 }
             },
             confirmButton = {
-                Button(onClick = viewModel::restoreBackup) {
-                    Text("Заменить данные")
-                }
+                TextAction(
+                    text = if (restoring) stringResource(R.string.backup_vosstanovlenie) else stringResource(R.string.backup_zamenit_dannye),
+                    color = AshTheme.colors.danger,
+                    enabled = !restoring,
+                    onClick = viewModel::applyRestore
+                )
             },
             dismissButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Отмена") }
+                TextAction(
+                    text = stringResource(R.string.detail_otmena),
+                    onClick = viewModel::dismissRestorePreview
+                )
             }
         )
     }

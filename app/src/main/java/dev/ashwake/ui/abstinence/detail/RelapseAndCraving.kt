@@ -13,17 +13,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseInOutSine
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.theme.AshTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,10 +41,11 @@ import dev.ashwake.domain.model.abstinence.Abstinence
 import dev.ashwake.domain.model.abstinence.CravingTrigger
 import dev.ashwake.domain.model.abstinence.RelapseReason
 import dev.ashwake.ui.theme.Blood
-import dev.ashwake.ui.theme.Steel
 import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Регистрация срыва.
@@ -64,58 +68,60 @@ fun RelapseDialog(
     if (!confirmed) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Отметить срыв?") },
+            title = { Text(stringResource(R.string.detail_otmetit_sryv)) },
             text = {
                 Text(
-                    "Счётчик начнёт новую попытку. История никуда не денется: " +
-                        "рекорд и общее число чистых дней сохранятся.",
-                    style = MaterialTheme.typography.bodyMedium
+                    stringResource(R.string.detail_schetchik_nachnet_novuyu_popytku_istoriya_ni),
+                    style = AshTheme.type.callout
                 )
             },
-            confirmButton = { TextButton(onClick = { confirmed = true }) { Text("Да") } },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+            confirmButton = { TextAction(text = stringResource(R.string.detail_da), onClick = { confirmed = true }) },
+            dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
         )
         return
     }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Что случилось") },
+        title = { Text(stringResource(R.string.detail_chto_sluchilos)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Причина", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_prichina), style = AshTheme.type.subhead)
                 ReasonChips(reasons, selectedReason) { selectedReason = it }
 
-                Text("Когда", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_kogda), style = AshTheme.type.subhead)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0, 3, 12, 24).forEach { hours ->
-                        FilterChip(
-                            selected = hoursAgo == hours,
-                            onClick = { hoursAgo = hours },
-                            label = { Text(if (hours == 0) "сейчас" else "$hours ч назад") }
-                        )
+                        ChipButton(
+                        text = if (hours == 0) stringResource(R.string.detail_seychas) else stringResource(R.string.detail_1_s_ch_nazad, hours),
+                        selected = hoursAgo == hours,
+                        onClick = { hoursAgo = hours }
+                    )
                     }
                 }
 
-                OutlinedTextField(
+                AshTextField(
                     value = note,
                     onValueChange = { note = it },
-                    label = { Text("Заметка") },
+                    label = stringResource(R.string.detail_zametka),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                onConfirm(
-                    selectedReason,
-                    note.takeIf { it.isNotBlank() },
-                    Instant.now().minus(Duration.ofHours(hoursAgo.toLong()))
-                )
-            }) { Text("Сохранить") }
+            TextAction(
+                text = stringResource(R.string.detail_sohranit),
+                onClick = {
+                    onConfirm(
+                        selectedReason,
+                        note.takeIf { it.isNotBlank() },
+                        Instant.now().minus(Duration.ofHours(hoursAgo.toLong()))
+                    )
+                }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }
 
@@ -128,11 +134,11 @@ private fun ReasonChips(
 ) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         reasons.forEach { reason ->
-            FilterChip(
-                selected = selected == reason.id,
-                onClick = { onSelect(if (selected == reason.id) null else reason.id) },
-                label = { Text(reason.label) }
-            )
+            ChipButton(
+                        text = reason.label,
+                        selected = selected == reason.id,
+                        onClick = { onSelect(if (selected == reason.id) null else reason.id) }
+                    )
         }
     }
 }
@@ -151,6 +157,7 @@ fun CravingSheet(
     triggers: List<CravingTrigger>,
     onStart: (intensity: Int, triggerId: Long?) -> Unit,
     onFinish: (resisted: Boolean, durationSeconds: Int?, note: String?) -> Unit,
+    onRelapse: (durationSeconds: Int?, note: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var intensity by remember { mutableIntStateOf(3) }
@@ -175,21 +182,21 @@ fun CravingSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Сейчас тяжело", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.detail_seychas_tyazhelo), style = AshTheme.type.title3)
 
             abstinence.motivationText?.let { text ->
                 Text(
                     text,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = AshTheme.type.body,
                     modifier = Modifier.fillMaxWidth()
                 )
                 HorizontalDivider()
             }
 
             if (abstinence.substitutes.isNotEmpty()) {
-                Text("Можно сделать вместо", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.detail_mozhno_sdelat_vmesto), style = AshTheme.type.subhead)
                 abstinence.substitutes.forEach { substitute ->
-                    Text("· ${substitute.text}", style = MaterialTheme.typography.bodyMedium)
+                    Text("· ${substitute.text}", style = AshTheme.type.callout)
                 }
                 HorizontalDivider()
             }
@@ -207,54 +214,79 @@ fun CravingSheet(
             )
 
             HorizontalDivider()
-            Text("Насколько сильно", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_naskolko_silno), style = AshTheme.type.subhead)
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 (1..5).forEach { level ->
-                    FilterChip(
+                    ChipButton(
+                        text = "$level",
                         selected = intensity == level,
-                        onClick = { intensity = level },
-                        label = { Text("$level") }
+                        onClick = { intensity = level }
                     )
                 }
             }
 
-            Text("Что подтолкнуло", style = MaterialTheme.typography.labelLarge)
+            Text(stringResource(R.string.detail_chto_podtolknulo), style = AshTheme.type.subhead)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 triggers.forEach { trigger ->
-                    FilterChip(
+                    ChipButton(
+                        text = trigger.label,
                         selected = triggerId == trigger.id,
-                        onClick = { triggerId = if (triggerId == trigger.id) null else trigger.id },
-                        label = { Text(trigger.label) }
+                        onClick = { triggerId = if (triggerId == trigger.id) null else trigger.id }
                     )
                 }
             }
 
-            OutlinedTextField(
+            AshTextField(
                 value = note,
                 onValueChange = { note = it },
-                label = { Text("Заметка") },
+                label = stringResource(R.string.detail_zametka),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
             )
 
             HorizontalDivider()
+
+            // Три исхода вместо двух. «Не помогло» раньше означало только
+            // «тяга не прошла», но читалось как отметка срыва — теперь срыв
+            // это отдельный, названный своим словом выход
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                PrimaryButton(
+                    text = stringResource(R.string.detail_spravilsya),
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
                         onFinish(true, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
-                    },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Переждал") }
+                    }
+                )
 
-                OutlinedButton(
+                ChipButton(
+                    text = stringResource(R.string.detail_otpustilo_samo),
+                    modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
                         onFinish(false, breathingSeconds.takeIf { it > 0 }, note.takeIf { it.isNotBlank() })
-                    },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Не помогло") }
+                    }
+                )
             }
+
+            TextAction(
+                text = stringResource(R.string.detail_ne_spravilsya_otmetit_sryv),
+                color = AshTheme.colors.danger,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = {
+                    if (!started) onStart(intensity, triggerId)
+                    onRelapse(
+                        breathingSeconds.takeIf { it > 0 },
+                        note.takeIf { it.isNotBlank() }
+                    )
+                }
+            )
+
+            Text(
+                stringResource(R.string.detail_poka_vy_ne_otmetili_sryv_schetchik_idet_dals),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2
+            )
         }
     }
 }
@@ -269,18 +301,25 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
     val inhaling = phase < PHASE_SECONDS
     val holding = phase in PHASE_SECONDS until PHASE_SECONDS * 2
 
-    val targetScale = when {
-        !running -> 0.6f
-        inhaling -> 1f
-        holding -> 1f
-        else -> 0.6f
+    // Круг движется по синусоиде, а не линейно между двумя размерами.
+    // Дыхание само по себе синусоидально: линейное расширение с рывком на
+    // границе фазы сбивает с ритма ровно того, кому за ним надо следовать.
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(running, phase) {
+        if (!running) {
+            progress.animateTo(0f, tween(600))
+            return@LaunchedEffect
+        }
+        when {
+            inhaling -> progress.animateTo(1f, tween(PHASE_SECONDS * 1000, easing = EaseInOutSine))
+            holding -> progress.animateTo(1f, tween(200))
+            else -> progress.animateTo(0f, tween(PHASE_SECONDS * 1000, easing = EaseInOutSine))
+        }
     }
-    val scale by animateFloatAsState(
-        targetValue = targetScale,
-        animationSpec = tween(durationMillis = PHASE_SECONDS * 1000),
-        label = "breathing"
-    )
-    val color = MaterialTheme.colorScheme.primary
+
+    val colors = AshTheme.colors
+    val color = colors.cold
+    val scale = 0.55f + 0.45f * progress.value
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -288,33 +327,46 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Canvas(modifier = Modifier.size(140.dp)) {
-                drawCircle(color = color.copy(alpha = 0.2f), radius = size.minDimension / 2f)
-                drawCircle(color = color, radius = size.minDimension / 2f * scale)
+            Canvas(modifier = Modifier.size(160.dp)) {
+                val radius = size.minDimension / 2f
+
+                // Подсветка на задержке дыхания: круг замер, и без свечения
+                // непонятно, идёт ли ещё отсчёт
+                val glow = if (holding && running) 1f else 0f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            color.copy(alpha = 0.35f + 0.25f * glow),
+                            color.copy(alpha = 0f)
+                        ),
+                        radius = radius * scale * 1.6f
+                    ),
+                    radius = radius * scale * 1.6f
+                )
+                drawCircle(color = color.copy(alpha = 0.18f), radius = radius)
+                drawCircle(color = color, radius = radius * scale)
             }
             Text(
-                text = if (!running) "старт" else when {
-                    inhaling -> "вдох"
-                    holding -> "держим"
-                    else -> "выдох"
+                text = if (!running) stringResource(R.string.detail_start) else when {
+                    inhaling -> stringResource(R.string.detail_vdoh)
+                    holding -> stringResource(R.string.detail_derzhim)
+                    else -> stringResource(R.string.detail_vydoh)
                 },
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimary
+                style = AshTheme.type.subhead,
+                color = if (colors.isDark) Color.Black else Color.White
             )
         }
         Text(
             "%d:%02d".format(seconds / 60, seconds % 60),
-            style = MaterialTheme.typography.titleMedium
+            style = AshTheme.type.title3
         )
         Text(
-            "Две–пять минут обычно достаточно, чтобы волна прошла",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            stringResource(R.string.detail_dve_pyat_minut_obychno_dostatochno_chtoby_vo),
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center
         )
-        OutlinedButton(onClick = onToggle) {
-            Text(if (running) "Пауза" else "Начать дышать")
-        }
+        ChipButton(text = if (running) stringResource(R.string.detail_pauza) else stringResource(R.string.detail_nachat_dyshat), onClick = onToggle)
     }
 }
 
@@ -326,34 +378,36 @@ private fun BreathingTimer(seconds: Int, running: Boolean, onToggle: () -> Unit)
 fun SubstanceWarningDialog(onAcknowledge: () -> Unit) {
     AlertDialog(
         onDismissRequest = onAcknowledge,
-        title = { Text("Одно замечание") },
+        title = { Text(stringResource(R.string.detail_odno_zamechanie)) },
         text = {
             Text(
-                "Резкий отказ от алкоголя или веществ может быть небезопасен. " +
-                    "Имеет смысл обсудить это с врачом.\n\n" +
-                    "Приложение считает дни и ведёт историю. Медицинских рекомендаций " +
-                    "оно не даёт.",
-                style = MaterialTheme.typography.bodyMedium
+                stringResource(R.string.detail_rezkiy_otkaz_ot_alkogolya_ili_veschestv_mozh),
+                style = AshTheme.type.callout
             )
         },
-        confirmButton = { TextButton(onClick = onAcknowledge) { Text("Понятно") } }
+        confirmButton = { TextAction(text = stringResource(R.string.detail_ponyatno), onClick = onAcknowledge) }
     )
 }
 
 /** Кнопка срыва: приглушённая и внизу, а не на видном месте. */
 @Composable
 fun RelapseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    TextButton(onClick = onClick, modifier = modifier) {
-        Text("Отметить срыв", color = Blood.copy(alpha = 0.8f))
-    }
+    TextAction(
+        text = stringResource(R.string.detail_otmetit_sryv_2), color = Blood.copy(alpha = 0.8f),
+        modifier = modifier,
+        onClick = onClick
+    )
 }
 
 /** Кнопка отмены ошибочного срыва — видна только первые сутки. */
 @Composable
 fun UndoRelapseButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(onClick = onClick, modifier = modifier) {
-        Text("Отменить срыв", color = Steel)
-    }
+    TextAction(
+        text = stringResource(R.string.detail_otmenit_sryv),
+        color = AshTheme.colors.text2,
+        modifier = modifier,
+        onClick = onClick
+    )
 }
 
 private const val PHASE_SECONDS = 4

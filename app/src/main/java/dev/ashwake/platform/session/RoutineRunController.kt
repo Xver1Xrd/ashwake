@@ -1,11 +1,16 @@
 package dev.ashwake.platform.session
 
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.domain.engine.character.StatSource
+import dev.ashwake.domain.engine.reward.RewardContext
+import dev.ashwake.domain.engine.reward.RewardSource
 import dev.ashwake.domain.engine.routines.RoutineProgressCalculator
 import dev.ashwake.domain.engine.routines.RunProgress
 import dev.ashwake.domain.model.routines.Routine
 import dev.ashwake.domain.model.routines.RoutineSessionStep
+import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.routines.RoutineRepository
+import dev.ashwake.domain.usecase.habits.FireAnchorsUseCase
 import dev.ashwake.domain.usecase.routines.FinishRoutineSessionUseCase
 import dev.ashwake.platform.tts.StepSpeaker
 import kotlinx.coroutines.CoroutineScope
@@ -50,9 +55,11 @@ data class RoutineRunState(
 @Singleton
 class RoutineRunController @Inject constructor(
     private val routines: RoutineRepository,
-    private val finishSession: FinishRoutineSessionUseCase,
+    private val character: CharacterRepository,
+    private val fireAnchors: FireAnchorsUseCase,
     private val calculator: RoutineProgressCalculator,
     private val speaker: StepSpeaker,
+    private val finishRoutine: FinishRoutineSessionUseCase,
     private val clock: AppClock
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -138,7 +145,17 @@ class RoutineRunController @Inject constructor(
         scope.launch {
             if (current.sessionId != 0L) {
                 persistCurrentStep(skipped = false)
-                finishSession(current.sessionId, completed, current.routine?.id)
+
+                // Завершение идёт через use case: награда, очки и проверка
+                // достижений в одном месте, независимо от того, как закончили —
+                // кнопкой или последним шагом
+                finishRoutine(current.sessionId, completed, current.routine?.id)
+
+                if (completed) {
+                    // Якорь «после рутины»: утренняя рутина закончилась —
+                    // напоминаем о привычке, которая на неё завязана
+                    current.routine?.id?.let { fireAnchors.onRoutineDone(it) }
+                }
             }
             _state.update { it.copy(running = false, finished = true) }
         }

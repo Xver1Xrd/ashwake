@@ -17,24 +17,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -50,12 +43,20 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.AshNavBar
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.blocking.UnlockCondition
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Moss
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM HH:mm")
 
@@ -81,19 +82,16 @@ fun BlockingScreen(
     }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Блокировка приложений") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                    }
-                }
+            AshNavBar(
+                title = stringResource(R.string.blocking_blokirovka_prilozheniy),
+                onBack = onBack
             )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreate = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Новое правило")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.blocking_novoe_pravilo))
             }
         }
     ) { padding ->
@@ -108,14 +106,13 @@ fun BlockingScreen(
             PermissionsBlock(permissions, viewModel)
 
             HorizontalDivider()
-            Text("Правила", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.blocking_pravila), style = AshTheme.type.headline)
 
             if (rules.isEmpty()) {
                 Text(
-                    "Правил нет. Правило описывает, какие приложения закрыты " +
-                        "и что нужно сделать, чтобы они открылись",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.blocking_pravil_net_pravilo_opisyvaet_kakie_prilozhen),
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
                 )
             }
 
@@ -124,21 +121,21 @@ fun BlockingScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(AshTheme.colors.surface1)
                         .padding(12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(rule.name, style = MaterialTheme.typography.bodyLarge)
+                            Text(rule.name, style = AshTheme.type.body)
                             Text(
                                 conditionLabel(rule.condition, rule.unlockTime),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2
                             )
                             Text(
                                 rule.packages.joinToString { viewModel.appLabel(it) },
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = AshTheme.type.footnote,
+                                color = AshTheme.colors.text2,
                                 maxLines = 2
                             )
                         }
@@ -148,7 +145,7 @@ fun BlockingScreen(
                             onCheckedChange = { viewModel.setEnabled(rule, it) }
                         )
                         IconButton(onClick = { viewModel.delete(rule) }) {
-                            Icon(Icons.Filled.Delete, contentDescription = "Удалить")
+                            Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.blocking_udalit))
                         }
                     }
                 }
@@ -156,19 +153,17 @@ fun BlockingScreen(
 
             if (bypasses.isNotEmpty()) {
                 HorizontalDivider()
-                Text("Экстренные обходы", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.blocking_ekstrennye_obhody), style = AshTheme.type.headline)
                 Text(
-                    "Обход всегда возможен — запирать себя в собственном телефоне " +
-                        "нельзя. Но он остаётся в логе, и по нему видно, работает " +
-                        "правило или стало формальностью",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.blocking_obhod_vsegda_vozmozhen_zapirat_sebya_v_sobst),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
                 )
                 bypasses.take(10).forEach { record ->
                     Text(
                         "${record.at.atZone(ZoneId.systemDefault()).format(TIME_FORMAT)} · " +
                             viewModel.appLabel(record.packageName),
-                        style = MaterialTheme.typography.bodySmall
+                        style = AshTheme.type.subhead
                     )
                 }
             }
@@ -188,27 +183,25 @@ fun BlockingScreen(
  */
 @Composable
 private fun PermissionsBlock(state: PermissionState, viewModel: BlockingViewModel) {
-    Text("Разрешения", style = MaterialTheme.typography.titleSmall)
+    Text(stringResource(R.string.blocking_razresheniya), style = AshTheme.type.headline)
 
     PermissionRow(
         granted = state.usageAccess,
-        title = "Доступ к статистике использования",
-        explanation = "Нужен, чтобы понять, какое приложение открыто прямо сейчас. " +
-            "Ashwake читает только имя приложения на переднем плане и никуда " +
-            "его не отправляет",
+        title = stringResource(R.string.blocking_dostup_k_statistike_ispolzovaniya),
+        explanation = stringResource(R.string.blocking_nuzhen_chtoby_ponyat_kakoe_prilozhenie_otkry),
         onOpen = viewModel::openUsageAccessSettings
     )
     PermissionRow(
         granted = state.overlay,
-        title = "Поверх других приложений",
-        explanation = "Нужен, чтобы показать экран с напоминанием, что осталось сделать",
+        title = stringResource(R.string.blocking_poverh_drugih_prilozheniy),
+        explanation = stringResource(R.string.blocking_nuzhen_chtoby_pokazat_ekran_s_napominaniem_c),
         onOpen = viewModel::openOverlaySettings
     )
 
     if (!state.allGranted) {
         Text(
-            "Без обоих разрешений блокировка не включается",
-            style = MaterialTheme.typography.labelMedium,
+            stringResource(R.string.blocking_bez_oboih_razresheniy_blokirovka_ne_vklyucha),
+            style = AshTheme.type.footnote,
             color = Ember
         )
     }
@@ -225,16 +218,16 @@ private fun PermissionRow(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (granted) "✓  $title" else "○  $title",
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (granted) Moss else MaterialTheme.colorScheme.onSurface,
+                style = AshTheme.type.callout,
+                color = if (granted) Moss else AshTheme.colors.text,
                 modifier = Modifier.weight(1f)
             )
-            if (!granted) TextButton(onClick = onOpen) { Text("Выдать") }
+            if (!granted) TextAction(text = stringResource(R.string.blocking_vydat), onClick = onOpen)
         }
         Text(
             explanation,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -254,29 +247,29 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новое правило") },
+        title = { Text(stringResource(R.string.blocking_novoe_pravilo)) },
         text = {
             Column(
                 modifier = Modifier.heightIn(max = 460.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedTextField(
+                AshTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Название") },
-                    placeholder = { Text("Утро без соцсетей") },
+                    label = stringResource(R.string.editor_nazvanie),
+                    placeholder = stringResource(R.string.blocking_utro_bez_socsetey),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Открыть, когда", style = MaterialTheme.typography.labelLarge)
+                Text(stringResource(R.string.blocking_otkryt_kogda), style = AshTheme.type.subhead)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     UnlockCondition.entries.forEach { option ->
-                        FilterChip(
-                            selected = condition == option,
-                            onClick = { condition = option },
-                            label = { Text(shortConditionLabel(option)) }
-                        )
+                        ChipButton(
+                        text = shortConditionLabel(option),
+                        selected = condition == option,
+                        onClick = { condition = option }
+                    )
                     }
                 }
 
@@ -285,11 +278,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         routines.forEach { routine ->
-                            FilterChip(
-                                selected = routineId == routine.id,
-                                onClick = { routineId = routine.id },
-                                label = { Text(routine.name) }
-                            )
+                            ChipButton(
+                        text = routine.name,
+                        selected = routineId == routine.id,
+                        onClick = { routineId = routine.id }
+                    )
                         }
                     }
 
@@ -297,11 +290,11 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         listOf(8, 10, 12, 14, 18).forEach { option ->
-                            FilterChip(
-                                selected = hour == option,
-                                onClick = { hour = option },
-                                label = { Text("%02d:00".format(option)) }
-                            )
+                            ChipButton(
+                        text = "%02d:00".format(option),
+                        selected = hour == option,
+                        onClick = { hour = option }
+                    )
                         }
                     }
 
@@ -309,10 +302,10 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                 }
 
                 HorizontalDivider()
-                OutlinedTextField(
+                AshTextField(
                     value = query,
                     onValueChange = { query = it },
-                    label = { Text("Поиск приложения") },
+                    label = stringResource(R.string.blocking_poisk_prilozheniya),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -336,9 +329,9 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                         ) {
                             Text(
                                 if (isSelected) "✓  ${app.label}" else "○  ${app.label}",
-                                style = MaterialTheme.typography.bodyMedium,
+                                style = AshTheme.type.callout,
                                 color = if (isSelected) Moss
-                                else MaterialTheme.colorScheme.onSurface
+                                else AshTheme.colors.text
                             )
                         }
                     }
@@ -346,7 +339,8 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
             }
         },
         confirmButton = {
-            Button(
+            PrimaryButton(
+                text = stringResource(R.string.editor_sozdat),
                 enabled = name.isNotBlank() && selected.isNotEmpty(),
                 onClick = {
                     viewModel.createRule(
@@ -359,22 +353,24 @@ private fun CreateRuleDialog(viewModel: BlockingViewModel, onDismiss: () -> Unit
                     )
                     onDismiss()
                 }
-            ) { Text("Создать") }
+            )
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Отмена") } }
+        dismissButton = { TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss) }
     )
 }
 
+@Composable
 private fun conditionLabel(condition: UnlockCondition, time: LocalTime?): String =
     when (condition) {
-        UnlockCondition.MORNING_HABITS_DONE -> "Пока не отмечены утренние привычки"
-        UnlockCondition.ROUTINE_DONE -> "Пока не пройдена рутина"
+        UnlockCondition.MORNING_HABITS_DONE -> stringResource(R.string.blocking_poka_ne_otmecheny_utrennie_privychki)
+        UnlockCondition.ROUTINE_DONE -> stringResource(R.string.blocking_poka_ne_proydena_rutina)
         UnlockCondition.TIME_AFTER ->
-            "Откроется в " + (time?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "—")
+            stringResource(R.string.blocking_otkroetsya_v) + (time?.let { "%02d:%02d".format(it.hour, it.minute) } ?: "—")
     }
 
+@Composable
 private fun shortConditionLabel(condition: UnlockCondition): String = when (condition) {
-    UnlockCondition.MORNING_HABITS_DONE -> "привычки"
-    UnlockCondition.ROUTINE_DONE -> "рутина"
-    UnlockCondition.TIME_AFTER -> "время"
+    UnlockCondition.MORNING_HABITS_DONE -> stringResource(R.string.blocking_privychki)
+    UnlockCondition.ROUTINE_DONE -> stringResource(R.string.blocking_rutina)
+    UnlockCondition.TIME_AFTER -> stringResource(R.string.blocking_vremya)
 }

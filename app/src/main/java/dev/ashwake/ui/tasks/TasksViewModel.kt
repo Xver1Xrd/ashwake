@@ -21,6 +21,7 @@ import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
+import dev.ashwake.domain.usecase.tasks.UndoPostponeUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.speech.VoiceInput
@@ -53,15 +54,15 @@ data class TasksUiState(
     val viewMode: TasksViewMode = TasksViewMode.LIST,
     val quickInput: String = "",
     val parsed: ParsedQuickInput? = null,
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = EPOCH_DAY,
     val staleDialogTask: Task? = null,
     val expandedTaskIds: Set<Long> = emptySet()
 )
 
 data class CalendarUiState(
     val scale: CalendarScale = CalendarScale.MONTH,
-    val anchor: LocalDate = LocalDate.EPOCH,
-    val selected: LocalDate = LocalDate.EPOCH,
+    val anchor: LocalDate = EPOCH_DAY,
+    val selected: LocalDate = EPOCH_DAY,
     val tasksByDate: Map<LocalDate, List<Task>> = emptyMap()
 )
 
@@ -78,6 +79,7 @@ class TasksViewModel @Inject constructor(
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val postponeTask: PostponeTaskUseCase,
+    private val undoPostpone: UndoPostponeUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val voiceInput: VoiceInput
 ) : ViewModel() {
@@ -280,6 +282,11 @@ class TasksViewModel @Inject constructor(
         }
     }
 
+    /** Отмена последнего переноса — пара к свайпу. */
+    fun undoPostpone(taskId: Long) {
+        viewModelScope.launch { undoPostpone.invoke(taskId) }
+    }
+
     fun delete(task: Task) {
         viewModelScope.launch { deleteTask(task.id) }
     }
@@ -361,3 +368,11 @@ class TasksViewModel @Inject constructor(
         )
     }
 }
+
+/**
+ * Заглушка «даты ещё нет» до первого значения из репозитория.
+ *
+ * Не `LocalDate.EPOCH`: это поле появилось только в API 34, а приложение
+ * живёт с 26. Компилятор такое пропускает молча, падает оно на устройстве.
+ */
+private val EPOCH_DAY: LocalDate = LocalDate.ofEpochDay(0)

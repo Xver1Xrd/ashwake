@@ -17,10 +17,10 @@ import dev.ashwake.data.db.dao.routines.FocusDao
 import dev.ashwake.data.db.dao.ritual.RitualDao
 import dev.ashwake.data.db.dao.routines.RoutineDao
 import dev.ashwake.data.db.dao.timebox.TimeboxDao
+import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
-import dev.ashwake.data.db.migration.Migrations
 import javax.inject.Singleton
 
 @Module
@@ -31,10 +31,11 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AshwakeDatabase =
         Room.databaseBuilder(context, AshwakeDatabase::class.java, AshwakeDatabase.NAME)
+            .addMigrations(*AshwakeDatabase.MIGRATIONS)
             .apply {
-                addMigrations(Migrations.MIGRATION_1_2)
-                // Схема зафиксирована с версии 2. В debug пересоздание
-                // остаётся как страховка для незакоммиченных экспериментов.
+                // В debug база пересоздаётся, если миграции не хватило: там
+                // терять нечего. В release этого пути нет — история отметок,
+                // попыток и покупок восстановлению не подлежит.
                 if (BuildConfig.DEBUG) fallbackToDestructiveMigration()
             }
             .build()
@@ -50,4 +51,5 @@ object DatabaseModule {
     @Provides fun provideTimeboxDao(db: AshwakeDatabase): TimeboxDao = db.timeboxDao()
     @Provides fun provideRitualDao(db: AshwakeDatabase): RitualDao = db.ritualDao()
     @Provides fun provideBlockingDao(db: AshwakeDatabase): BlockingDao = db.blockingDao()
+    @Provides fun provideBackupDao(db: AshwakeDatabase): BackupDao = db.backupDao()
 }

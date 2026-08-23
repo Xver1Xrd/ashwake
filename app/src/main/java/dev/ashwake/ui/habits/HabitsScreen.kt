@@ -8,19 +8,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BeachAccess
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,9 +29,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.habits.components.HabitActionsSheet
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.AshLargeTitle
+import dev.ashwake.ui.components.IconAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.habits.components.HabitCard
 import dev.ashwake.ui.habits.components.HabitCatalogDialog
 import kotlinx.coroutines.launch
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,33 +49,36 @@ fun HabitsScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val presets by viewModel.presets.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
+    // Текст читается в композиции: показывают его из корутины,
+    // а туда `stringResource` не дотянется
+    val freezesSpent = stringResource(R.string.habits_freezes_spent)
     val scope = rememberCoroutineScope()
 
     var sheetTarget by remember { mutableStateOf<HabitWithProgress?>(null) }
     var showCatalog by remember { mutableStateOf(false) }
 
     Scaffold(
+        containerColor = AshTheme.colors.background,
         topBar = {
-            TopAppBar(
-                title = { Text("Привычки") },
+            AshLargeTitle(
+                title = stringResource(R.string.habits_privychki),
                 actions = {
-                    IconButton(onClick = viewModel::toggleVacation) {
-                        Icon(
-                            Icons.Filled.BeachAccess,
-                            contentDescription = "Режим отпуска",
-                            tint = if (state.vacationMode) MaterialTheme.colorScheme.secondary
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    IconAction(
+                        icon = AshIcons.BeachAccess,
+                        contentDescription = stringResource(R.string.habits_rezhim_otpuska),
+                        tint = if (state.vacationMode) AshTheme.colors.accent
+                        else AshTheme.colors.text2,
+                        onClick = viewModel::toggleVacation
+                    )
+                    IconAction(
+                        icon = AshIcons.Add,
+                        contentDescription = stringResource(R.string.habits_dobavit_privychku),
+                        onClick = { showCatalog = true }
+                    )
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
-        floatingActionButton = {
-            FloatingActionButton(onClick = { showCatalog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Добавить привычку")
-            }
-        }
+        snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         if (state.habits.isEmpty()) {
             EmptyState(Modifier.padding(padding))
@@ -98,9 +101,9 @@ fun HabitsScreen(
             if (state.vacationMode) {
                 item {
                     Text(
-                        "Режим отпуска: дни не считаются пропусками",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
+                        stringResource(R.string.habits_rezhim_otpuska_dni_ne_schitayutsya_propuskam),
+                        style = AshTheme.type.footnote,
+                        color = AshTheme.colors.warm
                     )
                 }
             }
@@ -118,9 +121,9 @@ fun HabitsScreen(
             if (state.restToday.isNotEmpty()) {
                 item {
                     Text(
-                        "Не на сегодня",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        stringResource(R.string.habits_ne_na_segodnya),
+                        style = AshTheme.type.subhead,
+                        color = AshTheme.colors.text2,
                         modifier = Modifier.padding(top = 12.dp)
                     )
                 }
@@ -147,7 +150,7 @@ fun HabitsScreen(
                     scope.launch {
                         val ok = viewModel.freezeToday(target)
                         sheetTarget = null
-                        if (!ok) snackbar.showSnackbar("Заморозки на этот месяц закончились")
+                        if (!ok) snackbar.showSnackbar(freezesSpent)
                     }
                 },
                 onPause = { viewModel.pauseHabit(target, null); sheetTarget = null },
@@ -177,12 +180,11 @@ private fun EmptyState(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Привычек пока нет", style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.habits_privychek_poka_net), style = AshTheme.type.title3)
         Text(
-            "Возьмите готовую из каталога или заведите свою. " +
-                "Score растёт постепенно и не обнуляется от пары пропусков",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            stringResource(R.string.habits_vozmite_gotovuyu_iz_kataloga_ili_zavedite_sv),
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )

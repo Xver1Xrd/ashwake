@@ -1,5 +1,6 @@
 package dev.ashwake.ui.abstinence.components
 
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -12,9 +13,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import dev.ashwake.ui.components.CELEBRATION_MS
+import dev.ashwake.ui.components.NORMAL_MS
+import dev.ashwake.ui.components.RollingNumber
+import dev.ashwake.ui.components.motionTween
+import dev.ashwake.ui.theme.AshTheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +47,8 @@ import dev.ashwake.ui.theme.Moss
 import dev.ashwake.ui.theme.Steel
 import java.time.Duration
 import kotlin.math.roundToInt
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Живой счётчик: дни самым крупным кеглем, остальное мельче (п. 4).
@@ -42,33 +56,77 @@ import kotlin.math.roundToInt
  */
 @Composable
 fun LiveCounter(duration: Duration, modifier: Modifier = Modifier) {
+    // Остатки считаются вручную: `toHoursPart` и соседи появились в API 31,
+    // а приложение живёт с 26 — вызов компилируется молча и падает на
+    // устройстве ровно на этом экране
     val days = duration.toDays()
-    val hours = duration.toHoursPart()
-    val minutes = duration.toMinutesPart()
-    val seconds = duration.toSecondsPart()
+    val hours = (duration.toHours() % HOURS_IN_DAY).toInt()
+    val minutes = (duration.toMinutes() % MINUTES_IN_HOUR).toInt()
+    val seconds = (duration.seconds % SECONDS_IN_MINUTE).toInt()
+
+    // Дни доезжают, а не подменяются: срыв обнуляет счётчик, и мгновенный
+    // прыжок с 94 на 0 читается как сбой, а скручивание — как то, что
+    // произошло. Наверх работает так же: новый день приходит перекатом
+    val shownDays by animateIntAsState(
+        targetValue = days.toInt(),
+        animationSpec = motionTween(UNWIND_MS),
+        label = "counter-days"
+    )
 
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(days.toString(), style = CounterLarge)
+            RollingNumber(
+                value = shownDays.toLong(),
+                style = CounterLarge,
+                color = AshTheme.colors.text
+            )
             Text(
-                "  ${dayWord(days)}",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                "  ${dayWord(shownDays.toLong())}",
+                style = AshTheme.type.title3,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
         }
-        Text(
-            text = "%02d:%02d:%02d".format(hours, minutes, seconds),
-            style = CounterSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Часы, минуты и секунды тикают каждую секунду: перекат разрядов
+        // здесь и есть то, ради чего на счётчик смотрят
+        Row {
+            RollingUnit(hours, AshTheme.colors.text2)
+            CounterSeparator()
+            RollingUnit(minutes, AshTheme.colors.text2)
+            CounterSeparator()
+            RollingUnit(seconds, AshTheme.colors.text2)
+        }
     }
 }
 
-/** Кольцо прогресса до ближайшей вехи. */
+@Composable
+private fun RollingUnit(value: Int, color: androidx.compose.ui.graphics.Color) {
+    RollingNumber(
+        value = value.toLong(),
+        style = CounterSmall,
+        color = color,
+        minDigits = 2
+    )
+}
+
+@Composable
+private fun CounterSeparator() {
+    Text(":", style = CounterSmall, color = AshTheme.colors.text3)
+}
+
+/** Сколько длится скручивание счётчика при срыве. */
+private const val UNWIND_MS = 900
+
+/**
+ * Кольцо прогресса до ближайшей вехи.
+ *
+ * Когда кольцо замыкается, от него расходится волна: веха — единственное
+ * событие в этой части приложения, которое стоит отпраздновать, и до сих пор
+ * оно проходило совершенно молча.
+ */
 @Composable
 fun MilestoneRing(
     progress: Float,
@@ -76,7 +134,25 @@ fun MilestoneRing(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val track = MaterialTheme.colorScheme.surfaceVariant
+    val colors = AshTheme.colors
+    val track = colors.surface2
+
+    val shown by animateFloatAsState(
+        targetValue = progress.coerceIn(0f, 1f),
+        animationSpec = motionTween(NORMAL_MS),
+        label = "milestone-progress"
+    )
+
+    // Волна запускается на переходе через единицу, а не при каждом
+    // значении рядом с ней: иначе на границе она мигала бы без остановки
+    val reached = progress >= 1f
+    val wave = remember { Animatable(0f) }
+    LaunchedEffect(reached) {
+        if (reached) {
+            wave.snapTo(0f)
+            wave.animateTo(1f, tween(CELEBRATION_MS))
+        }
+    }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = modifier) {
         Box(contentAlignment = Alignment.Center) {
@@ -93,19 +169,29 @@ fun MilestoneRing(
                     style = Stroke(width = stroke)
                 )
                 drawArc(
-                    color = Gold, startAngle = -90f,
-                    sweepAngle = 360f * progress.coerceIn(0f, 1f), useCenter = false,
+                    color = colors.warm, startAngle = -90f,
+                    sweepAngle = 360f * shown, useCenter = false,
                     topLeft = topLeft, size = Size(diameter, diameter),
                     style = Stroke(width = stroke)
                 )
+
+                val ripple = wave.value
+                if (ripple > 0f && ripple < 1f) {
+                    drawCircle(
+                        color = colors.warm,
+                        radius = diameter / 2f + stroke + ripple * 44.dp.toPx(),
+                        style = Stroke(width = stroke * (1f - ripple)),
+                        alpha = (1f - ripple) * 0.7f
+                    )
+                }
             }
             content()
         }
         if (label != null) {
             Text(
-                "до вехи: $label",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                stringResource(R.string.components_do_vehi_1_s, label),
+                style = AshTheme.type.footnote,
+                color = AshTheme.colors.text2,
                 modifier = Modifier.padding(top = 8.dp)
             )
         }
@@ -119,20 +205,20 @@ fun StatsRow(stats: AbstinenceStats, modifier: Modifier = Modifier) {
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        StatCell(stats.record.toDays().toString(), "рекорд")
-        StatCell(stats.totalCleanDays.toString(), "всего чистых")
-        StatCell("№${stats.attemptNumber}", "попытка")
+        StatCell(stats.record.toDays().toString(), stringResource(R.string.components_rekord))
+        StatCell(stats.totalCleanDays.toString(), stringResource(R.string.components_vsego_chistyh))
+        StatCell("№${stats.attemptNumber}", stringResource(R.string.components_popytka))
     }
 }
 
 @Composable
 private fun StatCell(value: String, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(value, style = AshTheme.type.title2, fontWeight = FontWeight.Bold)
         Text(
             label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            style = AshTheme.type.footnote,
+            color = AshTheme.colors.text2
         )
     }
 }
@@ -141,15 +227,15 @@ private fun StatCell(value: String, label: String) {
 @Composable
 fun SavingsBlock(savings: Savings, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
-        Text("Сэкономлено", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_sekonomleno), style = AshTheme.type.headline)
         Text(
-            "не ${savings.units.roundToInt()} ${savings.unitName}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            stringResource(R.string.components_ne_1_s_2_s, savings.units.roundToInt(), savings.unitName),
+            style = AshTheme.type.callout,
+            color = AshTheme.colors.text2
         )
         Text(
             "${formatMoney(savings.money)} ${currencySymbol(savings.currency)}",
-            style = MaterialTheme.typography.headlineSmall,
+            style = AshTheme.type.title2,
             color = Gold
         )
     }
@@ -173,14 +259,14 @@ fun AttemptsChart(
     val maxDays = durations.maxOf { it.toDays() }.coerceAtLeast(1)
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Попытки", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.components_popytki), style = AshTheme.type.headline)
         attempts.forEachIndexed { index, attempt ->
             val days = durations[index].toDays()
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "№${attempt.ordinal}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(28.dp)
                 )
                 Box(
@@ -188,7 +274,7 @@ fun AttemptsChart(
                         .weight(1f)
                         .height(14.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(AshTheme.colors.surface2)
                 ) {
                     Box(
                         Modifier
@@ -200,8 +286,8 @@ fun AttemptsChart(
                 }
                 Text(
                     "  $days",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.width(36.dp)
                 )
             }
@@ -214,8 +300,8 @@ fun AttemptsChart(
 fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
     val max = heatmap.flatMap { it.asIterable() }.maxOrNull() ?: 0
     if (max == 0) return
-    val emptyColor = MaterialTheme.colorScheme.surfaceVariant
-    val labels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
+    val emptyColor = AshTheme.colors.surface2
+    val labels = listOf(stringResource(R.string.components_pn), stringResource(R.string.components_vt), stringResource(R.string.components_sr), stringResource(R.string.components_cht), stringResource(R.string.components_pt), stringResource(R.string.components_sb), stringResource(R.string.components_vs))
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         (1..7).forEach { day ->
@@ -225,8 +311,8 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
             ) {
                 Text(
                     labels[day - 1],
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2,
                     fontSize = 9.sp,
                     modifier = Modifier.width(18.dp)
                 )
@@ -249,9 +335,9 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
             listOf(0, 6, 12, 18).forEach { hour ->
                 Text(
                     "%02d".format(hour),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = AshTheme.type.footnote,
                     fontSize = 9.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = AshTheme.colors.text2,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -259,16 +345,16 @@ fun CravingHeatmap(heatmap: Array<IntArray>, modifier: Modifier = Modifier) {
     }
 }
 
-internal fun dayWord(days: Long): String {
-    val mod100 = days % 100
-    val mod10 = days % 10
-    return when {
-        mod100 in 11..14 -> "дней"
-        mod10 == 1L -> "день"
-        mod10 in 2..4 -> "дня"
-        else -> "дней"
-    }
-}
+/**
+ * Слово «день» в нужном числе.
+ *
+ * Правило склонения теперь в ресурсах, а не в коде: русские «1 день, 2 дня,
+ * 5 дней» — это ровно то, для чего в Android есть plurals, и своя таблица
+ * остатков рядом с ней выглядит как недоверие к платформе.
+ */
+@Composable
+internal fun dayWord(days: Long): String =
+    pluralStringResource(R.plurals.day_word, days.toInt())
 
 internal fun formatMoney(value: Float): String =
     if (value >= 1000) "%,d".format(value.roundToInt()).replace(',', ' ')
@@ -282,4 +368,9 @@ internal fun currencySymbol(code: String): String = when (code.uppercase()) {
 }
 
 /** Цвет фона карточки счётчика в списке. */
-internal val CounterAccent: Color = Moss
+internal val CounterAccent: Color
+    @Composable get() = AshTheme.colors.success
+
+private const val HOURS_IN_DAY = 24L
+private const val MINUTES_IN_HOUR = 60L
+private const val SECONDS_IN_MINUTE = 60L

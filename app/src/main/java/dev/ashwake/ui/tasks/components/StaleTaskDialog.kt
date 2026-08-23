@@ -4,11 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -16,8 +12,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import dev.ashwake.ui.components.AshTextField
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.StaleResolution
 import dev.ashwake.domain.model.tasks.Task
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 
 /**
  * Диалог залежавшейся задачи: открывается на 5-м переносе (п. 1).
@@ -37,71 +39,77 @@ fun StaleTaskDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Задача переносится ${task.postponeCount}-й раз") },
+        title = { Text(stringResource(R.string.components_zadacha_perenositsya_1_s_y_raz, task.postponeCount)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(task.title, style = MaterialTheme.typography.bodyLarge)
+                Text(task.title, style = AshTheme.type.body)
                 Text(
-                    "Похоже, в текущем виде она не двигается. Что с ней сделать?",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    stringResource(R.string.components_pohozhe_v_tekuschem_vide_ona_ne_dvigaetsya_c),
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
                 )
 
                 when (mode) {
-                    StaleResolution.DELEGATE -> OutlinedTextField(
+                    StaleResolution.DELEGATE -> AshTextField(
                         value = payload,
                         onValueChange = { payload = it },
-                        label = { Text("Кому делегировать") },
+                        label = stringResource(R.string.components_komu_delegirovat),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
-                    )
+                        )
 
-                    StaleResolution.SPLIT -> OutlinedTextField(
+                    StaleResolution.SPLIT -> AshTextField(
                         value = payload,
                         onValueChange = { payload = it },
-                        label = { Text("Подзадачи, по одной в строке") },
+                        label = stringResource(R.string.components_podzadachi_po_odnoy_v_stroke),
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
-                    )
+                        )
 
                     else -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        OutlinedButton(
-                            onClick = { onResolve(StaleResolution.DELETE, null) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Удалить") }
+                        ChipButton(
+                            text = stringResource(R.string.blocking_udalit),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onResolve(StaleResolution.DELETE, null) }
+                        )
 
-                        OutlinedButton(
-                            onClick = { mode = StaleResolution.DELEGATE },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Делегировать") }
+                        ChipButton(
+                            text = stringResource(R.string.components_delegirovat),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { mode = StaleResolution.DELEGATE }
+                        )
 
-                        OutlinedButton(
-                            onClick = { mode = StaleResolution.SPLIT },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Разбить на подзадачи") }
+                        ChipButton(
+                            text = stringResource(R.string.components_razbit_na_podzadachi),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { mode = StaleResolution.SPLIT }
+                        )
 
-                        OutlinedButton(
-                            onClick = { onResolve(StaleResolution.SCHEDULE_SLOT, null) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Поставить на сегодня") }
+                        ChipButton(
+                            text = stringResource(R.string.components_postavit_na_segodnya),
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { onResolve(StaleResolution.SCHEDULE_SLOT, null) }
+                        )
                     }
                 }
             }
         },
         confirmButton = {
             if (mode != null) {
-                TextButton(
-                    onClick = { onResolve(mode!!, payload.takeIf { it.isNotBlank() }) },
-                    enabled = payload.isNotBlank()
-                ) { Text("Готово") }
+                TextAction(
+                    text = stringResource(R.string.editor_gotovo),
+                    enabled = payload.isNotBlank(),
+                    onClick = { onResolve(mode!!, payload.takeIf { it.isNotBlank() }) }
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = {
-                if (mode != null) mode = null else onResolve(StaleResolution.KEEP, null)
-            }) {
-                Text(if (mode != null) "Назад" else "Оставить как есть")
-            }
+            TextAction(
+                text = if (mode != null) stringResource(R.string.detail_nazad) else stringResource(R.string.components_ostavit_kak_est),
+                onClick = {
+                    if (mode != null) mode = null else onResolve(StaleResolution.KEEP, null)
+                }
+            )
         }
     )
 }
