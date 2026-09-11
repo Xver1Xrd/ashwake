@@ -6,10 +6,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.HapticFeedbackConstants
+import android.view.SoundEffectConstants
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import dev.ashwake.platform.audio.SoundEffects
@@ -30,7 +32,7 @@ enum class HapticKind {
     /** Срыв, отмена необратимого действия. */
     WARNING,
 
-    /** Мягкий щелчок выполнения задачи. */
+    /** Мягкий системный щелчок выполнения задачи. */
     TASK_COMPLETE,
 
     /** Глухой стук заморозки привычки. */
@@ -65,7 +67,7 @@ class Haptics(
             }
             HapticKind.TASK_COMPLETE -> {
                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                sounds?.playClick()
+                view.playSoundEffect(SoundEffectConstants.CLICK)
             }
             HapticKind.FREEZE_THUD -> {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -98,10 +100,12 @@ class Haptics(
         }
 }
 
+val LocalHaptics = staticCompositionLocalOf<Haptics?> { null }
+
 @Composable
 fun rememberHaptics(): Haptics {
+    LocalHaptics.current?.let { return it }
     val view = LocalView.current
     val context = LocalContext.current
-    val sounds = remember(context) { SoundEffects(context.applicationContext) }
-    return remember(view, context, sounds) { Haptics(view, context, sounds) }
+    return remember(view, context) { Haptics(view, context, SoundEffects.get(context)) }
 }

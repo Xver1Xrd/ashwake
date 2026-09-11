@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.data.assets.Catalog
-import dev.ashwake.data.assets.CatalogLoader
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.Habit
 import dev.ashwake.domain.model.habits.HabitType
@@ -13,8 +11,6 @@ import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
 import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
-import dev.ashwake.domain.repository.character.CharacterRepository
-import dev.ashwake.domain.repository.character.CharacterState
 import dev.ashwake.domain.repository.habits.HabitRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.usecase.habits.ClearHabitMarkUseCase
@@ -23,8 +19,6 @@ import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
 import dev.ashwake.domain.usecase.tasks.UndoPostponeUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
-import dev.ashwake.ui.character.render.CharacterLayer
-import dev.ashwake.ui.character.render.buildCharacterLayers
 import dev.ashwake.ui.components.FlameLevel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -107,8 +101,6 @@ class TodayViewModel @Inject constructor(
     private val habits: HabitRepository,
     private val tasks: TaskRepository,
     private val abstinences: AbstinenceRepository,
-    private val character: CharacterRepository,
-    private val catalogLoader: CatalogLoader,
     private val markHabit: MarkHabitUseCase,
     private val clearHabitMark: ClearHabitMarkUseCase,
     private val completeTask: CompleteTaskUseCase,
@@ -117,8 +109,6 @@ class TodayViewModel @Inject constructor(
     private val reopenTask: ReopenTaskUseCase,
     private val clock: AppClock
 ) : ViewModel() {
-
-    private val catalog = MutableStateFlow(Catalog.EMPTY)
 
     /**
      * «Сейчас» для счётчиков отказов. Тикает раз в минуту, а не раз в секунду:
@@ -159,11 +149,7 @@ class TodayViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            // Персонаж должен быть одет и до первого захода в магазин, иначе
-            // главный экран встречает пустой фигурой
-            character.ensureBuiltinData()
             abstinences.ensureBuiltinData()
-            catalog.value = catalogLoader.load()
         }
         viewModelScope.launch {
             while (true) {

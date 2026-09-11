@@ -73,11 +73,17 @@ class MainActivity : ComponentActivity() {
                 .collectAsStateWithLifecycle(initialValue = true)
 
             AshwakeTheme(settings = theme) {
-                // Значки читают файлы из хранилища прямо в строке списка,
-                // а зависимости туда не прокинуть: кладём одно на приложение
+                val view = androidx.compose.ui.platform.LocalView.current
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val haptics = androidx.compose.runtime.remember(view, context) {
+                    dev.ashwake.ui.theme.Haptics(view, context, dev.ashwake.platform.audio.SoundEffects.get(context))
+                }
+
+                // Значки и тактильный отклик раздаются один раз на всё приложение
                 androidx.compose.runtime.CompositionLocalProvider(
                     LocalIconStore provides iconStore,
-                    dev.ashwake.ui.theme.LocalIs24Hour provides is24Hour
+                    dev.ashwake.ui.theme.LocalIs24Hour provides is24Hour,
+                    dev.ashwake.ui.theme.LocalHaptics provides haptics
                 ) {
                     if (onboardingDone != null) {
                         AshwakeRoot(

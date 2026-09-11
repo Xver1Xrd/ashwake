@@ -3,10 +3,12 @@ package dev.ashwake.platform.audio
 import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioTrack
-import android.os.Build
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import java.util.Random
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,28 +18,28 @@ import kotlin.math.sin
 /**
  * Процедурные звуковые эффекты для интерфейса.
  *
- * Создаются в памяти без внешних файлов ресурсов (0 байт в APK, мгновенный отклик,
- * работает офлайн). Буферы предгенерируются при старте.
+ * Синглтон: аудио-треки генерируются асинхронно в фоне один раз на всё приложение.
+ * Главный поток никогда не блокируется операциями с AudioTrack.
  */
 @Singleton
 class SoundEffects @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private var clickTrack: AudioTrack? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    @Volatile
     private var thudTrack: AudioTrack? = null
+
+    @Volatile
     private var fireTrack: AudioTrack? = null
 
     init {
-        runCatching {
-            clickTrack = createStaticTrack(generateClickPcm())
-            thudTrack = createStaticTrack(generateThudPcm())
-            fireTrack = createStaticTrack(generateCampfirePcm())
+        scope.launch {
+            runCatching {
+                thudTrack = createStaticTrack(generateThudPcm())
+                fireTrack = createStaticTrack(generateCampfirePcm())
+            }
         }
-    }
-
-    /** Мягкий приятный щелчок выполнения задачи. */
-    fun playClick() {
-        playTrack(clickTrack)
     }
 
     /** Глухой плотный стук при заморозке привычки. */
@@ -51,11 +53,13 @@ class SoundEffects @Inject constructor(
     }
 
     private fun playTrack(track: AudioTrack?) {
-        runCatching {
-            track?.let {
-                it.stop()
-                it.reloadStaticData()
-                it.play()
+        scope.launch {
+            runCatching {
+                track?.let {
+                    it.stop()
+                    it.reloadStaticData()
+                    it.play()
+                }
             }
         }
     }
@@ -93,21 +97,13 @@ class SoundEffects @Inject constructor(
     companion object {
         private const val SAMPLE_RATE = 44100
 
-        /** 28 мс: мягкий щелчок с экспоненциальным затуханием (800Hz -> 1400Hz). */
-        private fun generateClickPcm(): ShortArray {
-            val count = (SAMPLE_RATE * 0.028).toInt()
-            val result = ShortArray(count)
-            val twoPi = 2.0 * Math.PI
-            for (i in 0 until count) {
-                val t = i.toDouble() / SAMPLE_RATE
-                val progress = i.toDouble() / count
-                val freq = 800.0 + 600.0 * (1.0 - progress)
-                val envelope = exp(-progress * 7.0)
-                val sample = sin(twoPi * freq * t) * envelope
-                result[i] = (sample * 16000).toInt().coerceIn(-32768, 32767).toShort()
+        @Volatile
+        private var instance: SoundEffects? = null
+
+        fun get(context: Context): SoundEffects =
+            instance ?: synchronized(this) {
+                instance ?: SoundEffects(context.applicationContext).also { instance = it }
             }
-            return result
-        }
 
         /** 70 мс: глубокий глухой стук (удар по льду / камню, 75Hz). */
         private fun generateThudPcm(): ShortArray {
@@ -136,7 +132,6 @@ class SoundEffects @Inject constructor(
                 val progress = i.toDouble() / count
                 val flameTone = sin(twoPi * 180.0 * t) * 0.4
                 val noise = (random.nextDouble() * 2.0 - 1.0) * 0.6
-                // Искры на случайных отсечках
                 val spark = if (i % 650 < 30) (random.nextDouble() * 2.0 - 1.0) * 1.5 else 0.0
                 val envelope = sin(progress * Math.PI) * exp(-progress * 1.8)
                 val sample = (flameTone + noise + spark) * envelope

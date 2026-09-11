@@ -68,6 +68,7 @@ data class TaskDayGroup(
 
 data class TasksUiState(
     val tasks: List<Task> = emptyList(),
+    val dayGroups: List<TaskDayGroup> = emptyList(),
     val projects: List<Project> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val filter: TaskFilter = TaskFilter(),
@@ -78,10 +79,9 @@ data class TasksUiState(
     val today: LocalDate = EPOCH_DAY,
     val staleDialogTask: Task? = null,
     val expandedTaskIds: Set<Long> = emptySet()
-) {
-    val dayGroups: List<TaskDayGroup>
-        get() = groupTasksByDay(tasks, today)
-}
+)
+
+private val DAY_GROUP_FORMATTER = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
 
 fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
     if (tasks.isEmpty()) return emptyList()
@@ -112,17 +112,17 @@ fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
     val byDate = datedTasks.groupBy { it.dueDate!! }
     val sortedDates = byDate.keys.sorted()
 
-    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
-
+    val ruLocale = Locale("ru")
     for (date in sortedDates) {
         val list = byDate[date].orEmpty()
+        val formattedDate = date.format(DAY_GROUP_FORMATTER)
         val title = when (date) {
-            today -> "Сегодня · ${date.format(dateFormatter)}"
-            today.plusDays(1) -> "Завтра · ${date.format(dateFormatter)}"
+            today -> "Сегодня · $formattedDate"
+            today.plusDays(1) -> "Завтра · $formattedDate"
             else -> {
-                val weekday = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("ru"))
+                val weekday = date.dayOfWeek.getDisplayName(TextStyle.FULL, ruLocale)
                     .replaceFirstChar { it.uppercase() }
-                "$weekday · ${date.format(dateFormatter)}"
+                "$weekday · $formattedDate"
             }
         }
         groups += TaskDayGroup(
@@ -219,8 +219,11 @@ class TasksViewModel @Inject constructor(
             SmartFilter.TODAY -> taskList.filter { it.dueDate == today || it.isOverdue(today) }
         }
 
+        val groups = groupTasksByDay(filtered, today)
+
         TasksUiState(
             tasks = filtered,
+            dayGroups = groups,
             projects = projectList,
             tags = tagList,
             filter = bits.filter,

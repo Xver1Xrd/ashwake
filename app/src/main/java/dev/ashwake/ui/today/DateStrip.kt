@@ -51,14 +51,23 @@ fun DateStrip(
     val density = LocalDensity.current
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
-    // Диапазон: 7 дней назад и 7 дней вперёд
+    // Диапазон и предрассчитанные строки кэшируются на дату
     val days = remember(today) {
-        (-7..7).map { today.plusDays(it.toLong()) }
+        val ruLocale = Locale("ru")
+        (-7..7).map { offset ->
+            val d = today.plusDays(offset.toLong())
+            StripDay(
+                date = d,
+                dayOfWeek = d.dayOfWeek.getDisplayName(TextStyle.SHORT, ruLocale)
+                    .replaceFirstChar { it.uppercase() },
+                dayOfMonth = d.dayOfMonth.toString()
+            )
+        }
     }
 
     // Автоматическая магнитная центровка выбранного дня
     LaunchedEffect(selectedDate) {
-        val index = days.indexOf(selectedDate)
+        val index = days.indexOfFirst { it.date == selectedDate }
         if (index >= 0) {
             val itemWidthPx = with(density) { 56.dp.toPx() }
             val targetOffset = (index * itemWidthPx - with(density) { 120.dp.toPx() }).toInt().coerceAtLeast(0)
@@ -74,9 +83,9 @@ fun DateStrip(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        days.forEach { date ->
-            val isSelected = date == selectedDate
-            val isToday = date == today
+        days.forEach { item ->
+            val isSelected = item.date == selectedDate
+            val isToday = item.date == today
 
             val bgColor by animateColorAsState(
                 targetValue = when {
@@ -93,9 +102,6 @@ fun DateStrip(
                 else -> Color.Transparent
             }
 
-            val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
-                .replaceFirstChar { it.uppercase() }
-
             Column(
                 modifier = Modifier
                     .width(48.dp)
@@ -108,19 +114,19 @@ fun DateStrip(
                     )
                     .clickable {
                         haptics.play(dev.ashwake.ui.theme.HapticKind.LIGHT)
-                        onSelectDate(date)
+                        onSelectDate(item.date)
                     }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = dayOfWeek,
+                    text = item.dayOfWeek,
                     style = AshTheme.type.caption,
                     color = if (isSelected) colors.accent else colors.text2
                 )
                 Text(
-                    text = date.dayOfMonth.toString(),
+                    text = item.dayOfMonth,
                     style = AshTheme.type.headline,
                     fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
                     color = if (isSelected) colors.text else colors.text2
@@ -134,7 +140,7 @@ fun DateStrip(
                         .background(
                             when {
                                 isToday -> colors.accent
-                                date < today -> colors.text3
+                                item.date < today -> colors.text3
                                 else -> Color.Transparent
                             }
                         )
@@ -143,3 +149,9 @@ fun DateStrip(
         }
     }
 }
+
+private data class StripDay(
+    val date: LocalDate,
+    val dayOfWeek: String,
+    val dayOfMonth: String
+)

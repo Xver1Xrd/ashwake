@@ -41,6 +41,8 @@ import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import dev.ashwake.ui.components.parallaxTilt
@@ -306,7 +308,7 @@ private fun TodaySummaryCard(
     val percentInt = animatedPercent.roundToInt().coerceIn(0, 100)
 
     val shimmerTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerPhase by shimmerTransition.animateFloat(
+    val shimmerPhase = shimmerTransition.animateFloat(
         initialValue = -0.3f,
         targetValue = 1.3f,
         animationSpec = infiniteRepeatable(
@@ -319,7 +321,6 @@ private fun TodaySummaryCard(
     Box(
         modifier
             .fillMaxWidth()
-            .parallaxTilt(maxTiltDegrees = 3f)
             .background(gradient, AshShapes.sheet)
             .padding(18.dp)
     ) {
@@ -387,22 +388,27 @@ private fun TodaySummaryCard(
             ) {
                 if (progress > 0f) {
                     val baseColor = if (isCompleted) colors.success else colors.accent
-                    val shimmerBrush = Brush.horizontalGradient(
-                        colors = listOf(
-                            baseColor,
-                            baseColor,
-                            Color.White.copy(alpha = 0.75f),
-                            baseColor,
-                            baseColor
-                        ),
-                        startX = shimmerPhase * 1200f - 200f,
-                        endX = shimmerPhase * 1200f + 200f
-                    )
                     Box(
                         Modifier
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
                             .height(6.dp)
-                            .background(shimmerBrush, AshShapes.pill)
+                            .clip(AshShapes.pill)
+                            .drawBehind {
+                                val phase = shimmerPhase.value
+                                val width = size.width
+                                val shimmerBrush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        baseColor,
+                                        baseColor,
+                                        Color.White.copy(alpha = 0.75f),
+                                        baseColor,
+                                        baseColor
+                                    ),
+                                    startX = phase * (width + 400f) - 200f,
+                                    endX = phase * (width + 400f) + 200f
+                                )
+                                drawRect(shimmerBrush)
+                            }
                     )
                 }
             }

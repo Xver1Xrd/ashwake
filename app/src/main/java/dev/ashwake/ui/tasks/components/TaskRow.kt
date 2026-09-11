@@ -45,7 +45,6 @@ import dev.ashwake.ui.components.AshContextMenu
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.ContextMenuItem
 import dev.ashwake.ui.components.EntityIcon
-import dev.ashwake.ui.components.parallaxTilt
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -192,7 +191,6 @@ private fun TaskRowContent(
                     scaleY = cardScale
                     alpha = cardAlpha
                 }
-                .parallaxTilt(maxTiltDegrees = 2.5f)
                 .background(colors.surface1, AshShapes.card)
                 .tappable(
                     onClick = onClick,

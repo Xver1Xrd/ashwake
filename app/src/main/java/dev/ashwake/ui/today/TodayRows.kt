@@ -54,16 +54,6 @@ import dev.ashwake.ui.components.EntityIcon
 import dev.ashwake.ui.components.QUICK_MS
 import dev.ashwake.ui.components.motionTween
 import dev.ashwake.ui.components.responseSpring
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.clipPath
-import dev.ashwake.ui.components.parallaxTilt
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -126,7 +116,6 @@ fun HabitTodayRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .parallaxTilt(maxTiltDegrees = 2.5f)
                 .tappable(
                     onClick = onOpen,
                     onLongClick = { showMenu = true }
@@ -258,17 +247,6 @@ private fun HabitMark(
         label = "mark-stroke"
     )
 
-    val waveTransition = rememberInfiniteTransition(label = "habit-wave")
-    val wavePhase by waveTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "wave-phase"
-    )
-
     Box(
         Modifier
             .size(28.dp)
@@ -287,28 +265,10 @@ private fun HabitMark(
                 alpha = 1f - fill
             )
             if (share > 0f && fill < 1f) {
-                val circleClip = Path().apply {
-                    addOval(Rect(Offset.Zero, size))
-                }
-                clipPath(circleClip) {
-                    val waterY = size.height * (1f - share)
-                    val wavePath = Path().apply {
-                        moveTo(0f, size.height)
-                        lineTo(0f, waterY)
-                        val steps = 20
-                        for (i in 0..steps) {
-                            val x = size.width * (i.toFloat() / steps)
-                            val y = waterY + (kotlin.math.sin((i.toDouble() / steps * 2.0 * Math.PI) + wavePhase) * 1.5.dp.toPx()).toFloat()
-                            lineTo(x, y)
-                        }
-                        lineTo(size.width, size.height)
-                        close()
-                    }
-                    drawPath(
-                        path = wavePath,
-                        color = accent.copy(alpha = 0.45f)
-                    )
-                }
+                drawCircle(
+                    color = accent.copy(alpha = 0.22f),
+                    radius = (size.minDimension / 2f - inset) * share
+                )
 
                 drawArc(
                     color = accent,
@@ -460,7 +420,6 @@ private fun TaskTodayRowContent(
                     scaleY = cardScale
                     alpha = cardAlpha
                 }
-                .parallaxTilt(maxTiltDegrees = 2.5f)
                 .background(colors.surface1)
                 .tappable(
                     onClick = onOpen,
