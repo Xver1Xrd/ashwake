@@ -310,7 +310,7 @@
     <string name="character_za_dostizhenie">за достижение</string>
     <string name="character_nuzhno">нужно: </string>
     <string name="character_uluchshit_1_s">Улучшить · %1$s ◈</string>
-    <string name="components_ton_1_s_nasyschennost_2_s_yarkost_3_s">тон %1$s° · насыщенность %2$s% · яркость %3$s%</string>
+    <string name="components_ton_1_s_nasyschennost_2_s_yarkost_3_s">тон %1$s° · насыщенность %2$s%% · яркость %3$s%%</string>
     <string name="components_ubrat_znachok">Убрать значок</string>
     <string name="components_iz_galerei">Из галереи</string>
     <string name="components_pokazyvaetsya_kartinka_uberite_ee_chtoby_ver">Показывается картинка. Уберите её, чтобы вернуть эмодзи</string>
@@ -325,7 +325,7 @@
     <string name="habits_rezhim_otpuska_dni_ne_schitayutsya_propuskam">Режим отпуска: дни не считаются пропусками</string>
     <string name="habits_ne_na_segodnya">Не на сегодня</string>
     <string name="habits_vozmite_gotovuyu_iz_kataloga_ili_zavedite_sv">Возьмите готовую из каталога или заведите свою. Score растёт постепенно и не обнуляется от пары пропусков</string>
-    <string name="components_score_1_s_seriya_2_s_rekord_3_s">score %1$s% · серия %2$s · рекорд %3$s</string>
+    <string name="components_score_1_s_seriya_2_s_rekord_3_s">score %1$s%% · серия %2$s · рекорд %3$s</string>
     <string name="components_segodnya_1_s_iz_2_s">Сегодня: %1$s из %2$s</string>
     <string name="components_zamorozit_1_s">  Заморозить (%1$s)</string>
     <string name="components_snyat_pauzu">Снять паузу</string>
@@ -342,7 +342,7 @@
     <string name="detail_tap_po_dnyu_menyaet_otmetku_zadnim_chislom">Тап по дню меняет отметку задним числом</string>
     <string name="detail_po_minimumu">по минимуму</string>
     <string name="detail_propuscheno">пропущено</string>
-    <string name="detail_dolya_dney_po_minimumu_1_s">Доля дней по минимуму: %1$s%</string>
+    <string name="detail_dolya_dney_po_minimumu_1_s">Доля дней по минимуму: %1$s%%</string>
     <string name="editor_novaya_privychka">Новая привычка</string>
     <string name="editor_uspeh_eto_otsutstvie_otmetki_otmechat_nuzhno">Успех — это отсутствие отметки. Отмечать нужно срывы, а не выполнение</string>
     <string name="editor_cel_na_plohoy_den_derzhit_seriyu_i_daet_polo">Цель на плохой день. Держит серию и даёт половину вклада в score</string>
@@ -397,7 +397,7 @@
     <string name="theme_krivizna_narastaet_plavno_kak_v_ios">Кривизна нарастает плавно, как в iOS</string>
     <string name="theme_obychnaya_duga_okruzhnosti">Обычная дуга окружности</string>
     <string name="theme_sovsem_bez_skrugleniy">Совсем без скруглений</string>
-    <string name="theme_skruglenie_1_s">Скругление · %1$s%</string>
+    <string name="theme_skruglenie_1_s">Скругление · %1$s%%</string>
     <string name="theme_mnozhitel_vseh_radiusov_srazu_kartochek_pole">Множитель всех радиусов сразу: карточек, полей, листов</string>
     <string name="theme_plotnost_spiskov">Плотность списков</string>
     <string name="theme_vysota_stroki_i_vozduh_mezhdu_gruppami">Высота строки и воздух между группами</string>
@@ -576,8 +576,8 @@
     <!-- Оформление: фон, углы, плотность -->
     <string name="background_ink">Чернильный</string>
     <string name="background_ink_note">Тёмный с холодным подтоном</string>
-    <string name="background_black">Чёрный</string>
-    <string name="background_black_note">Экономит батарею на OLED</string>
+    <string name="background_black">AMOLED Black</string>
+    <string name="background_black_note">Истинный чёрный #000000 и контуры Nothing/Linear для OLED</string>
     <string name="background_graphite">Графит</string>
     <string name="background_graphite_note">Светлее, мягче контраст</string>
     <string name="corner_continuous">Непрерывное</string>
@@ -706,7 +706,7 @@
     <!-- Сообщения вью-моделей -->
     <string name="ritualworkers_dve_minuty_ocenit_den_razobrat_hvosty_nameti">Две минуты: оценить день, разобрать хвосты, наметить завтра</string>
     <string name="ritualworkers_itogi_nedeli">Итоги недели</string>
-    <string name="ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7">Задачи %1$d, привычки %2$d%, ритуал %3$d из 7</string>
+    <string name="ritualworkers_zadachi_1_s_privychki_2_s_ritual_3_s_iz_7">Задачи %1$d, привычки %2$d%%, ритуал %3$d из 7</string>
 
     <!-- Надписи виджетов -->
     <string name="abstinencewidget_schetchikov_net">Счётчиков нет</string>
@@ -734,4 +734,9 @@
     <string name="routine_editor_dobavte_hotya_by_odin_shag">Добавьте хотя бы один шаг</string>
     <string name="routine_editor_rutina_sohranena">Рутина сохранена</string>
     <string name="routine_editor_novy_shag">Новый шаг</string>
+    <string name="context_menu_edit">Редактировать</string>
+    <string name="context_menu_postpone_tomorrow">Перенести на завтра</string>
+    <string name="context_menu_open">Открыть</string>
+    <string name="context_menu_move_up">Переместить выше</string>
+    <string name="context_menu_move_down">Переместить ниже</string>
 </resources>

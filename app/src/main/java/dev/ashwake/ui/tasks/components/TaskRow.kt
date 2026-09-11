@@ -18,28 +18,45 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.style.TextDecoration
+import dev.ashwake.ui.components.responseSpring
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 import dev.ashwake.domain.model.tasks.StaleLevel
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.ui.components.AshContextMenu
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.ContextMenuItem
 import dev.ashwake.ui.components.EntityIcon
+import dev.ashwake.ui.components.parallaxTilt
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.hasMark
 import dev.ashwake.ui.theme.priorityColor
 import java.time.LocalDate
+import java.util.Locale
 import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 
-private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
+private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
@@ -78,7 +95,17 @@ fun TaskRow(
         state = dismissState,
         modifier = modifier,
         backgroundContent = { SwipeBackground(dismissState.dismissDirection) },
-        content = { TaskRowContent(task, today, onClick, expanded, onExpandToggle) }
+        content = {
+            TaskRowContent(
+                task = task,
+                today = today,
+                onClick = onClick,
+                onComplete = complete,
+                onPostpone = { postpone() },
+                expanded = expanded,
+                onExpandToggle = onExpandToggle
+            )
+        }
     )
 }
 
@@ -116,46 +143,94 @@ private fun TaskRowContent(
     task: Task,
     today: LocalDate,
     onClick: () -> Unit,
+    onComplete: (() -> Unit)? = null,
+    onPostpone: (() -> Unit)? = null,
     expanded: Boolean,
     onExpandToggle: (() -> Unit)?
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    var isCompleting by remember(task.id) { mutableStateOf(false) }
+    val isTaskDone = task.isDone || isCompleting
+    val scope = rememberCoroutineScope()
     val colors = AshTheme.colors
     val priorityColor = colors.priorityColor(task.priority)
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.surface1, AshShapes.card)
-            .tappable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        // Значок задачи, а если его нет — цветной кружок приоритета. Место
-        // под ведущий элемент занято всегда, иначе названия в списке
-        // разъезжаются по левому краю в зависимости от того, у кого есть эмодзи
-        if (task.emoji != null || task.iconPath != null) {
-            EntityIcon(
-                emoji = task.emoji,
-                iconPath = task.iconPath,
-                size = 38.dp,
-                background = if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
-                else colors.surface2
-            )
+    val cardScale by animateFloatAsState(
+        targetValue = if (isTaskDone) 0.98f else 1f,
+        animationSpec = responseSpring(),
+        label = "task-scale"
+    )
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isTaskDone) 0.45f else 1f,
+        animationSpec = tween(300),
+        label = "task-alpha"
+    )
+    val strikeProgress by animateFloatAsState(
+        targetValue = if (isTaskDone) 1f else 0f,
+        animationSpec = tween(300),
+        label = "strike-progress"
+    )
+
+    fun triggerComplete() {
+        if (!task.isDone && !isCompleting && onComplete != null) {
+            isCompleting = true
+            scope.launch {
+                delay(320)
+                onComplete()
+            }
         } else {
-            Box(
-                Modifier
-                    .size(38.dp)
-                    .background(
-                        if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
-                        else colors.surface2,
-                        AshShapes.squircle(13.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
+            onComplete?.invoke()
+        }
+    }
+
+    Box {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = cardScale
+                    scaleY = cardScale
+                    alpha = cardAlpha
+                }
+                .parallaxTilt(maxTiltDegrees = 2.5f)
+                .background(colors.surface1, AshShapes.card)
+                .tappable(
+                    onClick = onClick,
+                    onLongClick = { showMenu = true }
+                )
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(AshShapes.squircle(13.dp))
+                .background(
+                    if (isTaskDone) colors.success.copy(alpha = 0.2f)
+                    else if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
+                    else colors.surface2
+                )
+                .tappable { triggerComplete() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (isTaskDone) {
+                Icon(
+                    AshIcons.Check,
+                    contentDescription = "Выполнено",
+                    tint = colors.success,
+                    modifier = Modifier.size(20.dp)
+                )
+            } else if (task.emoji != null || task.iconPath != null) {
+                EntityIcon(
+                    emoji = task.emoji,
+                    iconPath = task.iconPath,
+                    size = 30.dp
+                )
+            } else {
                 Box(
                     Modifier
-                        .size(10.dp)
+                        .size(12.dp)
                         .background(
                             if (task.priority.hasMark) priorityColor else colors.text3,
                             AshShapes.pill
@@ -170,8 +245,19 @@ private fun TaskRowContent(
                 style = AshTheme.type.body,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                textDecoration = if (task.isDone) TextDecoration.LineThrough else null,
-                color = if (task.isDone) colors.text3 else colors.text
+                color = if (task.isDone) colors.text3 else colors.text,
+                modifier = Modifier.drawWithContent {
+                    drawContent()
+                    if (strikeProgress > 0f) {
+                        val y = size.height / 2f
+                        drawLine(
+                            color = colors.text3,
+                            start = Offset(0f, y),
+                            end = Offset(size.width * strikeProgress, y),
+                            strokeWidth = 1.5.dp.toPx()
+                        )
+                    }
+                }
             )
             val meta = buildMeta(task, today)
             if (meta.isNotEmpty()) {
@@ -210,6 +296,26 @@ private fun TaskRowContent(
                 )
             }
         }
+    }
+
+    AshContextMenu(
+        expanded = showMenu,
+        onDismissRequest = { showMenu = false },
+        items = listOfNotNull(
+            ContextMenuItem(
+                title = stringResource(R.string.context_menu_edit),
+                icon = AshIcons.Edit,
+                onClick = onClick
+            ),
+            onPostpone?.let {
+                ContextMenuItem(
+                    title = stringResource(R.string.context_menu_postpone_tomorrow),
+                    icon = AshIcons.Calendar,
+                    onClick = it
+                )
+            }
+        )
+    )
     }
 }
 
@@ -289,10 +395,14 @@ private fun buildMeta(task: Task, today: LocalDate): String {
             today -> stringResource(R.string.components_segodnya)
             today.plusDays(1) -> stringResource(R.string.ritual_zavtra)
             today.minusDays(1) -> stringResource(R.string.components_vchera)
-            else -> date.format(DATE_FORMAT)
+            else -> {
+                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
+                "$dayOfWeek, ${date.format(DATE_FORMAT)}"
+            }
         }
     }
-    task.dueTime?.let { parts += it.format(TIME_FORMAT) }
+    val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
+    task.dueTime?.let { parts += dev.ashwake.ui.theme.formatTime(it, is24Hour) }
     task.estimateMinutes?.let { parts += formatEstimate(it) }
     if (task.subtasks.isNotEmpty()) {
         parts += "${task.subtasks.count { it.isDone }}/${task.subtasks.size}"

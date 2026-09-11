@@ -6,7 +6,21 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.filled.DragHandle
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.zIndex
+import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.HapticKind
+import dev.ashwake.ui.theme.rememberHaptics
+import androidx.compose.ui.res.stringResource
+import dev.ashwake.R
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -62,21 +76,21 @@ fun RoutineEditorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Рутина") },
+                title = { Text(stringResource(R.string.routine_editor_nazvanie)) },
                 navigationIcon = {
                     IconButton(onClick = onDone) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.detail_nazad))
                     }
                 },
                 actions = {
-                    TextButton(onClick = { viewModel.save(onDone) }) { Text("Сохранить") }
+                    TextButton(onClick = { viewModel.save(onDone) }) { Text(stringResource(R.string.routine_editor_sohranit)) }
                 }
             )
         },
         snackbarHost = { SnackbarHost(snackbar) }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding),
+            modifier = Modifier.fillMaxSize().padding(padding).imePadding(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -84,8 +98,9 @@ fun RoutineEditorScreen(
                 OutlinedTextField(
                     value = name,
                     onValueChange = viewModel::setName,
-                    label = { Text("Название") },
-                    singleLine = true,
+                    label = { Text(stringResource(R.string.routine_editor_nazvanie)) },
+                    singleLine = false,
+                    maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -93,7 +108,7 @@ fun RoutineEditorScreen(
             if (steps.isEmpty()) {
                 item {
                     Text(
-                        "Шагов пока нет — добавьте первый",
+                        stringResource(R.string.routine_editor_dobavte_hotya_by_odin_shag),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -103,6 +118,7 @@ fun RoutineEditorScreen(
             itemsIndexed(steps, key = { index, _ -> "step-$index" }) { index, step ->
                 StepRow(
                     index = index,
+                    totalCount = steps.size,
                     title = step.title,
                     minutes = step.durationSeconds / 60,
                     onTitleChange = { viewModel.updateStepTitle(index, it) },
@@ -118,7 +134,7 @@ fun RoutineEditorScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Filled.Add, contentDescription = null)
-                    Text("Добавить шаг")
+                    Text(stringResource(R.string.routine_editor_dobavit_shag))
                 }
             }
         }
@@ -138,6 +154,7 @@ fun RoutineEditorScreen(
 @Composable
 private fun StepRow(
     index: Int,
+    totalCount: Int,
     title: String,
     minutes: Int,
     onTitleChange: (String) -> Unit,
@@ -145,17 +162,78 @@ private fun StepRow(
     onMove: (Int) -> Unit,
     onDelete: () -> Unit
 ) {
-    Column(Modifier.fillMaxWidth()) {
-        Text(
-            "Шаг ${index + 1}",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
+    var isDragging by remember { mutableStateOf(false) }
+    val haptics = rememberHaptics()
+    val density = LocalDensity.current
+    val thresholdPx = with(density) { 72.dp.toPx() }
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .zIndex(if (isDragging) 1f else 0f)
+            .graphicsLayer {
+                translationY = dragOffsetY
+                if (isDragging) {
+                    shadowElevation = 8.dp.toPx()
+                    scaleX = 1.02f
+                    scaleY = 1.02f
+                }
+            }
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Шаг ${index + 1}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Icon(
+                Icons.Filled.DragHandle,
+                contentDescription = "Перетащить",
+                tint = if (isDragging) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .size(24.dp)
+                    .pointerInput(index, totalCount) {
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = {
+                                isDragging = true
+                                haptics.play(HapticKind.LIGHT)
+                            },
+                            onDragEnd = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDragCancel = {
+                                isDragging = false
+                                dragOffsetY = 0f
+                            },
+                            onDrag = { change, dragAmount ->
+                                change.consume()
+                                dragOffsetY += dragAmount.y
+                                if (dragOffsetY > thresholdPx && index < totalCount - 1) {
+                                    onMove(1)
+                                    haptics.play(HapticKind.LIGHT)
+                                    dragOffsetY -= thresholdPx
+                                } else if (dragOffsetY < -thresholdPx && index > 0) {
+                                    onMove(-1)
+                                    haptics.play(HapticKind.LIGHT)
+                                    dragOffsetY += thresholdPx
+                                }
+                            }
+                        )
+                    }
+            )
+        }
         OutlinedTextField(
             value = title,
             onValueChange = onTitleChange,
-            placeholder = { Text("Название шага") },
-            singleLine = true,
+            placeholder = { Text(stringResource(R.string.routine_editor_nazvanie_shaga)) },
+            singleLine = false,
+            maxLines = 3,
             modifier = Modifier.fillMaxWidth()
         )
         Row(
@@ -163,12 +241,12 @@ private fun StepRow(
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             IconButton(onClick = { onMove(-1) }, enabled = index > 0) { Text("↑") }
-            IconButton(onClick = { onMove(1) }) { Text("↓") }
+            IconButton(onClick = { onMove(1) }, enabled = index < totalCount - 1) { Text("↓") }
             TextButton(onClick = { onMinutesChange(minutes - 1) }) { Text("−") }
             Text("$minutes мин", style = MaterialTheme.typography.bodyMedium)
             TextButton(onClick = { onMinutesChange(minutes + 1) }) { Text("+") }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = "Удалить шаг")
+                Icon(Icons.Filled.Delete, contentDescription = stringResource(R.string.routine_editor_udalit_shag))
             }
         }
     }
@@ -184,19 +262,20 @@ private fun AddStepDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Новый шаг") },
+        title = { Text(stringResource(R.string.routine_editor_novy_shag)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Название") },
-                    singleLine = true
+                    label = { Text(stringResource(R.string.routine_editor_nazvanie)) },
+                    singleLine = false,
+                    maxLines = 3
                 )
                 OutlinedTextField(
                     value = minutes,
                     onValueChange = { minutes = it.filter(Char::isDigit).take(3) },
-                    label = { Text("Минуты") },
+                    label = { Text(stringResource(R.string.routine_editor_minuty)) },
                     singleLine = true
                 )
             }
@@ -205,10 +284,10 @@ private fun AddStepDialog(
             TextButton(
                 onClick = { onAdd(title, minutes.toIntOrNull() ?: 1) },
                 enabled = title.isNotBlank()
-            ) { Text("Добавить") }
+            ) { Text(stringResource(R.string.routine_editor_dobavit_shag)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Отмена") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.detail_otmena)) }
         }
     )
 }

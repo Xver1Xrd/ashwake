@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -99,6 +100,7 @@ fun TaskEditorScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
+    val presets by viewModel.presets.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
 
     // Закрываем экран только после того, как сохранение реально дошло до базы
@@ -107,6 +109,7 @@ fun TaskEditorScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
+    var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
 
     Column(
@@ -118,6 +121,12 @@ fun TaskEditorScreen(
             title = if (state.isNew) stringResource(R.string.shortcut_new_task) else stringResource(R.string.tile_add_task),
             onBack = onDone,
             actions = {
+                if (state.isNew && presets.isNotEmpty()) {
+                    TextAction(
+                        text = "Шаблоны",
+                        onClick = { showTemplates = true }
+                    )
+                }
                 if (!state.isNew) {
                     IconAction(
                         icon = AshIcons.Trash,
@@ -132,8 +141,8 @@ fun TaskEditorScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .imePadding()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = ScreenPadding)
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -155,6 +164,8 @@ fun TaskEditorScreen(
                     onValueChange = viewModel::setTitle,
                     placeholder = stringResource(R.string.editor_chto_nuzhno_sdelat),
                     textStyle = AshTheme.type.headline,
+                    singleLine = false,
+                    maxLines = 4,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -177,7 +188,8 @@ fun TaskEditorScreen(
                 onValueChange = viewModel::setNote,
                 placeholder = stringResource(R.string.detail_zametka),
                 singleLine = false,
-                minLines = 2
+                minLines = 2,
+                maxLines = 10
             )
 
             // --- приоритет ---------------------------------------------------
@@ -266,6 +278,8 @@ fun TaskEditorScreen(
                             value = newSubtask,
                             onValueChange = { newSubtask = it },
                             placeholder = stringResource(R.string.editor_esche_shag),
+                            singleLine = false,
+                            maxLines = 3,
                             modifier = Modifier.weight(1f)
                         )
                         IconAction(
@@ -343,6 +357,17 @@ fun TaskEditorScreen(
             onDismiss = { showTimePicker = false }
         )
     }
+
+    if (showTemplates) {
+        TaskTemplatesDialog(
+            presets = presets,
+            onPick = {
+                viewModel.applyPreset(it)
+                showTemplates = false
+            },
+            onDismiss = { showTemplates = false }
+        )
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -398,7 +423,7 @@ private fun DueDateRow(
     onSetDate: (LocalDate?) -> Unit,
     onClear: () -> Unit
 ) {
-    val today = LocalDate.now()
+    val today = state.today
     val tomorrow = today.plusDays(1)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -422,8 +447,9 @@ private fun DueDateRow(
                 selected = state.dueDate != null && state.dueDate != today && state.dueDate != tomorrow,
                 onClick = onPickDate
             )
+            val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
             ChipButton(
-                text = state.dueTime?.format(TIME_FORMAT) ?: stringResource(R.string.editor_vremya),
+                text = state.dueTime?.let { dev.ashwake.ui.theme.formatTime(it, is24Hour) } ?: stringResource(R.string.editor_vremya),
                 icon = AshIcons.Timer,
                 selected = state.dueTime != null,
                 onClick = onPickTime
@@ -704,4 +730,51 @@ private fun formatMinutes(minutes: Int): String = when {
     minutes < 60 -> stringResource(R.string.settings_1_s_min, minutes)
     minutes % 60 == 0 -> stringResource(R.string.editor_1_s_ch, minutes / 60)
     else -> stringResource(R.string.editor_1_s_ch_2_s, minutes / 60, minutes % 60)
+}
+
+@Composable
+private fun TaskTemplatesDialog(
+    presets: List<dev.ashwake.data.assets.TaskPreset>,
+    onPick: (dev.ashwake.data.assets.TaskPreset) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val colors = AshTheme.colors
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Шаблоны задач", style = AshTheme.type.title3) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                presets.forEach { preset ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(AshShapes.card)
+                            .background(colors.surface2)
+                            .tappable { onPick(preset) }
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = preset.title,
+                            style = AshTheme.type.headline,
+                            color = colors.text
+                        )
+                        Text(
+                            text = "${preset.subtasks.size} подзадач" +
+                                (preset.estimateMinutes?.let { " · ~$it мин" } ?: ""),
+                            style = AshTheme.type.footnote,
+                            color = colors.text2
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextAction(text = stringResource(R.string.detail_otmena), onClick = onDismiss)
+        }
+    )
 }

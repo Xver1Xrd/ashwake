@@ -36,7 +36,7 @@ class CsvExporter @Inject constructor(
                 task.postponeCount.toString()
             )
         }
-        rows.joinToString("\n", postfix = "\n")
+        rows.joinToString("\n", postfix = "\n") { row -> row.joinToString(",") }
     }
 
     suspend fun exportHabitsCsv(): Outcome<String> = outcomeOf {
@@ -44,12 +44,12 @@ class CsvExporter @Inject constructor(
         val rows = listOf(HABIT_HEADER) + habitDao.allEntries().map { entry ->
             listOf(
                 entry.date.toString(),
-                habits[entry.habitId]?.name.orEmpty(),
+                escape(habits[entry.habitId]?.name.orEmpty()),
                 entry.status,
                 formatValue(entry.value)
             )
         }
-        rows.joinToString("\n", postfix = "\n")
+        rows.joinToString("\n", postfix = "\n") { row -> row.joinToString(",") }
     }
 
     private fun formatValue(value: Float): String =
@@ -57,7 +57,7 @@ class CsvExporter @Inject constructor(
 
     /** RFC 4180: кавычки удваиваются, поле берётся в кавычки при необходимости. */
     private fun escape(value: String): String {
-        val needsQuotes = value.any { it == ',' || it == '"' || it == '\n' }
+        val needsQuotes = value.any { it == ',' || it == '"' || it == '\n' || it == '\r' }
         return if (needsQuotes) "\"" + value.replace("\"", "\"\"") + "\"" else value
     }
 

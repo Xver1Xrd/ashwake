@@ -73,6 +73,7 @@ fun SettingsScreen(
     val dayStart by viewModel.dayStartHour.collectAsStateWithLifecycle()
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
+    val is24Hour by viewModel.is24Hour.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
 
     Column(
@@ -94,6 +95,15 @@ fun SettingsScreen(
                 onThemeMode = viewModel::setThemeMode,
                 onAccent = viewModel::setAccent,
                 onOpenEditor = onOpenThemeEditor
+            )
+
+            ChipGroup(
+                header = "Формат времени",
+                footer = "Отображение времени в 24-часовом или 12-часовом формате (AM/PM)",
+                options = listOf(true, false),
+                label = { if (it) "24-часовой" else "12-часовой (AM/PM)" },
+                selected = { it == is24Hour },
+                onSelect = viewModel::setIs24Hour
             )
 
             ChipGroup(

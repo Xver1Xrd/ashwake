@@ -1,5 +1,8 @@
 package dev.ashwake.ui.timebox
 
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -82,6 +85,13 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
     val outcome by viewModel.outcome.collectAsStateWithLifecycle()
     val planning by viewModel.planning.collectAsStateWithLifecycle()
 
+    val calendarPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        viewModel.setUseCalendar(granted)
+        if (granted) viewModel.planDay()
+    }
+
     var selectedBlock by remember { mutableStateOf<TimeboxBlock?>(null) }
 
     Scaffold(
@@ -142,10 +152,16 @@ fun TimeboxScreen(viewModel: TimeboxViewModel = hiltViewModel()) {
                     )
                 }
                 ChipButton(
-                        text = stringResource(R.string.timebox_kalendar),
-                        selected = useCalendar,
-                        onClick = { viewModel.setUseCalendar(!useCalendar) }
-                    )
+                    text = stringResource(R.string.timebox_kalendar),
+                    selected = useCalendar,
+                    onClick = {
+                        if (!useCalendar && !viewModel.calendarPermissionGranted()) {
+                            calendarPermission.launch(Manifest.permission.READ_CALENDAR)
+                        } else {
+                            viewModel.setUseCalendar(!useCalendar)
+                        }
+                    }
+                )
             }
 
             if (useCalendar && !viewModel.calendarPermissionGranted()) {

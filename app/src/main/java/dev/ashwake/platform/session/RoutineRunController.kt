@@ -136,7 +136,7 @@ class RoutineRunController @Inject constructor(
     }
 
     /** Завершение — по последнему шагу или по кнопке «закончить». */
-    fun finish(completed: Boolean = false) {
+    fun finish(completed: Boolean = false, persistCurrent: Boolean = true) {
         val current = _state.value
         ticker?.cancel()
         ticker = null
@@ -144,7 +144,9 @@ class RoutineRunController @Inject constructor(
 
         scope.launch {
             if (current.sessionId != 0L) {
-                persistCurrentStep(skipped = false)
+                if (persistCurrent) {
+                    persistCurrentStep(skipped = false)
+                }
 
                 // Завершение идёт через use case: награда, очки и проверка
                 // достижений в одном месте, независимо от того, как закончили —
@@ -194,7 +196,7 @@ class RoutineRunController @Inject constructor(
         val current = _state.value
         val nextIndex = current.stepIndex + 1
         if (nextIndex >= current.steps.size) {
-            finish(completed = true)
+            finish(completed = true, persistCurrent = false)
             return
         }
 

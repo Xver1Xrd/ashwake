@@ -44,6 +44,11 @@ class MarkHabitUseCase @Inject constructor(
         widgets.refreshHabits()
 
         val nowCounted = status == EntryStatus.DONE || status == EntryStatus.MINIMUM
+        if (wasCounted && !nowCounted) {
+            character.revokeReward(RewardScope.HABIT, habitRewardRef(progress.habit.id, date))
+            widgets.refreshCharacter()
+            return
+        }
         if (!nowCounted || wasCounted) return
 
         // Привычки, привязанные к этой, ждут именно отметки — и ждут её

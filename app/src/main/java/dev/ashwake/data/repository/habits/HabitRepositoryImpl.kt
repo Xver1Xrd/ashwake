@@ -185,6 +185,12 @@ class HabitRepositoryImpl @Inject constructor(
 
     override suspend fun deleteHabit(id: Long) = dao.deleteById(id)
 
+    override suspend fun reorderHabits(orderedIds: List<Long>) = db.withTransaction {
+        orderedIds.forEachIndexed { index, id ->
+            dao.updatePosition(id, index)
+        }
+    }
+
     override suspend fun mark(
         habitId: Long,
         date: LocalDate,

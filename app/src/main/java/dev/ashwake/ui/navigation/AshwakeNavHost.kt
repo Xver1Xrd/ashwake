@@ -8,6 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -78,6 +81,7 @@ const val TABS_ROUTE = "tabs"
 /** Знакомство. Стартовый экран, пока его не прошли. */
 const val ONBOARDING_ROUTE = "onboarding"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AshwakeRoot(
     pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null),
@@ -110,11 +114,12 @@ fun AshwakeRoot(
         val target = route ?: return@LaunchedEffect
         pendingRoute.value = null
 
-        val tabIndex = Destination.bottomBar.indexOfFirst { it.route == destinationFor(target) }
+        val dest = destinationFor(target)
+        val tabIndex = Destination.bottomBar.indexOfFirst { it.route == dest }
         if (tabIndex >= 0) {
             openTab(tabIndex)
         } else {
-            navController.navigate(destinationFor(target)) { launchSingleTop = true }
+            navController.navigate(dest) { launchSingleTop = true }
         }
     }
 
@@ -124,10 +129,11 @@ fun AshwakeRoot(
         Scaffold(
             containerColor = AshTheme.colors.background,
             bottomBar = {
-                // На экранах-формах нижняя навигация только мешает — прячем
+                // На экранах-формах и при открытой клавиатуре нижняя навигация прячется
+                val isImeVisible = WindowInsets.isImeVisible
                 val showBottomBar = FULLSCREEN_ROUTE_PREFIXES.none {
                     currentRoute?.startsWith(it) == true
-                }
+                } && !isImeVisible
                 if (showBottomBar) {
                     val tabItems = tabs()
                     AshTabBar(
@@ -324,7 +330,6 @@ private fun TabPage(
             onOpenHabit = { id -> navController.navigate("habit/$id") },
             onOpenTask = { id -> navController.navigate("task?taskId=$id") },
             onCreateTask = { navController.navigate("task?taskId=0") },
-            onOpenCharacter = { navController.navigate(Destination.Character.route) },
             onOpenAbstinence = { id -> navController.navigate("abstinence/$id") }
         )
 
@@ -341,12 +346,12 @@ private fun TabPage(
 
         Destination.More -> MoreScreen(
             onOpenAbstinence = { navController.navigate(Destination.Abstinence.route) },
-            onOpenCharacter = { navController.navigate(Destination.Character.route) },
             onOpenTimers = { navController.navigate(Destination.Timers.route) },
             onOpenStats = { navController.navigate(Destination.Stats.route) },
             onOpenRitual = { navController.navigate("ritual") },
             onOpenSettings = { navController.navigate(Destination.Settings.route) },
-            onOpenTrash = { navController.navigate("trash") }
+            onOpenTrash = { navController.navigate("trash") },
+            onOpenTask = { id -> navController.navigate("task?taskId=$id") }
         )
 
         else -> Unit
@@ -404,12 +409,13 @@ private fun tabs(): List<TabItem> = Destination.bottomBar.map {
 
 /** Маршрут из виджета в экран приложения. */
 private fun destinationFor(route: String): String = when (route) {
+    AppRoutes.TASKS -> Destination.Tasks.route
     AppRoutes.NEW_TASK -> "task?taskId=0"
     AppRoutes.HABITS -> Destination.Habits.route
     AppRoutes.ABSTINENCE -> Destination.Abstinence.route
     AppRoutes.TIMERS, AppRoutes.FOCUS_START, AppRoutes.ROUTINE_START -> Destination.Timers.route
     AppRoutes.RITUAL -> "ritual"
-    else -> Destination.Today.route
+    else -> route
 }
 
 /**

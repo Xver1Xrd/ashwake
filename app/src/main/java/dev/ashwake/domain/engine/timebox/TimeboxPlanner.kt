@@ -55,26 +55,14 @@ class TimeboxPlanner @Inject constructor() {
         val windowStart = maxOf(settings.workStartMinute, request.nowMinute ?: 0)
         val windowEnd = settings.workEndMinute
 
-        val busy = withLunch(request.busy, settings, request.date)
-        val slots = freeSlots(windowStart, windowEnd, busy).toMutableList()
-        val freeMinutes = slots.sumOf { it.durationMinutes }
-
         // Задача с точным временем уже стоит в расписании сама — её не двигаем
         val (fixed, flexible) = request.tasks
             .filterNot { it.isDone }
             .partition { it.dueTime != null }
 
-        val (withEstimate, withoutEstimate) = flexible.partition {
-            (it.estimateMinutes ?: 0) > 0
-        }
-
-        val planned = mutableListOf<TimeboxBlock>()
-        val deferred = mutableListOf<Task>()
-
-        // Блоки задач с фиксированным временем добавляем как есть
-        fixed.forEach { task ->
+        val fixedBlocks = fixed.map { task ->
             val start = task.dueTime!!.hour * 60 + task.dueTime.minute
-            planned += TimeboxBlock(
+            TimeboxBlock(
                 date = request.date,
                 startMinute = start,
                 endMinute = start + (task.estimateMinutes ?: DEFAULT_FIXED_MINUTES),
@@ -85,6 +73,19 @@ class TimeboxPlanner @Inject constructor() {
                 createdBy = BlockOrigin.AUTO
             )
         }
+
+        val busy = withLunch(request.busy, settings, request.date)
+        val allBusy = busy + fixedBlocks
+        val slots = freeSlots(windowStart, windowEnd, allBusy).toMutableList()
+        val freeMinutes = slots.sumOf { it.durationMinutes }
+
+        val (withEstimate, withoutEstimate) = flexible.partition {
+            (it.estimateMinutes ?: 0) > 0
+        }
+
+        val planned = mutableListOf<TimeboxBlock>()
+        planned += fixedBlocks
+        val deferred = mutableListOf<Task>()
 
         sortForPacking(withEstimate, request.date).forEach { task ->
             val duration = task.estimateMinutes ?: return@forEach

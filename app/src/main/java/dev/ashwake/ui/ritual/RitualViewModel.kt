@@ -18,6 +18,7 @@ import dev.ashwake.domain.repository.ritual.RitualState
 import dev.ashwake.domain.repository.timebox.TimeboxRepository
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import dev.ashwake.domain.usecase.ritual.CompleteRitualUseCase
+import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,6 +52,7 @@ class RitualViewModel @Inject constructor(
     private val markHabit: MarkHabitUseCase,
     private val postponeTask: PostponeTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
+    private val completeTask: CompleteTaskUseCase,
     private val timebox: TimeboxRepository,
     private val completeRitual: CompleteRitualUseCase,
     private val clock: AppClock
@@ -108,6 +110,12 @@ class RitualViewModel @Inject constructor(
     fun postponeToTomorrow(task: Task) {
         viewModelScope.launch {
             postponeTask(task.id, _date.value.plusDays(1), PostponeSource.RITUAL)
+        }
+    }
+
+    fun complete(task: Task) {
+        viewModelScope.launch {
+            completeTask(task.id)
         }
     }
 

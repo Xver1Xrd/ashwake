@@ -136,11 +136,43 @@ class QuickInputParser @Inject constructor() {
         // Части суток: «утром», «вечером»
         DAY_PARTS[token]?.let { return Match(it, offset + 1) }
 
+        val nextToken = tokens.getOrNull(index + offset + 1)?.lowercase()?.trim(*TRAILING_PUNCTUATION)
+        val isAmPm = nextToken == "am" || nextToken == "pm"
+
         HHMM_REGEX.matchEntire(token)?.let { m ->
-            val h = m.groupValues[1].toInt()
+            var h = m.groupValues[1].toInt()
             val min = m.groupValues[2].toInt()
             if (h > 23 || min > 59) return null
+            if (isAmPm && h in 1..12) {
+                if (nextToken == "pm" && h < 12) h += 12
+                if (nextToken == "am" && h == 12) h = 0
+                return Match(LocalTime.of(h, min), offset + 2)
+            }
             return Match(LocalTime.of(h, min), offset + 1)
+        }
+
+        // 12-часовой формат: 6pm, 6:30am, 10pm
+        TIME_12H_REGEX.matchEntire(token)?.let { m ->
+            var h = m.groupValues[1].toInt()
+            val min = m.groupValues[2].takeIf { it.isNotEmpty() }?.toInt() ?: 0
+            val ampm = m.groupValues[3].lowercase()
+            if (h in 1..12 && min in 0..59) {
+                if (ampm == "pm" && h < 12) h += 12
+                if (ampm == "am" && h == 12) h = 0
+                return Match(LocalTime.of(h, min), offset + 1)
+            }
+        }
+
+        // 12-часовой с пробелом: «6 pm», «6:30 am», «в 6 pm»
+        if (isAmPm) {
+            token.toIntOrNull()?.let { hRaw ->
+                if (hRaw in 1..12) {
+                    var h = hRaw
+                    if (nextToken == "pm" && h < 12) h += 12
+                    if (nextToken == "am" && h == 12) h = 0
+                    return Match(LocalTime.of(h, 0), offset + 2)
+                }
+            }
         }
         // «в 9» — только с предлогом, иначе любое число в тексте станет временем
         if (offset == 1) {
@@ -249,6 +281,7 @@ class QuickInputParser @Inject constructor() {
         val PRIORITY_REGEX = Regex("^!p?([1-4])$")
         val ESTIMATE_REGEX = Regex("^~(\\d+(?:[.,]\\d+)?)\\s*(мин|м|ч|h|m)?$")
         val HHMM_REGEX = Regex("^(\\d{1,2}):(\\d{2})$")
+        val TIME_12H_REGEX = Regex("^(\\d{1,2})(?::(\\d{2}))?(am|pm)$", RegexOption.IGNORE_CASE)
         val NUMERIC_DATE_REGEX = Regex("^(\\d{1,2})[./](\\d{1,2})(?:[./](\\d{2}|\\d{4}))?$")
 
         val TIME_PREPOSITIONS = setOf("в", "во")

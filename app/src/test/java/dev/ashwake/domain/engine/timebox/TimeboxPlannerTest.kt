@@ -285,4 +285,18 @@ class TimeboxPlannerTest {
         assertTrue(result.fitsCompletely)
         assertEquals(0, result.deficitMinutes)
     }
+
+    @Test
+    fun `задача с точным временем резервирует свой слот и не перекрывается гибкой задачей`() {
+        val fixedTask = task(1, "созвон в 10", estimate = 60, time = LocalTime.of(10, 0))
+        val flexibleTask = task(2, "отчёт", estimate = 90)
+        val result = planner.plan(PlanRequest(date, listOf(fixedTask, flexibleTask), settings = settings))
+
+        val fixed = result.blocks.first { it.taskId == 1L }
+        val flexible = result.blocks.first { it.taskId == 2L }
+
+        assertEquals(600, fixed.startMinute)
+        assertEquals(660, fixed.endMinute)
+        assertTrue(flexible.endMinute <= fixed.startMinute || flexible.startMinute >= fixed.endMinute)
+    }
 }

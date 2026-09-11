@@ -53,6 +53,7 @@ fun HabitsScreen(
     // а туда `stringResource` не дотянется
     val freezesSpent = stringResource(R.string.habits_freezes_spent)
     val scope = rememberCoroutineScope()
+    val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
     var sheetTarget by remember { mutableStateOf<HabitWithProgress?>(null) }
     var showCatalog by remember { mutableStateOf(false) }
@@ -150,7 +151,11 @@ fun HabitsScreen(
                     scope.launch {
                         val ok = viewModel.freezeToday(target)
                         sheetTarget = null
-                        if (!ok) snackbar.showSnackbar(freezesSpent)
+                        if (ok) {
+                            haptics.play(dev.ashwake.ui.theme.HapticKind.FREEZE_THUD)
+                        } else {
+                            snackbar.showSnackbar(freezesSpent)
+                        }
                     }
                 },
                 onPause = { viewModel.pauseHabit(target, null); sheetTarget = null },

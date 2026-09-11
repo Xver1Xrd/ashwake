@@ -38,26 +38,112 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
+import java.util.Locale
 import javax.inject.Inject
 
 enum class TasksViewMode { LIST, MATRIX, CALENDAR, TIMEBOX }
 
+enum class SmartFilter(val title: String) {
+    ALL("Все"),
+    QUICK("⚡ Быстрые (<15м)"),
+    STALE("⏳ Залежавшиеся"),
+    HIGH_NO_DATE("🔥 Важные без срока"),
+    TODAY("📅 На сегодня")
+}
+
 /** Масштаб календаря: месяц / неделя / день (п. 17, экран «Задачи»). */
 enum class CalendarScale { MONTH, WEEK, DAY }
+
+/** Группа задач на день: название (Просрочено / Сегодня / Завтра / день недели) и список. */
+data class TaskDayGroup(
+    val title: String,
+    val date: LocalDate? = null,
+    val isOverdue: Boolean = false,
+    val isToday: Boolean = false,
+    val tasks: List<Task>
+)
 
 data class TasksUiState(
     val tasks: List<Task> = emptyList(),
     val projects: List<Project> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val filter: TaskFilter = TaskFilter(),
+    val smartFilter: SmartFilter = SmartFilter.ALL,
     val viewMode: TasksViewMode = TasksViewMode.LIST,
     val quickInput: String = "",
     val parsed: ParsedQuickInput? = null,
     val today: LocalDate = EPOCH_DAY,
     val staleDialogTask: Task? = null,
     val expandedTaskIds: Set<Long> = emptySet()
-)
+) {
+    val dayGroups: List<TaskDayGroup>
+        get() = groupTasksByDay(tasks, today)
+}
+
+fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
+    if (tasks.isEmpty()) return emptyList()
+
+    val groups = mutableListOf<TaskDayGroup>()
+
+    // 1. Просроченные (активные задачи с датой раньше сегодня)
+    val overdue = tasks.filter { it.isOverdue(today) }
+    if (overdue.isNotEmpty()) {
+        groups += TaskDayGroup(
+            title = "Просрочено",
+            isOverdue = true,
+            tasks = overdue
+        )
+    }
+
+    // 2. Ранее выполненные с датой в прошлом
+    val pastDone = tasks.filter { it.dueDate != null && it.dueDate < today && it.isDone }
+    if (pastDone.isNotEmpty()) {
+        groups += TaskDayGroup(
+            title = "Выполненные ранее",
+            tasks = pastDone
+        )
+    }
+
+    // 3. Задачи с датой >= сегодня
+    val datedTasks = tasks.filter { it.dueDate != null && it.dueDate >= today }
+    val byDate = datedTasks.groupBy { it.dueDate!! }
+    val sortedDates = byDate.keys.sorted()
+
+    val dateFormatter = DateTimeFormatter.ofPattern("d MMMM", Locale("ru"))
+
+    for (date in sortedDates) {
+        val list = byDate[date].orEmpty()
+        val title = when (date) {
+            today -> "Сегодня · ${date.format(dateFormatter)}"
+            today.plusDays(1) -> "Завтра · ${date.format(dateFormatter)}"
+            else -> {
+                val weekday = date.dayOfWeek.getDisplayName(TextStyle.FULL, Locale("ru"))
+                    .replaceFirstChar { it.uppercase() }
+                "$weekday · ${date.format(dateFormatter)}"
+            }
+        }
+        groups += TaskDayGroup(
+            title = title,
+            date = date,
+            isToday = date == today,
+            tasks = list
+        )
+    }
+
+    // 4. Задачи без срока
+    val noDate = tasks.filter { it.dueDate == null }
+    if (noDate.isNotEmpty()) {
+        groups += TaskDayGroup(
+            title = "Без срока",
+            tasks = noDate
+        )
+    }
+
+    return groups
+}
 
 data class CalendarUiState(
     val scale: CalendarScale = CalendarScale.MONTH,
@@ -84,8 +170,16 @@ class TasksViewModel @Inject constructor(
     private val voiceInput: VoiceInput
 ) : ViewModel() {
 
+    private data class Quad<A, B, C, D>(
+        val first: A,
+        val second: B,
+        val third: C,
+        val fourth: D
+    )
+
     private data class UiBits(
         val filter: TaskFilter,
+        val smartFilter: SmartFilter,
         val mode: TasksViewMode,
         val input: String,
         val staleTaskId: Long?,
@@ -93,14 +187,20 @@ class TasksViewModel @Inject constructor(
     )
 
     private val filter = MutableStateFlow(TaskFilter())
+    private val smartFilter = MutableStateFlow(SmartFilter.ALL)
     private val viewMode = MutableStateFlow(TasksViewMode.LIST)
     private val quickInput = MutableStateFlow("")
     private val staleTaskId = MutableStateFlow<Long?>(null)
     private val expandedTaskIds = MutableStateFlow<Set<Long>>(emptySet())
 
     private val uiBits = combine(
-        filter, viewMode, quickInput, staleTaskId, expandedTaskIds, ::UiBits
-    )
+        combine(filter, smartFilter) { f, sf -> f to sf },
+        combine(viewMode, quickInput, staleTaskId, expandedTaskIds) { vm, qi, st, exp ->
+            Quad(vm, qi, st, exp)
+        }
+    ) { (f, sf), quad ->
+        UiBits(f, sf, quad.first, quad.second, quad.third, quad.fourth)
+    }
 
     val state: StateFlow<TasksUiState> = combine(
         filter.flatMapLatest { tasks.observeTasks(it) },
@@ -109,11 +209,22 @@ class TasksViewModel @Inject constructor(
         uiBits
     ) { taskList, projectList, tagList, bits ->
         val today = clock.today()
+        val filtered = when (bits.smartFilter) {
+            SmartFilter.ALL -> taskList
+            SmartFilter.QUICK -> taskList.filter { (it.estimateMinutes ?: 0) in 1..15 }
+            SmartFilter.STALE -> taskList.filter { it.postponeCount >= 3 }
+            SmartFilter.HIGH_NO_DATE -> taskList.filter {
+                (it.priority == Priority.P1 || it.priority == Priority.P2) && it.dueDate == null
+            }
+            SmartFilter.TODAY -> taskList.filter { it.dueDate == today || it.isOverdue(today) }
+        }
+
         TasksUiState(
-            tasks = taskList,
+            tasks = filtered,
             projects = projectList,
             tags = tagList,
             filter = bits.filter,
+            smartFilter = bits.smartFilter,
             viewMode = bits.mode,
             quickInput = bits.input,
             // Разбор идёт на каждое нажатие клавиши: парсер чистый и дешёвый,
@@ -341,6 +452,10 @@ class TasksViewModel @Inject constructor(
             projects.archive(project.id)
             if (filter.value.projectId == project.id) setProjectFilter(null)
         }
+    }
+
+    fun setSmartFilter(filter: SmartFilter) {
+        smartFilter.value = filter
     }
 
     // --- фильтры и режим ---------------------------------------------------

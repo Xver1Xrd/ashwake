@@ -157,4 +157,19 @@ class QuickInputParserTest {
         val result = parser.parse("код 99:99", today)
         assertNull(result.time)
     }
+
+    @Test
+    fun `разбирает 12-часовой формат с am и pm`() {
+        val resultPm = parser.parse("созвон 6pm", today)
+        assertEquals(LocalTime.of(18, 0), resultPm.time)
+        assertEquals("созвон", resultPm.title)
+
+        val resultPmSpace = parser.parse("обед в 1:30 pm", today)
+        assertEquals(LocalTime.of(13, 30), resultPmSpace.time)
+        assertEquals("обед", resultPmSpace.title)
+
+        val resultAm = parser.parse("планёрка 9 am", today)
+        assertEquals(LocalTime.of(9, 0), resultAm.time)
+        assertEquals("планёрка", resultAm.title)
+    }
 }

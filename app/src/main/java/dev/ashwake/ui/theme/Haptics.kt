@@ -7,17 +7,15 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.view.HapticFeedbackConstants
 import android.view.View
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import dev.ashwake.platform.audio.SoundEffects
 
 /**
- * Тактильный отклик, раздел 6 дизайн-системы.
- *
- * Отклик обязателен и **различается по смыслу**: одинаковая вибрация на
- * отметке привычки и на срыве обесценивает и то, и другое. Поэтому здесь
- * не одна функция, а четыре именованных события.
+ * Тактильный отклик и звуковые эффекты, раздел 6 дизайн-системы.
  */
 enum class HapticKind {
     /** Отметка, переключатель, выбор в сегментированном контроле. */
@@ -30,34 +28,62 @@ enum class HapticKind {
     SUCCESS,
 
     /** Срыв, отмена необратимого действия. */
-    WARNING
+    WARNING,
+
+    /** Мягкий щелчок выполнения задачи. */
+    TASK_COMPLETE,
+
+    /** Глухой стук заморозки привычки. */
+    FREEZE_THUD,
+
+    /** Потрескивание пламени при тапе по огоньку. */
+    FLAME_CRACKLE
 }
 
-/**
- * Проигрывает отклик. Короткие события идут через [View], потому что так их
- * уважает системная настройка «тактильный отклик»; составные — через
- * предопределённые эффекты вибратора, которых в [HapticFeedbackConstants] нет.
- */
 class Haptics(
     private val view: View,
-    private val context: Context
+    private val context: Context,
+    private val sounds: SoundEffects? = null
 ) {
     fun play(kind: HapticKind) {
         when (kind) {
             HapticKind.LIGHT -> view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
             HapticKind.MEDIUM -> view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            HapticKind.SUCCESS -> predefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
-            HapticKind.WARNING -> predefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+            HapticKind.SUCCESS -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    predefined(VibrationEffect.EFFECT_DOUBLE_CLICK)
+                } else {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            }
+            HapticKind.WARNING -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    predefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                } else {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+            }
+            HapticKind.TASK_COMPLETE -> {
+                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                sounds?.playClick()
+            }
+            HapticKind.FREEZE_THUD -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    predefined(VibrationEffect.EFFECT_HEAVY_CLICK)
+                } else {
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                }
+                sounds?.playThud()
+            }
+            HapticKind.FLAME_CRACKLE -> {
+                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                sounds?.playCampfire()
+            }
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.Q)
     private fun predefined(effect: Int) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
-            // До Android 10 предопределённых эффектов нет — падать назад
-            // на длинное нажатие честнее, чем молча не дать отклика
-            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            return
-        }
         vibrator()?.takeIf { it.hasVibrator() }
             ?.vibrate(VibrationEffect.createPredefined(effect))
     }
@@ -76,5 +102,6 @@ class Haptics(
 fun rememberHaptics(): Haptics {
     val view = LocalView.current
     val context = LocalContext.current
-    return remember(view, context) { Haptics(view, context) }
+    val sounds = remember(context) { SoundEffects(context.applicationContext) }
+    return remember(view, context, sounds) { Haptics(view, context, sounds) }
 }

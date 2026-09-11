@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +29,19 @@ import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.colorTitle
 import dev.ashwake.ui.theme.priorityColor
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import dev.ashwake.ui.components.responseSpring
 import java.time.format.DateTimeFormatter
 
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM")
@@ -55,8 +70,10 @@ fun QuickAddBar(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .imePadding()
+            .navigationBarsPadding()
             .background(colors.surface1, AshShapes.sheetTop)
-            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (parsed != null && parsed.hasAnyMarkup) {
             ParsedChips(parsed)
@@ -68,14 +85,13 @@ fun QuickAddBar(
             AshTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = stringResource(R.string.components_kupit_moloko_zavtra_18_00_p2_dom_30m_2),
+                placeholder = "Новая задача...",
+                singleLine = true,
                 modifier = Modifier.weight(1f)
             )
             RoundAction(
                 icon = AshIcons.Mic,
                 description = stringResource(R.string.components_golosovoy_vvod),
-                // Во время записи микрофон подсвечен: иначе непонятно,
-                // слушает приложение или нет
                 tint = if (listening) colors.danger else colors.text2,
                 background = colors.surface2,
                 onClick = onVoiceClick
@@ -116,6 +132,7 @@ private fun RoundAction(
 @Composable
 private fun ParsedChips(parsed: ParsedQuickInput) {
     val colors = AshTheme.colors
+    val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -124,7 +141,7 @@ private fun ParsedChips(parsed: ParsedQuickInput) {
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         parsed.date?.let { Chip(it.format(DATE_FORMAT)) }
-        parsed.time?.let { Chip(it.format(TIME_FORMAT)) }
+        parsed.time?.let { Chip(dev.ashwake.ui.theme.formatTime(it, is24Hour)) }
         parsed.priority?.let { Chip(it.colorTitle, colors.priorityColor(it)) }
         parsed.estimateMinutes?.let { Chip(stringResource(R.string.components_1_s_min, it)) }
         parsed.tagNames.forEach { Chip("#$it") }

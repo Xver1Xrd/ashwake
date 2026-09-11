@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.model.Priority
 import dev.ashwake.core.model.WeekdayMask
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.data.assets.TaskPreset
+import dev.ashwake.data.assets.TaskPresetLoader
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
@@ -64,7 +66,8 @@ data class TaskEditorState(
     val isNew: Boolean = true,
     val isDone: Boolean = false,
     val loading: Boolean = true,
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val today: LocalDate = LocalDate.ofEpochDay(0)
 ) {
     val canSave: Boolean get() = title.isNotBlank()
 }
@@ -77,6 +80,7 @@ class TaskEditorViewModel @Inject constructor(
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
+    private val presetLoader: TaskPresetLoader,
     private val clock: AppClock,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -86,6 +90,9 @@ class TaskEditorViewModel @Inject constructor(
     private val _state = MutableStateFlow(TaskEditorState(taskId = taskId, isNew = taskId == 0L))
     val state: StateFlow<TaskEditorState> = _state.asStateFlow()
 
+    private val _presets = MutableStateFlow<List<TaskPreset>>(emptyList())
+    val presets: StateFlow<List<TaskPreset>> = _presets.asStateFlow()
+
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -93,12 +100,15 @@ class TaskEditorViewModel @Inject constructor(
     private val removedSubtaskIds = mutableSetOf<Long>()
 
     init {
+        val today = clock.today()
+        viewModelScope.launch { _presets.value = presetLoader.load() }
         if (taskId == 0L) {
             // Новая задача заводится на сегодня. Задача без даты не попадает
             // ни в один список дня, и человек, создавший её с главного экрана,
             // просто не находит её там, куда смотрел.
-            _state.update { it.copy(loading = false, dueDate = clock.today()) }
+            _state.update { it.copy(loading = false, dueDate = today, today = today) }
         } else {
+            _state.update { it.copy(today = today) }
             viewModelScope.launch { load(taskId) }
         }
     }
@@ -110,6 +120,7 @@ class TaskEditorViewModel @Inject constructor(
             return
         }
         val rule = task.recurrence
+        val today = clock.today()
         _state.value = TaskEditorState(
             taskId = task.id,
             title = task.title,
@@ -121,7 +132,7 @@ class TaskEditorViewModel @Inject constructor(
             dueDate = task.dueDate,
             dueTime = task.dueTime,
             estimateMinutes = task.estimateMinutes,
-            tagsInput = task.tags.joinToString(" ") { "#${it.name}" },
+            tagsInput = task.tags.joinToString(" ") { it.name },
             persistentReminderMinutes = task.persistentReminderMinutes,
             sourceLink = task.sourceLink,
             subtasks = task.subtasks.map { EditableSubtask(it.id, it.title, it.isDone) },
@@ -134,13 +145,25 @@ class TaskEditorViewModel @Inject constructor(
             existingRecurrenceId = rule?.id ?: 0,
             isNew = false,
             isDone = task.isDone,
-            loading = false
+            loading = false,
+            today = today
         )
     }
 
     // --- правки полей ------------------------------------------------------
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
+
+    fun applyPreset(preset: TaskPreset) {
+        _state.update { current ->
+            current.copy(
+                title = preset.title,
+                priority = preset.priority,
+                estimateMinutes = preset.estimateMinutes,
+                subtasks = preset.subtasks.map { EditableSubtask(title = it) }
+            )
+        }
+    }
 
     /** Повторный выбор той же эмодзи снимает её: отдельная кнопка «убрать» не нужна. */
     fun setEmoji(value: String?) = _state.update {

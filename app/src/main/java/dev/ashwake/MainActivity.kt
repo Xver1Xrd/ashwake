@@ -69,12 +69,15 @@ class MainActivity : ComponentActivity() {
             // хранилища значит мигать им при каждом запуске
             val onboardingDone by settings.onboardingDone
                 .collectAsStateWithLifecycle(initialValue = null as Boolean?)
+            val is24Hour by settings.is24HourFormat
+                .collectAsStateWithLifecycle(initialValue = true)
 
             AshwakeTheme(settings = theme) {
                 // Значки читают файлы из хранилища прямо в строке списка,
                 // а зависимости туда не прокинуть: кладём одно на приложение
                 androidx.compose.runtime.CompositionLocalProvider(
-                    LocalIconStore provides iconStore
+                    LocalIconStore provides iconStore,
+                    dev.ashwake.ui.theme.LocalIs24Hour provides is24Hour
                 ) {
                     if (onboardingDone != null) {
                         AshwakeRoot(

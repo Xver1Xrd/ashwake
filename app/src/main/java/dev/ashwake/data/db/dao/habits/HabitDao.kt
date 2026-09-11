@@ -44,6 +44,9 @@ interface HabitDao {
     @Query("SELECT COALESCE(MAX(position), 0) FROM habits")
     suspend fun maxPosition(): Int
 
+    @Query("UPDATE habits SET position = :position WHERE id = :id")
+    suspend fun updatePosition(id: Long, position: Int)
+
     // --- отметки -----------------------------------------------------------
 
     /**

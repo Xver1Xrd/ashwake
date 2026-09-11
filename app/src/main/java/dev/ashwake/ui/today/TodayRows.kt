@@ -14,6 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
@@ -25,7 +28,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.geometry.Size
@@ -41,12 +46,24 @@ import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.abstinence.AbstinenceWithStats
+import dev.ashwake.ui.components.AshContextMenu
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.ContextMenuItem
 import dev.ashwake.ui.components.DrawnCheck
 import dev.ashwake.ui.components.EntityIcon
 import dev.ashwake.ui.components.QUICK_MS
 import dev.ashwake.ui.components.motionTween
 import dev.ashwake.ui.components.responseSpring
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
+import dev.ashwake.ui.components.parallaxTilt
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
@@ -74,9 +91,12 @@ fun HabitTodayRow(
     progress: HabitWithProgress,
     onToggle: (from: Offset) -> Unit,
     onOpen: () -> Unit,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var markCenter by remember { mutableStateOf(Offset.Zero) }
+    var showMenu by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val habit = progress.habit
 
@@ -106,7 +126,11 @@ fun HabitTodayRow(
         Row(
             Modifier
                 .fillMaxWidth()
-                .tappable(onClick = onOpen)
+                .parallaxTilt(maxTiltDegrees = 2.5f)
+                .tappable(
+                    onClick = onOpen,
+                    onLongClick = { showMenu = true }
+                )
                 .defaultMinSize(minHeight = 60.dp)
                 .padding(horizontal = 16.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -159,6 +183,37 @@ fun HabitTodayRow(
                 modifier = Modifier.size(14.dp)
             )
         }
+
+        AshContextMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            items = listOfNotNull(
+                ContextMenuItem(
+                    title = stringResource(R.string.context_menu_edit),
+                    icon = AshIcons.Edit,
+                    onClick = onOpen
+                ),
+                ContextMenuItem(
+                    title = if (progress.doneToday) stringResource(R.string.editor_ubrat) else stringResource(R.string.detail_vypolneno),
+                    icon = if (progress.doneToday) AshIcons.Close else AshIcons.Check,
+                    onClick = { onToggle(markCenter) }
+                ),
+                onMoveUp?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.context_menu_move_up),
+                        icon = AshIcons.ExpandLess,
+                        onClick = it
+                    )
+                },
+                onMoveDown?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.context_menu_move_down),
+                        icon = AshIcons.ExpandMore,
+                        onClick = it
+                    )
+                }
+            )
+        )
     }
 }
 
@@ -203,6 +258,17 @@ private fun HabitMark(
         label = "mark-stroke"
     )
 
+    val waveTransition = rememberInfiniteTransition(label = "habit-wave")
+    val wavePhase by waveTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "wave-phase"
+    )
+
     Box(
         Modifier
             .size(28.dp)
@@ -221,6 +287,29 @@ private fun HabitMark(
                 alpha = 1f - fill
             )
             if (share > 0f && fill < 1f) {
+                val circleClip = Path().apply {
+                    addOval(Rect(Offset.Zero, size))
+                }
+                clipPath(circleClip) {
+                    val waterY = size.height * (1f - share)
+                    val wavePath = Path().apply {
+                        moveTo(0f, size.height)
+                        lineTo(0f, waterY)
+                        val steps = 20
+                        for (i in 0..steps) {
+                            val x = size.width * (i.toFloat() / steps)
+                            val y = waterY + (kotlin.math.sin((i.toDouble() / steps * 2.0 * Math.PI) + wavePhase) * 1.5.dp.toPx()).toFloat()
+                            lineTo(x, y)
+                        }
+                        lineTo(size.width, size.height)
+                        close()
+                    }
+                    drawPath(
+                        path = wavePath,
+                        color = accent.copy(alpha = 0.45f)
+                    )
+                }
+
                 drawArc(
                     color = accent,
                     startAngle = -90f,
@@ -288,6 +377,7 @@ fun TaskTodayRow(
                 task = task,
                 today = today,
                 onToggle = { onToggle(markCenter) },
+                onPostpone = onPostpone,
                 onMarkPositioned = { markCenter = it },
                 onOpen = onOpen
             )
@@ -334,25 +424,66 @@ private fun TaskTodayRowContent(
     task: Task,
     today: java.time.LocalDate,
     onToggle: () -> Unit,
+    onPostpone: () -> Unit,
     onMarkPositioned: (Offset) -> Unit,
     onOpen: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+    var isCompleting by remember(task.id) { mutableStateOf(false) }
+    val isTaskDone = task.isDone || isCompleting
+    val scope = rememberCoroutineScope()
     val colors = AshTheme.colors
     val overdue = task.isOverdue(today)
 
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .background(colors.surface1)
-            .tappable(onClick = onOpen)
-            .defaultMinSize(minHeight = 56.dp)
-            .padding(horizontal = 16.dp, vertical = AshTheme.density.rowVerticalPadding),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
+    val cardScale by animateFloatAsState(
+        targetValue = if (isTaskDone) 0.98f else 1f,
+        animationSpec = responseSpring(),
+        label = "task-scale"
+    )
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (isTaskDone) 0.40f else 1f,
+        animationSpec = motionTween(300),
+        label = "task-alpha"
+    )
+    val strikeProgress by animateFloatAsState(
+        targetValue = if (isTaskDone) 1f else 0f,
+        animationSpec = motionTween(300),
+        label = "strike-progress"
+    )
+
+    Box {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = cardScale
+                    scaleY = cardScale
+                    alpha = cardAlpha
+                }
+                .parallaxTilt(maxTiltDegrees = 2.5f)
+                .background(colors.surface1)
+                .tappable(
+                    onClick = onOpen,
+                    onLongClick = { showMenu = true }
+                )
+                .defaultMinSize(minHeight = 56.dp)
+                .padding(horizontal = 16.dp, vertical = AshTheme.density.rowVerticalPadding),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
         TaskCheckbox(
-            done = task.isDone,
-            onClick = onToggle,
+            done = isTaskDone,
+            onClick = {
+                if (!task.isDone && !isCompleting) {
+                    isCompleting = true
+                    scope.launch {
+                        delay(320)
+                        onToggle()
+                    }
+                } else {
+                    onToggle()
+                }
+            },
             onPositioned = onMarkPositioned
         )
 
@@ -392,7 +523,20 @@ private fun TaskTodayRowContent(
                     color = if (task.isDone) colors.text3 else colors.text,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .drawWithContent {
+                            drawContent()
+                            if (strikeProgress > 0f) {
+                                val y = size.height / 2f
+                                drawLine(
+                                    color = colors.text3,
+                                    start = Offset(0f, y),
+                                    end = Offset(size.width * strikeProgress, y),
+                                    strokeWidth = 1.5.dp.toPx()
+                                )
+                            }
+                        }
                 )
             }
             val meta = taskMeta(task, today)
@@ -406,6 +550,24 @@ private fun TaskTodayRowContent(
                 )
             }
         }
+        }
+
+        AshContextMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            items = listOf(
+                ContextMenuItem(
+                    title = stringResource(R.string.context_menu_edit),
+                    icon = AshIcons.Edit,
+                    onClick = onOpen
+                ),
+                ContextMenuItem(
+                    title = stringResource(R.string.context_menu_postpone_tomorrow),
+                    icon = AshIcons.Calendar,
+                    onClick = onPostpone
+                )
+            )
+        )
     }
 }
 
@@ -415,7 +577,8 @@ private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList
         if (date < today) add(if (date == today.minusDays(1)) stringResource(R.string.components_vchera) else date.format(DateFormat))
     }
     if (task.priority.hasMark) add(task.priority.meaning)
-    task.dueTime?.let { add(it.format(TimeFormat)) }
+    val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
+    task.dueTime?.let { add(dev.ashwake.ui.theme.formatTime(it, is24Hour)) }
     task.estimateMinutes?.let { add(stringResource(R.string.settings_1_s_min, it)) }
     task.tags.take(2).forEach { add("#${it.name}") }
 }.joinToString(" · ")
@@ -433,61 +596,79 @@ fun AbstinenceTodayRow(
     onOpen: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val days = item.stats.currentDays
 
-    Row(
-        modifier
-            .fillMaxWidth()
-            .tappable(onClick = onOpen)
-            .defaultMinSize(minHeight = 60.dp)
-            .padding(horizontal = 16.dp, vertical = 11.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        EntityIcon(
-            emoji = item.abstinence.icon,
-            iconPath = item.abstinence.iconPath,
-            size = 34.dp,
-            background = colors.cold.copy(alpha = 0.16f),
-            fallback = {
-                Box(
-                    Modifier
-                        .size(34.dp)
-                        .background(colors.cold.copy(alpha = 0.16f), AshShapes.squircle(12.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = AshIcons.Prohibit,
-                        contentDescription = null,
-                        tint = colors.cold,
-                        modifier = Modifier.size(18.dp)
-                    )
+    Box(modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .tappable(
+                    onClick = onOpen,
+                    onLongClick = { showMenu = true }
+                )
+                .defaultMinSize(minHeight = 60.dp)
+                .padding(horizontal = 16.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            EntityIcon(
+                emoji = item.abstinence.icon,
+                iconPath = item.abstinence.iconPath,
+                size = 34.dp,
+                background = colors.cold.copy(alpha = 0.16f),
+                fallback = {
+                    Box(
+                        Modifier
+                            .size(34.dp)
+                            .background(colors.cold.copy(alpha = 0.16f), AshShapes.squircle(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = AshIcons.Prohibit,
+                            contentDescription = null,
+                            tint = colors.cold,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
-            }
-        )
-
-        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
-            Text(
-                text = item.abstinence.name,
-                style = AshTheme.type.headline,
-                color = colors.text,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = pluralStringResource(R.plurals.streak_days, days.toInt(), days.toInt()) +
-                    stringResource(R.string.today_rekord_1_s, item.stats.record.toDays()),
-                style = AshTheme.type.subhead,
-                color = colors.text2
+
+            androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+                Text(
+                    text = item.abstinence.name,
+                    style = AshTheme.type.headline,
+                    color = colors.text,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.streak_days, days.toInt(), days.toInt()) +
+                        stringResource(R.string.today_rekord_1_s, item.stats.record.toDays()),
+                    style = AshTheme.type.subhead,
+                    color = colors.text2
+                )
+            }
+
+            Icon(
+                imageVector = AshIcons.ChevronRight,
+                contentDescription = null,
+                tint = colors.text3,
+                modifier = Modifier.size(14.dp)
             )
         }
 
-        Icon(
-            imageVector = AshIcons.ChevronRight,
-            contentDescription = null,
-            tint = colors.text3,
-            modifier = Modifier.size(14.dp)
+        AshContextMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            items = listOf(
+                ContextMenuItem(
+                    title = stringResource(R.string.context_menu_open),
+                    icon = AshIcons.ArrowRight,
+                    onClick = onOpen
+                )
+            )
         )
     }
 }

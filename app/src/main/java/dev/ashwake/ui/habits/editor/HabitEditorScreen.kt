@@ -253,12 +253,13 @@ fun HabitEditorScreen(
             HorizontalDivider()
 
             Text(stringResource(R.string.editor_napominanie), style = AshTheme.type.headline)
+            val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChipButton(
-                        text = state.reminderTime?.format(TIME_FORMAT) ?: stringResource(R.string.editor_vremya),
-                        selected = state.reminderTime != null,
-                        onClick = { showTimePicker = true }
-                    )
+                    text = state.reminderTime?.let { dev.ashwake.ui.theme.formatTime(it, is24Hour) } ?: stringResource(R.string.editor_vremya),
+                    selected = state.reminderTime != null,
+                    onClick = { showTimePicker = true }
+                )
                 if (state.reminderTime != null) {
                     TextAction(
                         text = stringResource(R.string.editor_ubrat),

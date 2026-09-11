@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.R
+import dev.ashwake.ui.components.AshContextMenu
+import dev.ashwake.ui.components.ContextMenuItem
 import dev.ashwake.ui.abstinence.components.LiveCounter
 import dev.ashwake.ui.abstinence.components.currencySymbol
 import dev.ashwake.ui.abstinence.components.formatMoney
@@ -104,57 +106,84 @@ fun AbstinenceScreen(
             }
 
             items(items, key = { it.abstinence.id }) { item ->
-                Column(
+                var showMenu by remember { mutableStateOf(false) }
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = ScreenPadding)
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    colors.cold.copy(alpha = 0.18f),
-                                    colors.surface1
-                                )
-                            ),
-                            AshShapes.card
-                        )
-                        .tappable(onClick = { onOpen(item.abstinence.id) })
-                        .padding(vertical = 18.dp, horizontal = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = item.abstinence.name,
-                        style = AshTheme.type.title3,
-                        color = colors.text
-                    )
-                    LiveCounter(
-                        duration = item.stats.current,
-                        modifier = Modifier.padding(vertical = 10.dp)
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                        Badge(stringResource(R.string.abstinence_rekord_1_s, item.stats.record.toDays()))
-                        Badge(stringResource(R.string.abstinence_popytka_1_s, item.stats.attemptNumber))
-                    }
-                    item.stats.savings?.let { savings ->
-                        Row(
-                            Modifier.padding(top = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                AshIcons.Coins,
-                                contentDescription = null,
-                                tint = colors.warm,
-                                modifier = Modifier.size(15.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        colors.cold.copy(alpha = 0.18f),
+                                        colors.surface1
+                                    )
+                                ),
+                                AshShapes.card
                             )
-                            Text(
-                                text = "${formatMoney(savings.money)} " +
-                                    currencySymbol(savings.currency) +
-                                    stringResource(R.string.abstinence_ne_1_s_2_s, savings.units.roundToInt(), savings.unitName),
-                                style = AshTheme.type.footnote,
-                                color = colors.warm
+                            .tappable(
+                                onClick = { onOpen(item.abstinence.id) },
+                                onLongClick = { showMenu = true }
                             )
+                            .padding(vertical = 18.dp, horizontal = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = item.abstinence.name,
+                            style = AshTheme.type.title3,
+                            color = colors.text
+                        )
+                        LiveCounter(
+                            duration = item.stats.current,
+                            modifier = Modifier.padding(vertical = 10.dp)
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                            Badge(stringResource(R.string.abstinence_rekord_1_s, item.stats.record.toDays()))
+                            Badge(stringResource(R.string.abstinence_popytka_1_s, item.stats.attemptNumber))
+                        }
+                        item.stats.savings?.let { savings ->
+                            Row(
+                                Modifier.padding(top = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    AshIcons.Coins,
+                                    contentDescription = null,
+                                    tint = colors.warm,
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Text(
+                                    text = "${formatMoney(savings.money)} " +
+                                        currencySymbol(savings.currency) +
+                                        stringResource(R.string.abstinence_ne_1_s_2_s, savings.units.roundToInt(), savings.unitName),
+                                    style = AshTheme.type.footnote,
+                                    color = colors.warm
+                                )
+                            }
                         }
                     }
+
+                    AshContextMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false },
+                        items = listOf(
+                            ContextMenuItem(
+                                title = stringResource(R.string.context_menu_open),
+                                icon = AshIcons.ArrowRight,
+                                onClick = { onOpen(item.abstinence.id) }
+                            ),
+                            ContextMenuItem(
+                                title = stringResource(R.string.blocking_udalit),
+                                icon = AshIcons.Trash,
+                                isDestructive = true,
+                                onClick = { viewModel.archive(item.abstinence.id) }
+                            )
+                        )
+                    )
                 }
             }
         }

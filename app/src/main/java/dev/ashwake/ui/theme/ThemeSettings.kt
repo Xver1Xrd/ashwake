@@ -115,6 +115,7 @@ fun ThemeSettings.toColors(systemDark: Boolean): AshColors {
         surface1 = surfaceColor(dark, 1) ?: base.surface1,
         surface2 = surfaceColor(dark, 2) ?: base.surface2,
         surface3 = surfaceColor(dark, 3) ?: base.surface3,
+        separator = if (background == BackgroundStyle.BLACK && dark) Color(0x38888888) else base.separator,
         accent = accentColor,
         accentAlt = accentAltColor,
         warm = warm?.let(::Color) ?: base.warm,
@@ -140,9 +141,9 @@ private fun ThemeSettings.surfaceColor(dark: Boolean, level: Int): Color? {
     return when (background) {
         BackgroundStyle.INK -> null
         BackgroundStyle.BLACK -> when (level) {
-            1 -> Color(0xFF101016)
-            2 -> Color(0xFF1A1A22)
-            else -> Color(0xFF25252F)
+            1 -> Color(0xFF080808)
+            2 -> Color(0xFF121212)
+            else -> Color(0xFF1E1E1E)
         }
 
         BackgroundStyle.GRAPHITE -> when (level) {

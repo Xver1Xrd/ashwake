@@ -65,6 +65,10 @@ class AppSettings @Inject constructor(
     val dayStartHour: Flow<Int> =
         context.dataStore.data.map { it[DAY_START_HOUR] ?: DEFAULT_DAY_START_HOUR }
 
+    /** Формат времени: 24-часовой (true) или 12-часовой (false). */
+    val is24HourFormat: Flow<Boolean> =
+        context.dataStore.data.map { it[IS_24_HOUR] ?: true }
+
     suspend fun setWorkHours(startMinute: Int, endMinute: Int) {
         context.dataStore.edit { prefs ->
             prefs[WORK_START] = startMinute.coerceIn(0, 24 * 60)
@@ -101,6 +105,10 @@ class AppSettings @Inject constructor(
 
     suspend fun setDayStartHour(hour: Int) {
         context.dataStore.edit { it[DAY_START_HOUR] = hour.coerceIn(0, 12) }
+    }
+
+    suspend fun setIs24HourFormat(enabled: Boolean) {
+        context.dataStore.edit { it[IS_24_HOUR] = enabled }
     }
 
     /**
@@ -182,6 +190,7 @@ class AppSettings @Inject constructor(
         val LUNCH_DURATION = intPreferencesKey("lunch_duration_minutes")
         val USE_CALENDAR = booleanPreferencesKey("use_system_calendar")
         val DAY_START_HOUR = intPreferencesKey("day_start_hour")
+        val IS_24_HOUR = booleanPreferencesKey("is_24_hour_format")
         val BACKUP_FOLDER = stringPreferencesKey("backup_folder_uri")
         val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
         val ONBOARDING_DONE = booleanPreferencesKey("onboarding_done")

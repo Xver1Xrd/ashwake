@@ -42,9 +42,11 @@ import dev.ashwake.R
 @Composable
 fun TaskFilterRow(
     filter: TaskFilter,
+    smartFilter: dev.ashwake.ui.tasks.SmartFilter,
     projects: List<Project>,
     tags: List<Tag>,
     onToggleDone: () -> Unit,
+    onSmartFilterSelected: (dev.ashwake.ui.tasks.SmartFilter) -> Unit,
     onProjectSelected: (Long?) -> Unit,
     onTagSelected: (Long?) -> Unit,
     onManageProjects: () -> Unit,
@@ -56,28 +58,37 @@ fun TaskFilterRow(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Смарт-фильтры
+        items(dev.ashwake.ui.tasks.SmartFilter.entries.toTypedArray(), key = { "smart-${it.name}" }) { sf ->
+            ChipButton(
+                text = sf.title,
+                selected = smartFilter == sf,
+                onClick = { onSmartFilterSelected(sf) }
+            )
+        }
+
         item {
             ChipButton(
-                        text = stringResource(R.string.components_vypolnennye),
-                        selected = filter.includeDone,
-                        onClick = onToggleDone
-                    )
+                text = stringResource(R.string.components_vypolnennye),
+                selected = filter.includeDone,
+                onClick = onToggleDone
+            )
         }
         items(projects, key = { "p${it.id}" }) { project ->
             ChipButton(
-                        text = project.name,
-                        selected = filter.projectId == project.id,
-                        onClick = {
+                text = project.name,
+                selected = filter.projectId == project.id,
+                onClick = {
                     onProjectSelected(if (filter.projectId == project.id) null else project.id)
                 }
-                    )
+            )
         }
         items(tags, key = { "t${it.id}" }) { tag ->
             ChipButton(
-                        text = "#${tag.name}",
-                        selected = filter.tagId == tag.id,
-                        onClick = { onTagSelected(if (filter.tagId == tag.id) null else tag.id) }
-                    )
+                text = "#${tag.name}",
+                selected = filter.tagId == tag.id,
+                onClick = { onTagSelected(if (filter.tagId == tag.id) null else tag.id) }
+            )
         }
         item {
             AssistChip(

@@ -3,6 +3,7 @@ package dev.ashwake.data.backup
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import dev.ashwake.core.result.getOrNull
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.icons.IconStore
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
@@ -20,6 +21,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -152,6 +154,21 @@ class BackupRoundTripTest {
         val stat = db.characterDao().stat("STRENGTH")
         assertNotNull(stat)
         assertEquals(40L, stat?.points)
+    }
+
+    @Test
+    fun `экспорт в CSV выдаёт валидные строки с запятыми`() = runTest {
+        seed()
+        val exporter = CsvExporter(db.taskDao(), db.habitDao())
+        val taskCsv = exporter.exportTasksCsv().getOrNull()
+        assertNotNull(taskCsv)
+        assertTrue(taskCsv!!.startsWith("id,title,status,priority,completedAt,createdAt,postponeCount\n"))
+        assertTrue(taskCsv.contains("1,Дописать отчёт,ACTIVE,P2,"))
+
+        val habitCsv = exporter.exportHabitsCsv().getOrNull()
+        assertNotNull(habitCsv)
+        assertTrue(habitCsv!!.startsWith("date,habit,status,value\n"))
+        assertTrue(habitCsv.contains(",Зарядка,DONE,0"))
     }
 
     // --- данные для теста ----------------------------------------------------

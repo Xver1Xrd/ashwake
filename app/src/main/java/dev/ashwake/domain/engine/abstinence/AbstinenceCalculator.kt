@@ -82,16 +82,17 @@ class AbstinenceCalculator @Inject constructor() {
     /** Ближайшая недостигнутая веха. */
     fun nextMilestone(abstinence: Abstinence, currentDays: Long): Milestone? {
         if (!abstinence.milestonesEnabled) return null
-        return milestonesOf(abstinence)
+        return milestonesOf(abstinence, (currentDays + 365).toInt())
             .filter { it.days > currentDays }
             .minByOrNull { it.days }
     }
 
     /** Все вехи: пользовательские плюс стандартные, без дублей по числу дней. */
-    fun milestonesOf(abstinence: Abstinence): List<Milestone> {
+    fun milestonesOf(abstinence: Abstinence, minDaysAhead: Int = 0): List<Milestone> {
         val custom = abstinence.milestones
         val customDays = custom.map { it.days }.toSet()
-        val defaults = defaultMilestoneDays(customDays.maxOrNull() ?: 0)
+        val atLeast = maxOf(customDays.maxOrNull() ?: 0, minDaysAhead)
+        val defaults = defaultMilestoneDays(atLeast)
             .filterNot { it in customDays }
             .map { days ->
                 Milestone(abstinenceId = abstinence.id, days = days, title = titleOf(days))

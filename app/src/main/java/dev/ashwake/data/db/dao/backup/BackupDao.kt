@@ -6,8 +6,11 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
+import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
@@ -70,6 +73,9 @@ interface BackupDao {
     @Query("DELETE FROM equipped_items") suspend fun clearEquipped()
     @Query("DELETE FROM owned_items") suspend fun clearOwned()
     @Query("DELETE FROM character_stats") suspend fun clearStats()
+    @Query("DELETE FROM material_inventory") suspend fun clearMaterials()
+    @Query("DELETE FROM achievements") suspend fun clearAchievements()
+    @Query("DELETE FROM daily_chests") suspend fun clearChests()
     @Query("DELETE FROM ledger_transactions") suspend fun clearLedger()
 
     // --- вставка ------------------------------------------------------------
@@ -103,6 +109,15 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertStats(items: List<CharacterStatEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertMaterials(items: List<MaterialInventoryEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAchievements(items: List<AchievementEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertChests(items: List<DailyChestEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertWallet(wallet: WalletEntity)

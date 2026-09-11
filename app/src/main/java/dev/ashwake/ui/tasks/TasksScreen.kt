@@ -4,12 +4,18 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.draw.clip
+import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.theme.AshShapes
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.BarChart
@@ -45,6 +51,7 @@ import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.tasks.components.QuickAddBar
 import dev.ashwake.ui.tasks.components.StaleTaskDialog
 import dev.ashwake.ui.tasks.components.SubtaskList
+import dev.ashwake.ui.tasks.components.TaskDayHeader
 import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
 import androidx.compose.ui.res.stringResource
@@ -61,6 +68,8 @@ fun TasksScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
     val voice by viewModel.voiceState.collectAsStateWithLifecycle()
+    val colors = AshTheme.colors
+    val haptics = dev.ashwake.ui.theme.rememberHaptics()
     var showProjects by remember { mutableStateOf(false) }
     val toast = rememberToastState()
     val postponedText = stringResource(R.string.toast_postponed)
@@ -75,6 +84,7 @@ fun TasksScreen(
 
     Scaffold(
         containerColor = AshTheme.colors.background,
+        contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
             AshLargeTitle(
                 title = stringResource(R.string.tasks_zadachi),
@@ -134,9 +144,11 @@ fun TasksScreen(
             if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
+                    smartFilter = state.smartFilter,
                     projects = state.projects,
                     tags = state.tags,
                     onToggleDone = viewModel::toggleShowDone,
+                    onSmartFilterSelected = viewModel::setSmartFilter,
                     onProjectSelected = viewModel::setProjectFilter,
                     onTagSelected = viewModel::setTagFilter,
                     onManageProjects = { showProjects = true },
@@ -165,27 +177,39 @@ fun TasksScreen(
                         contentPadding = PaddingValues(12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        items(state.tasks, key = { it.id }) { task ->
-                            Column {
-                                TaskRow(
-                                    task = task,
-                                    today = state.today,
-                                    onComplete = { viewModel.complete(task) },
-                                    onPostpone = {
-                                        viewModel.postponeToTomorrow(task)
-                                        toast.show(postponedText, undoText) {
-                                            viewModel.undoPostpone(task.id)
-                                        }
-                                    },
-                                    onClick = { onOpenTask(task.id) },
-                                    expanded = task.id in state.expandedTaskIds,
-                                    onExpandToggle = { viewModel.toggleExpanded(task.id) }
+                        state.dayGroups.forEach { group ->
+                            item(key = "header-${group.title}") {
+                                TaskDayHeader(
+                                    group = group,
+                                    modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
                                 )
-                                if (task.id in state.expandedTaskIds) {
-                                    SubtaskList(
+                            }
+
+                            items(group.tasks, key = { it.id }) { task ->
+                                Column {
+                                    TaskRow(
                                         task = task,
-                                        onToggle = viewModel::complete
+                                        today = state.today,
+                                        onComplete = {
+                                            if (!task.isDone) haptics.play(dev.ashwake.ui.theme.HapticKind.TASK_COMPLETE)
+                                            viewModel.complete(task)
+                                        },
+                                        onPostpone = {
+                                            viewModel.postponeToTomorrow(task)
+                                            toast.show(postponedText, undoText) {
+                                                viewModel.undoPostpone(task.id)
+                                            }
+                                        },
+                                        onClick = { onOpenTask(task.id) },
+                                        expanded = task.id in state.expandedTaskIds,
+                                        onExpandToggle = { viewModel.toggleExpanded(task.id) }
                                     )
+                                    if (task.id in state.expandedTaskIds) {
+                                        SubtaskList(
+                                            task = task,
+                                            onToggle = viewModel::complete
+                                        )
+                                    }
                                 }
                             }
                         }

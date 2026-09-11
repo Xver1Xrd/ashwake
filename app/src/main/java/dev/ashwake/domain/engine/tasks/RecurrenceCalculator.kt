@@ -20,16 +20,17 @@ class RecurrenceCalculator @Inject constructor() {
      * @return null, если правило истекло (сработал endDate).
      */
     fun next(rule: RecurrenceRule, after: LocalDate): LocalDate? {
+        val effectiveAfter = if (after < rule.startDate.minusDays(1)) rule.startDate.minusDays(1) else after
         val candidate = when (rule.type) {
-            RecurrenceType.DAILY -> after.plusDays(1)
+            RecurrenceType.DAILY -> effectiveAfter.plusDays(1)
 
             RecurrenceType.EVERY_N_DAYS -> {
                 val step = (rule.intervalDays ?: 1).coerceAtLeast(1).toLong()
                 if (rule.fromCompletion) {
-                    after.plusDays(step)
+                    effectiveAfter.plusDays(step)
                 } else {
                     // Держимся исходной сетки: пропущенные повторы не сдвигают серию.
-                    val elapsed = ChronoUnit.DAYS.between(rule.startDate, after)
+                    val elapsed = ChronoUnit.DAYS.between(rule.startDate, effectiveAfter)
                     val periods = Math.floorDiv(elapsed, step) + 1
                     rule.startDate.plusDays(periods * step)
                 }
@@ -37,7 +38,7 @@ class RecurrenceCalculator @Inject constructor() {
 
             RecurrenceType.WEEKDAYS -> {
                 if (rule.weekdays.isEmpty) return null
-                var d = after.plusDays(1)
+                var d = effectiveAfter.plusDays(1)
                 var guard = 0
                 while (d.dayOfWeek !in rule.weekdays) {
                     d = d.plusDays(1)
@@ -48,7 +49,7 @@ class RecurrenceCalculator @Inject constructor() {
 
             RecurrenceType.DAY_OF_MONTH -> {
                 val target = rule.dayOfMonth ?: return null
-                var month = after.withDayOfMonth(1)
+                var month = effectiveAfter.withDayOfMonth(1)
                 var result: LocalDate? = null
                 var guard = 0
                 // 31-е число: месяцы короче пропускаем, а не съезжаем на 28-е —
@@ -56,7 +57,7 @@ class RecurrenceCalculator @Inject constructor() {
                 while (result == null && guard < 24) {
                     val candidateInMonth =
                         if (target <= month.lengthOfMonth()) month.withDayOfMonth(target) else null
-                    if (candidateInMonth != null && candidateInMonth > after) {
+                    if (candidateInMonth != null && candidateInMonth > effectiveAfter) {
                         result = candidateInMonth
                     }
                     month = month.plusMonths(1)
@@ -66,6 +67,7 @@ class RecurrenceCalculator @Inject constructor() {
             }
         }
 
+        if (candidate < rule.startDate) return null
         if (rule.endDate != null && candidate > rule.endDate) return null
         return candidate
     }

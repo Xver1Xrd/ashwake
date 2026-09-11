@@ -37,6 +37,8 @@ interface HabitRepository {
 
     suspend fun deleteHabit(id: Long)
 
+    suspend fun reorderHabits(orderedIds: List<Long>)
+
     /**
      * Отметка за день. Одна операция на все статусы: «сделал», «минимум»,
      * «пропустил» с причиной и счётчик — иначе четыре похожих метода

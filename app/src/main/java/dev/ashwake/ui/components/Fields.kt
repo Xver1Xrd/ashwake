@@ -48,6 +48,7 @@ fun AshTextField(
     placeholder: String? = null,
     singleLine: Boolean = true,
     minLines: Int = 1,
+    maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     textStyle: TextStyle = AshTheme.type.body,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -71,7 +72,7 @@ fun AshTextField(
                     shape = AshShapes.group
                 )
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = if (singleLine && minLines == 1) Alignment.CenterVertically else Alignment.Top,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(Modifier.weight(1f)) {
@@ -84,6 +85,7 @@ fun AshTextField(
                     enabled = enabled,
                     singleLine = singleLine,
                     minLines = minLines,
+                    maxLines = maxLines,
                     textStyle = textStyle.copy(color = colors.text),
                     cursorBrush = SolidColor(colors.accent),
                     keyboardOptions = keyboardOptions,

@@ -2,6 +2,10 @@ package dev.ashwake.ui.routines
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import dev.ashwake.ui.components.AshContextMenu
+import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.ContextMenuItem
+import dev.ashwake.ui.components.tappable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -88,30 +92,59 @@ fun RoutinesScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(routines, key = { it.id }) { routine ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(AshTheme.colors.surface1)
-                            .clickable { viewModel.start(routine) }
-                            .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(routine.name, style = AshTheme.type.body)
-                            Text(
-                                stringResource(R.string.routines_1_s_shagov_2_s, routine.steps.size, formatTime(routine.plannedSeconds)) +
-                                    (routine.startTime?.let { stringResource(R.string.routines_v_1_s, it) } ?: ""),
-                                style = AshTheme.type.footnote,
-                                color = AshTheme.colors.text2
+                    var showMenu by remember { mutableStateOf(false) }
+                    Box {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(AshTheme.colors.surface1)
+                                .tappable(
+                                    onClick = { viewModel.start(routine) },
+                                    onLongClick = { showMenu = true }
+                                )
+                                .padding(start = 14.dp, top = 14.dp, bottom = 14.dp, end = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(routine.name, style = AshTheme.type.body)
+                                Text(
+                                    stringResource(R.string.routines_1_s_shagov_2_s, routine.steps.size, formatTime(routine.plannedSeconds)) +
+                                        (routine.startTime?.let { stringResource(R.string.routines_v_1_s, it) } ?: ""),
+                                    style = AshTheme.type.footnote,
+                                    color = AshTheme.colors.text2
+                                )
+                            }
+                            IconButton(onClick = { onEdit(routine.id) }) {
+                                Icon(Icons.Filled.Edit, contentDescription = "Изменить")
+                            }
+                            IconButton(onClick = { viewModel.start(routine) }) {
+                                Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.routines_zapustit))
+                            }
+                        }
+
+                        AshContextMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            items = listOf(
+                                ContextMenuItem(
+                                    title = stringResource(R.string.context_menu_edit),
+                                    icon = AshIcons.Edit,
+                                    onClick = { onEdit(routine.id) }
+                                ),
+                                ContextMenuItem(
+                                    title = stringResource(R.string.routines_zapustit),
+                                    icon = AshIcons.Play,
+                                    onClick = { viewModel.start(routine) }
+                                ),
+                                ContextMenuItem(
+                                    title = stringResource(R.string.blocking_udalit),
+                                    icon = AshIcons.Trash,
+                                    isDestructive = true,
+                                    onClick = { viewModel.archive(routine) }
+                                )
                             )
-                        }
-                        IconButton(onClick = { onEdit(routine.id) }) {
-                            Icon(Icons.Filled.Edit, contentDescription = "Изменить")
-                        }
-                        IconButton(onClick = { viewModel.start(routine) }) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(R.string.routines_zapustit))
-                        }
+                        )
                     }
                 }
             }

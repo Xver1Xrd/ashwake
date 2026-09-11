@@ -42,6 +42,8 @@ abstract class StubHabitRepository : HabitRepository {
 
     override suspend fun deleteHabit(id: Long) = Unit
 
+    override suspend fun reorderHabits(orderedIds: List<Long>) = Unit
+
     override suspend fun mark(
         habitId: Long,
         date: LocalDate,

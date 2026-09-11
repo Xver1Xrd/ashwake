@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,6 +87,7 @@ fun RitualScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .imePadding()
         ) {
             LinearProgressIndicator(
                 progress = { (stepIndex + 1f) / RitualStep.entries.size },
@@ -165,37 +167,12 @@ private fun TasksStep(tasks: List<Task>, viewModel: RitualViewModel) {
         return
     }
 
-    TextAction(
-        text = stringResource(R.string.ritual_perenesti_vse_na_zavtra),
-        onClick = { viewModel.postponeAll(tasks) }
+    TaskSwipeStack(
+        tasks = tasks,
+        onComplete = viewModel::complete,
+        onPostpone = viewModel::postponeToTomorrow,
+        onPostponeAll = { viewModel.postponeAll(tasks) }
     )
-
-    tasks.take(12).forEach { task ->
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(10.dp))
-                .background(AshTheme.colors.surface1)
-                .padding(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                task.title,
-                modifier = Modifier.weight(1f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                style = AshTheme.type.callout
-            )
-            TextAction(
-                text = stringResource(R.string.ritual_zavtra),
-                onClick = { viewModel.postponeToTomorrow(task) }
-            )
-            TextAction(
-                text = stringResource(R.string.ritual_udalit),
-                onClick = { viewModel.drop(task) }
-            )
-        }
-    }
 }
 
 @Composable
@@ -294,7 +271,9 @@ private fun NoteStep(form: RitualForm, viewModel: RitualViewModel) {
         onValueChange = viewModel::setNote,
         modifier = Modifier.fillMaxWidth(),
         placeholder = stringResource(R.string.ritual_chto_zapomnilos),
-        minLines = 4
+        singleLine = false,
+        minLines = 4,
+        maxLines = 10
     )
 }
 

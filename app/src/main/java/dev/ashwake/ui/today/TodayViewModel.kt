@@ -25,6 +25,7 @@ import dev.ashwake.domain.usecase.tasks.UndoPostponeUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.ui.character.render.CharacterLayer
 import dev.ashwake.ui.character.render.buildCharacterLayers
+import dev.ashwake.ui.components.FlameLevel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,19 +48,20 @@ import javax.inject.Inject
  */
 data class TodayUiState(
     val today: LocalDate = EPOCH_DAY,
+    val selectedDate: LocalDate = EPOCH_DAY,
     val tasks: List<Task> = emptyList(),
     val habits: List<HabitWithProgress> = emptyList(),
     val abstinences: List<AbstinenceWithStats> = emptyList(),
-    val character: CharacterState = CharacterState(),
-    val layers: List<CharacterLayer> = emptyList(),
     /** Первый запрос к базе ещё не вернулся: показываем заготовку, а не пустоту. */
     val loading: Boolean = true
 ) {
-    /** Задачи, у которых срок раньше сегодняшнего. Показываются отдельной группой. */
-    val overdueTasks: List<Task> get() = tasks.filter { it.isOverdue(today) }
+    val isSelectedToday: Boolean get() = selectedDate == today
 
-    /** Всё, что относится к сегодняшнему дню, без просрочки. */
-    val todayTasks: List<Task> get() = tasks.filterNot { it.isOverdue(today) }
+    /** Задачи, у которых срок раньше выбранной даты. */
+    val overdueTasks: List<Task> get() = if (isSelectedToday) tasks.filter { it.isOverdue(today) } else emptyList()
+
+    /** Всё, что относится к выбранному дню. */
+    val todayTasks: List<Task> get() = if (isSelectedToday) tasks.filterNot { it.isOverdue(today) } else tasks
 
     /** Сделано дел за день: привычки плюс задачи, одним числом на обложке. */
     val doneCount: Int
@@ -77,6 +79,26 @@ data class TodayUiState(
 
     val pendingHabits: List<HabitWithProgress> get() = habits.filterNot { it.doneToday }
     val pendingTasks: List<Task> get() = tasks.filterNot { it.isDone }
+
+    /**
+     * Уровень огонька активности:
+     * Высокая активность -> BLAZING.
+     * Умеренная -> BURNING.
+     * Затухает -> EMBER / DIM.
+     * Заброшено -> ASH (пепел).
+     * При возвращении огонёк возрождается в обратном порядке.
+     */
+    val flameLevel: FlameLevel
+        get() {
+            val maxStreak = habits.maxOfOrNull { it.currentStreak } ?: 0
+            return when {
+                doneCount >= 3 || (doneCount >= 1 && maxStreak >= 3) -> FlameLevel.BLAZING
+                doneCount in 1..2 || maxStreak in 1..2 -> FlameLevel.BURNING
+                maxStreak > 0 || tasks.any { it.isDone } -> FlameLevel.EMBER
+                habits.any { it.score > 0.2f } -> FlameLevel.DIM
+                else -> FlameLevel.ASH
+            }
+        }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -104,33 +126,36 @@ class TodayViewModel @Inject constructor(
      * весь список ради цифры, которая не меняется.
      */
     private val minuteTicker = MutableStateFlow(clock.now())
+    private val _selectedDate = MutableStateFlow(clock.today())
 
-    val state: StateFlow<TodayUiState> = combine(
-        habits.observeHabitsWithProgress(clock.today()),
-        tasks.observeTasksForDay(clock.today()),
-        minuteTicker.flatMapLatest { now -> abstinences.observeAll(now) },
-        character.observeState(),
-        catalog
-    ) { habitList, taskList, abstinenceList, characterState, loadedCatalog ->
-        TodayUiState(
-            loading = false,
-            today = clock.today(),
-            tasks = taskList,
-            // На главном экране только то, что сегодня действительно требуется:
-            // приостановленные привычки не должны занимать место и портить счёт
-            habits = habitList.filter { it.dueToday && !it.paused },
-            abstinences = abstinenceList.filterNot { it.abstinence.archived },
-            character = characterState,
-            layers = buildCharacterLayers(
-                characterState.equipped.values,
-                loadedCatalog.paletteTints
+    val state: StateFlow<TodayUiState> = _selectedDate.flatMapLatest { selDate ->
+        combine(
+            habits.observeHabitsWithProgress(selDate),
+            tasks.observeTasksForDay(selDate),
+            minuteTicker.flatMapLatest { now -> abstinences.observeAll(now) }
+        ) { habitList, taskList, abstinenceList ->
+            TodayUiState(
+                loading = false,
+                today = clock.today(),
+                selectedDate = selDate,
+                tasks = taskList,
+                habits = habitList.filter { it.dueToday && !it.paused },
+                abstinences = abstinenceList.filterNot { it.abstinence.archived }
             )
-        )
+        }
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        TodayUiState(today = clock.today())
+        TodayUiState(today = clock.today(), selectedDate = clock.today())
     )
+
+    fun selectDate(date: LocalDate) {
+        _selectedDate.value = date
+    }
+
+    fun goToToday() {
+        _selectedDate.value = clock.today()
+    }
 
     init {
         viewModelScope.launch {
@@ -157,23 +182,24 @@ class TodayViewModel @Inject constructor(
      */
     fun toggleHabit(progress: HabitWithProgress) {
         val habit = progress.habit
+        val date = _selectedDate.value
         viewModelScope.launch {
             when {
                 habit.type == HabitType.COUNTER -> {
                     val next = progress.todayValue + counterStep(habit)
-                    markHabit(progress, statusForValue(progress, next), value = next)
+                    markHabit(progress, statusForValue(progress, next), date = date, value = next)
                 }
 
-                progress.doneToday -> clearHabitMark(habit.id, clock.today())
+                progress.doneToday -> clearHabitMark(habit.id, date)
 
-                else -> markHabit(progress, EntryStatus.DONE)
+                else -> markHabit(progress, EntryStatus.DONE, date = date)
             }
         }
     }
 
-    /** Свайп влево: перенос на завтра. То же действие, что на экране задач. */
+    /** Свайп влево: перенос на следующий день от выбранного. */
     fun postponeTask(task: Task) {
-        viewModelScope.launch { postpone(task.id, clock.today().plusDays(1)) }
+        viewModelScope.launch { postpone(task.id, _selectedDate.value.plusDays(1)) }
     }
 
     /** Отмена переноса по кнопке на плашке. */
@@ -184,6 +210,17 @@ class TodayViewModel @Inject constructor(
     fun toggleTask(task: Task) {
         viewModelScope.launch {
             if (task.isDone) reopenTask(task.id) else completeTask(task.id)
+        }
+    }
+
+    fun reorderHabits(fromIndex: Int, toIndex: Int) {
+        val current = state.value.habits
+        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
+        val list = current.toMutableList()
+        val item = list.removeAt(fromIndex)
+        list.add(toIndex, item)
+        viewModelScope.launch {
+            habits.reorderHabits(list.map { it.habit.id })
         }
     }
 

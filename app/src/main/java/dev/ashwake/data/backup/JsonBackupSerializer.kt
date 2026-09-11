@@ -10,8 +10,11 @@ import dev.ashwake.data.db.dao.ritual.RitualDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
+import dev.ashwake.data.db.entity.character.AchievementEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
+import dev.ashwake.data.db.entity.character.DailyChestEntity
 import dev.ashwake.data.db.entity.character.EquippedItemEntity
+import dev.ashwake.data.db.entity.character.MaterialInventoryEntity
 import dev.ashwake.data.db.entity.character.OwnedItemEntity
 import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
@@ -56,8 +59,7 @@ class JsonBackupSerializer @Inject constructor(
 ) {
 
     suspend fun export(): Pair<String, BackupContents> {
-        val tasks = taskDao.observeTasks(1, null, null, null, null, 0, null).first()
-            .map { it.task }
+        val tasks = taskDao.allTasks()
         val habits = habitDao.observeHabits(1).first()
         val entries = habitDao.observeEntriesInRange(MIN_DAY, MAX_DAY).first()
         val abstinences = abstinenceDao.observeAll(1).first()
@@ -67,6 +69,8 @@ class JsonBackupSerializer @Inject constructor(
         val owned = characterDao.observeOwned().first()
         val equipped = characterDao.equipped()
         val stats = characterDao.observeStats().first()
+        val materials = characterDao.observeMaterials().first()
+        val achievements = characterDao.observeAchievements().first()
 
         val root = JSONObject().apply {
             put("version", FORMAT_VERSION)
@@ -77,16 +81,22 @@ class JsonBackupSerializer @Inject constructor(
                 JSONObject().apply {
                     put("id", habit.id)
                     put("name", habit.name)
+                    put("icon", habit.icon)
+                    put("iconPath", habit.iconPath)
+                    put("color", habit.color)
                     put("type", habit.type)
                     put("sphere", habit.sphere)
                     put("targetValue", habit.targetValue)
                     put("unitName", habit.unitName)
                     put("minimumValue", habit.minimumValue)
-                    put("icon", habit.icon)
-                    put("iconPath", habit.iconPath)
                     put("scheduleType", habit.scheduleType)
                     put("timesPerWeek", habit.timesPerWeek)
                     put("weekdaysMask", habit.weekdaysMask)
+                    put("intervalAnchor", habit.intervalAnchor)
+                    put("biweeklyAnchor", habit.biweeklyAnchor)
+                    put("reminderTime", habit.reminderTime)
+                    put("freezeQuotaPerMonth", habit.freezeQuotaPerMonth)
+                    put("position", habit.position)
                     put("archived", habit.archived)
                     put("createdAt", habit.createdAt)
                 }
@@ -96,18 +106,21 @@ class JsonBackupSerializer @Inject constructor(
                 JSONObject().apply {
                     put("id", item.id)
                     put("name", item.name)
-                    put("mode", item.mode)
-                    put("gentlePenaltyDays", item.gentlePenaltyDays)
-                    put("motivationText", item.motivationText)
                     put("icon", item.icon)
                     put("iconPath", item.iconPath)
                     put("paletteId", item.paletteId)
+                    put("mode", item.mode)
+                    put("gentlePenaltyDays", item.gentlePenaltyDays)
                     put("milestonesEnabled", item.milestonesEnabled)
+                    put("motivationText", item.motivationText)
                     put("baselineUnitName", item.baselineUnitName)
                     put("baselineUnitsPerDay", item.baselineUnitsPerDay)
                     put("baselineCostPerUnit", item.baselineCostPerUnit)
                     put("baselineCurrency", item.baselineCurrency)
                     put("stickyNotification", item.stickyNotification)
+                    put("substanceWarningAck", item.substanceWarningAck)
+                    put("position", item.position)
+                    put("archived", item.archived)
                     put("createdAt", item.createdAt)
                 }
             }))
@@ -167,6 +180,19 @@ class JsonBackupSerializer @Inject constructor(
                     })
                 }
             })
+            put("materials", JSONArray(materials.map { mat ->
+                JSONObject().apply {
+                    put("materialId", mat.materialId)
+                    put("amount", mat.amount)
+                }
+            }))
+            put("achievements", JSONArray(achievements.map { ach ->
+                JSONObject().apply {
+                    put("id", ach.id)
+                    put("unlockedAt", ach.unlockedAt)
+                    put("progress", ach.progress)
+                }
+            }))
         }
 
         return root.toString(2) to BackupContents(
@@ -243,6 +269,9 @@ class JsonBackupSerializer @Inject constructor(
         backupDao.clearEquipped()
         backupDao.clearOwned()
         backupDao.clearStats()
+        backupDao.clearMaterials()
+        backupDao.clearAchievements()
+        backupDao.clearChests()
         backupDao.clearLedger()
 
         backupDao.insertTasks(tasks)
@@ -292,6 +321,29 @@ class JsonBackupSerializer @Inject constructor(
             )
         }
 
+        root.optJSONArray("materials")?.let { mats ->
+            backupDao.insertMaterials(
+                mats.objects().map {
+                    MaterialInventoryEntity(
+                        materialId = it.getString("materialId"),
+                        amount = it.optInt("amount")
+                    )
+                }
+            )
+        }
+
+        root.optJSONArray("achievements")?.let { achs ->
+            backupDao.insertAchievements(
+                achs.objects().map {
+                    AchievementEntity(
+                        id = it.getString("id"),
+                        unlockedAt = it.optLongOrNull("unlockedAt"),
+                        progress = it.optDouble("progress", 0.0).toFloat()
+                    )
+                }
+            )
+        }
+
         BackupContents(
             tasks = tasks.size,
             habits = habits.size,
@@ -337,21 +389,34 @@ class JsonBackupSerializer @Inject constructor(
         emoji = optStringOrNull("emoji"),
         iconPath = optStringOrNull("iconPath"),
         note = optStringOrNull("note"),
+        projectId = optLongOrNull("projectId"),
+        parentTaskId = optLongOrNull("parentTaskId"),
         priority = optString("priority", "P4"),
         dueDate = optIntOrNull("dueDate"),
         dueTime = optIntOrNull("dueTime"),
         estimateMinutes = optIntOrNull("estimateMinutes"),
         status = optString("status", "ACTIVE"),
         completedAt = optLongOrNull("completedAt"),
+        position = optInt("position", 0),
+        quadrantOverride = optStringOrNull("quadrantOverride"),
+        recurrenceId = optLongOrNull("recurrenceId"),
+        seriesId = optStringOrNull("seriesId"),
+        isTemplate = optBoolean("isTemplate", false),
+        persistentReminderMinutes = optIntOrNull("persistentReminderMinutes"),
         postponeCount = optInt("postponeCount"),
+        lastPostponedAt = optLongOrNull("lastPostponedAt"),
         sourceLink = optStringOrNull("sourceLink"),
+        delegatedTo = optStringOrNull("delegatedTo"),
         createdAt = optLong("createdAt"),
-        updatedAt = optLong("createdAt")
+        updatedAt = optLong("updatedAt", optLong("createdAt"))
     )
 
     private fun JSONObject.toHabitEntity() = HabitEntity(
         id = optLong("id"),
         name = optString("name"),
+        icon = optStringOrNull("icon"),
+        iconPath = optStringOrNull("iconPath"),
+        color = optInt("color", 0),
         type = optString("type", "CHECK"),
         sphere = optString("sphere", "HEALTH"),
         targetValue = optDouble("targetValue", 1.0).toFloat(),
@@ -360,18 +425,24 @@ class JsonBackupSerializer @Inject constructor(
         scheduleType = optString("scheduleType", "DAILY"),
         timesPerWeek = optInt("timesPerWeek", 3),
         weekdaysMask = optInt("weekdaysMask", 0b1111111),
+        intervalAnchor = optIntOrNull("intervalAnchor"),
+        biweeklyAnchor = optIntOrNull("biweeklyAnchor"),
+        reminderTime = optIntOrNull("reminderTime"),
+        freezeQuotaPerMonth = optInt("freezeQuotaPerMonth", 3),
+        position = optInt("position", 0),
         archived = optBoolean("archived"),
-        icon = optStringOrNull("icon"),
-        iconPath = optStringOrNull("iconPath"),
         createdAt = optLong("createdAt")
     )
 
     private fun JSONObject.toEntryEntity() = HabitEntryEntity(
+        id = optLong("id", 0L),
         habitId = optLong("habitId"),
         date = optInt("date"),
         status = optString("status", "DONE"),
         value = optDouble("value").toFloat(),
         note = optStringOrNull("note"),
+        completedAt = optLongOrNull("completedAt"),
+        skipReasonId = optLongOrNull("skipReasonId"),
         source = optString("source", "MANUAL")
     )
 
@@ -392,6 +463,9 @@ class JsonBackupSerializer @Inject constructor(
         else optDouble("baselineCostPerUnit").toFloat(),
         baselineCurrency = optStringOrNull("baselineCurrency"),
         stickyNotification = optBoolean("stickyNotification"),
+        substanceWarningAck = optBoolean("substanceWarningAck", false),
+        position = optInt("position", 0),
+        archived = optBoolean("archived", false),
         createdAt = optLong("createdAt")
     )
 
@@ -431,22 +505,38 @@ class JsonBackupSerializer @Inject constructor(
         put("emoji", emoji)
         put("iconPath", iconPath)
         put("note", note)
+        put("projectId", projectId)
+        put("parentTaskId", parentTaskId)
         put("priority", priority)
         put("dueDate", dueDate)
         put("dueTime", dueTime)
         put("estimateMinutes", estimateMinutes)
         put("status", status)
         put("completedAt", completedAt)
+        put("position", position)
+        put("quadrantOverride", quadrantOverride)
+        put("recurrenceId", recurrenceId)
+        put("seriesId", seriesId)
+        put("isTemplate", isTemplate)
+        put("persistentReminderMinutes", persistentReminderMinutes)
         put("postponeCount", postponeCount)
+        put("lastPostponedAt", lastPostponedAt)
+        put("sourceLink", sourceLink)
+        put("delegatedTo", delegatedTo)
         put("createdAt", createdAt)
+        put("updatedAt", updatedAt)
     }
 
     private fun HabitEntryEntity.toJson() = JSONObject().apply {
+        put("id", id)
         put("habitId", habitId)
         put("date", date)
         put("status", status)
         put("value", value)
         put("note", note)
+        put("completedAt", completedAt)
+        put("skipReasonId", skipReasonId)
+        put("source", source)
     }
 
     private companion object {

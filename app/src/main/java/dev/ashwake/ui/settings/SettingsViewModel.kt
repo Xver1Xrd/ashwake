@@ -33,6 +33,13 @@ class SettingsViewModel @Inject constructor(
     val theme: StateFlow<ThemeSettings> = settings.theme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeSettings())
 
+    val is24Hour: StateFlow<Boolean> = settings.is24HourFormat
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    fun setIs24Hour(enabled: Boolean) {
+        viewModelScope.launch { settings.setIs24HourFormat(enabled) }
+    }
+
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { settings.setThemeMode(mode) }
     }

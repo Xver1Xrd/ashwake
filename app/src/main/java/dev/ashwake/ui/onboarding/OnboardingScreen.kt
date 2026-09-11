@@ -99,13 +99,11 @@ fun OnboardingScreen(
         HorizontalPager(state = pager, modifier = Modifier.weight(1f)) { page ->
             when (page) {
                 0 -> IntroPage()
-                1 -> HabitsPage(
+                else -> HabitsPage(
                     categories = state.categories.map { it.title to it.habits },
                     picked = state.picked,
                     onToggle = viewModel::toggle
                 )
-
-                else -> CharacterPage()
             }
         }
 
@@ -161,15 +159,6 @@ private fun IntroPage() {
         icon = AshIcons.Sun,
         title = "Ashwake",
         text = stringResource(R.string.onboarding_eto_ne_esche_odin_spisok_del_zadachi_privych)
-    )
-}
-
-@Composable
-private fun CharacterPage() {
-    Page(
-        icon = AshIcons.Person,
-        title = stringResource(R.string.onboarding_personazh_rastet_ot_del),
-        text = stringResource(R.string.onboarding_monety_prihodyat_za_vypolnennoe_harakteristi)
     )
 }
 
@@ -293,7 +282,7 @@ private fun HabitsPage(
     }
 }
 
-private const val PAGES = 3
+private const val PAGES = 2
 
 /** Сколько привычек показывать из каждой категории: остальные есть в каталоге. */
 private const val HABITS_PER_CATEGORY = 4
