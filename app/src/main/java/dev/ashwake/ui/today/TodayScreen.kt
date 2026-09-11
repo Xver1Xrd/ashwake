@@ -79,6 +79,7 @@ fun TodayScreen(
     val colors = AshTheme.colors
     val toast = rememberToastState()
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
+    var counterDialogTarget by remember { mutableStateOf<dev.ashwake.domain.model.habits.HabitWithProgress?>(null) }
     val postponedText = stringResource(R.string.toast_postponed)
     val undoText = stringResource(R.string.toast_undo)
 
@@ -255,6 +256,7 @@ fun TodayScreen(
                                         viewModel.toggleHabit(progress)
                                     },
                                     onOpen = { onOpenHabit(progress.habit.id) },
+                                    onCounterClick = { counterDialogTarget = progress },
                                     onMoveUp = if (index > 0) { { viewModel.reorderHabits(index, index - 1) } } else null,
                                     onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null
                                 )
@@ -287,6 +289,16 @@ fun TodayScreen(
         }
 
         ToastHost(toast)
+
+        counterDialogTarget?.let { target ->
+            dev.ashwake.ui.habits.components.CounterProgressDialog(
+                progress = target,
+                onSetProgress = { value ->
+                    viewModel.setHabitProgress(target, value)
+                },
+                onDismiss = { counterDialogTarget = null }
+            )
+        }
     }
 }
 

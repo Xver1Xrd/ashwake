@@ -183,6 +183,19 @@ class TodayViewModel @Inject constructor(
         }
     }
 
+    /** Установка точного прогресса счётчика (из диалога быстрого ввода). */
+    fun setHabitProgress(progress: HabitWithProgress, value: Float) {
+        val habit = progress.habit
+        val date = _selectedDate.value
+        viewModelScope.launch {
+            if (value <= 0f) {
+                clearHabitMark(habit.id, date)
+            } else {
+                markHabit(progress, statusForValue(progress, value), date = date, value = value)
+            }
+        }
+    }
+
     /** Свайп влево: перенос на следующий день от выбранного. */
     fun postponeTask(task: Task) {
         viewModelScope.launch { postpone(task.id, _selectedDate.value.plusDays(1)) }

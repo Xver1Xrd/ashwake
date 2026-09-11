@@ -81,6 +81,7 @@ fun HabitTodayRow(
     progress: HabitWithProgress,
     onToggle: (from: Offset) -> Unit,
     onOpen: () -> Unit,
+    onCounterClick: (() -> Unit)? = null,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null,
     modifier: Modifier = Modifier
@@ -129,7 +130,10 @@ fun HabitTodayRow(
                 done = progress.doneToday,
                 share = fill,
                 negative = habit.type == HabitType.NEGATIVE,
-                onClick = { onToggle(markCenter) },
+                onClick = {
+                    if (habit.type == HabitType.COUNTER && onCounterClick != null) onCounterClick()
+                    else onToggle(markCenter)
+                },
                 onPositioned = { markCenter = it }
             )
 
@@ -177,6 +181,13 @@ fun HabitTodayRow(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
             items = listOfNotNull(
+                if (habit.type == HabitType.COUNTER && onCounterClick != null) {
+                    ContextMenuItem(
+                        title = "Ввести прогресс...",
+                        icon = AshIcons.Add,
+                        onClick = onCounterClick
+                    )
+                } else null,
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_edit),
                     icon = AshIcons.Edit,

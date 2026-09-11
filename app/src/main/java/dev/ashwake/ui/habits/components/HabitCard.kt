@@ -56,6 +56,7 @@ fun HabitCard(
     onMinimum: () -> Unit,
     onLongClick: () -> Unit,
     onOpenDetail: () -> Unit,
+    onOpenCounterDialog: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val habit = progress.habit
@@ -101,7 +102,16 @@ fun HabitCard(
                     tint = AshTheme.colors.text2
                 )
             } else {
-                PrimaryButton(progress, onPrimaryAction)
+                PrimaryButton(
+                    progress = progress,
+                    onClick = {
+                        if (habit.type == HabitType.COUNTER && onOpenCounterDialog != null) {
+                            onOpenCounterDialog()
+                        } else {
+                            onPrimaryAction()
+                        }
+                    }
+                )
             }
         }
 

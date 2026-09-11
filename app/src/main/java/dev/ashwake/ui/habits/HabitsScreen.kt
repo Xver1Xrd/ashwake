@@ -56,6 +56,7 @@ fun HabitsScreen(
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
     var sheetTarget by remember { mutableStateOf<HabitWithProgress?>(null) }
+    var counterDialogTarget by remember { mutableStateOf<HabitWithProgress?>(null) }
     var showCatalog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -115,7 +116,8 @@ fun HabitsScreen(
                     onPrimaryAction = { viewModel.onPrimaryAction(progress) },
                     onMinimum = { viewModel.markMinimum(progress) },
                     onLongClick = { sheetTarget = progress },
-                    onOpenDetail = { onOpenHabit(progress.habit.id) }
+                    onOpenDetail = { onOpenHabit(progress.habit.id) },
+                    onOpenCounterDialog = { counterDialogTarget = progress }
                 )
             }
 
@@ -134,7 +136,8 @@ fun HabitsScreen(
                         onPrimaryAction = { viewModel.onPrimaryAction(progress) },
                         onMinimum = { viewModel.markMinimum(progress) },
                         onLongClick = { sheetTarget = progress },
-                        onOpenDetail = { onOpenHabit(progress.habit.id) }
+                        onOpenDetail = { onOpenHabit(progress.habit.id) },
+                        onOpenCounterDialog = { counterDialogTarget = progress }
                     )
                 }
             }
@@ -173,6 +176,14 @@ fun HabitsScreen(
                 onPick = { viewModel.addFromPreset(it); showCatalog = false },
                 onCreateOwn = { showCatalog = false; onCreateHabit() },
                 onDismiss = { showCatalog = false }
+            )
+        }
+
+        counterDialogTarget?.let { target ->
+            dev.ashwake.ui.habits.components.CounterProgressDialog(
+                progress = target,
+                onSetProgress = { viewModel.setCounterValue(target, it) },
+                onDismiss = { counterDialogTarget = null }
             )
         }
     }

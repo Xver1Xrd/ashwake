@@ -51,6 +51,7 @@ fun AshTextField(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     textStyle: TextStyle = AshTheme.type.body,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: androidx.compose.foundation.text.KeyboardActions = androidx.compose.foundation.text.KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailing: @Composable (() -> Unit)? = null,
     enabled: Boolean = true
@@ -89,6 +90,7 @@ fun AshTextField(
                     textStyle = textStyle.copy(color = colors.text),
                     cursorBrush = SolidColor(colors.accent),
                     keyboardOptions = keyboardOptions,
+                    keyboardActions = keyboardActions,
                     // Пароль архива нельзя показывать открытым текстом:
                     // поле видно всякому, кто заглянул через плечо
                     visualTransformation = visualTransformation,
