@@ -739,4 +739,14 @@
     <string name="context_menu_open">Открыть</string>
     <string name="context_menu_move_up">Переместить выше</string>
     <string name="context_menu_move_down">Переместить ниже</string>
+
+    <!-- Вечерний ритуал: история и доступ -->
+    <string name="ritual_history">История ритуалов</string>
+    <string name="ritual_already_completed_title">Ритуал за сегодня пройден</string>
+    <string name="ritual_already_completed_subtitle">Вы уже заполнили вечерний ритуал за этот день. Следующий ритуал откроется завтра в 20:00.</string>
+    <string name="ritual_too_early_title">Вечерний ритуал откроется в 20:00</string>
+    <string name="ritual_too_early_desc">Время прохождения — с 20:00 до %1$02d:00 (до начала нового дня). В это время можно подвести итоги дня, разобрать задачи и наметить планы на завтра.</string>
+    <string name="ritual_history_empty">Пока нет сохранённых ритуалов</string>
+    <string name="ritual_history_empty_desc">Пройдите вечерний ритуал после 20:00, чтобы сохранить итоги дня в историю.</string>
+    <string name="ritual_btn_view_history">История прошлых ритуалов</string>
 </resources>

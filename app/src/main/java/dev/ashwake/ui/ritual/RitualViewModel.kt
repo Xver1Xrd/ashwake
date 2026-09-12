@@ -4,17 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.AppClock
-import dev.ashwake.domain.engine.character.StatSource
-import dev.ashwake.domain.engine.reward.RewardContext
-import dev.ashwake.domain.engine.reward.RewardSource
+import dev.ashwake.data.settings.AppSettings
+import dev.ashwake.domain.engine.ritual.RitualAccessEvaluator
+import dev.ashwake.domain.engine.ritual.RitualAccessStatus
 import dev.ashwake.domain.model.habits.EntryStatus
 import dev.ashwake.domain.model.habits.HabitWithProgress
+import dev.ashwake.domain.model.ritual.DailyReview
 import dev.ashwake.domain.model.ritual.ReviewCompletion
 import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
-import dev.ashwake.domain.repository.character.CharacterRepository
 import dev.ashwake.domain.repository.ritual.RitualRepository
 import dev.ashwake.domain.repository.ritual.RitualState
+import dev.ashwake.domain.repository.tasks.TaskFilter
+import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.repository.timebox.TimeboxRepository
 import dev.ashwake.domain.usecase.habits.MarkHabitUseCase
 import dev.ashwake.domain.usecase.ritual.CompleteRitualUseCase
@@ -22,15 +24,19 @@ import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.PostponeTaskUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /** Пять шагов ритуала из п. 9. */
@@ -53,10 +59,44 @@ class RitualViewModel @Inject constructor(
     private val postponeTask: PostponeTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val completeTask: CompleteTaskUseCase,
+    private val tasks: TaskRepository,
     private val timebox: TimeboxRepository,
     private val completeRitual: CompleteRitualUseCase,
+    private val evaluator: RitualAccessEvaluator,
+    private val settings: AppSettings,
     private val clock: AppClock
 ) : ViewModel() {
+
+    private val ticker = MutableStateFlow(clock.now())
+
+    val allReviews: StateFlow<List<DailyReview>> = ritual.observeAllReviews()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val taskTitles: StateFlow<Map<Long, String>> = tasks.observeTasks(TaskFilter(includeDone = true))
+        .map { list -> list.associate { it.id to it.title } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyMap())
+
+    val accessStatus: StateFlow<RitualAccessStatus> = combine(
+        ticker,
+        settings.dayStartHour,
+        allReviews
+    ) { nowInstant, dayStart, reviews ->
+        val zone = clock.zone()
+        val currentDateTime = LocalDateTime.ofInstant(nowInstant, zone)
+        evaluator.evaluate(currentDateTime, dayStart) { targetDate ->
+            reviews.any { it.date == targetDate }
+        }
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        evaluator.evaluate(
+            LocalDateTime.ofInstant(clock.now(), clock.zone()),
+            4
+        ) { false }
+    )
+
+    private val _viewingHistory = MutableStateFlow(false)
+    val viewingHistory: StateFlow<Boolean> = _viewingHistory.asStateFlow()
 
     private val _date = MutableStateFlow(clock.today())
     val date: StateFlow<LocalDate> = _date.asStateFlow()
@@ -79,9 +119,30 @@ class RitualViewModel @Inject constructor(
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
 
     init {
-        // Утром ритуал может относиться ко вчера: пропущенный день не теряется
-        viewModelScope.launch { _date.value = ritual.currentRitualDate() }
+        // Синхронизируем дату с вычисленным статусом окна
+        viewModelScope.launch {
+            accessStatus.collect { status ->
+                val target = when (status) {
+                    is RitualAccessStatus.Available -> status.targetDate
+                    is RitualAccessStatus.AlreadyCompleted -> status.targetDate
+                    is RitualAccessStatus.TooEarly -> status.targetDate
+                }
+                _date.value = target
+            }
+        }
+
+        // Тикер для пересчёта доступности окна
+        viewModelScope.launch {
+            while (true) {
+                delay(30_000)
+                ticker.value = clock.now()
+            }
+        }
     }
+
+    fun openHistory() { _viewingHistory.value = true }
+    fun closeHistory() { _viewingHistory.value = false }
+    fun toggleHistory() { _viewingHistory.value = !_viewingHistory.value }
 
     // --- шаги ---------------------------------------------------------------
 
@@ -174,8 +235,11 @@ class RitualViewModel @Inject constructor(
     fun setNote(value: String) = _form.update { it.copy(note = value) }
 
     fun finish() {
+        val currentStatus = accessStatus.value
+        if (currentStatus !is RitualAccessStatus.Available) return
+
         val form = _form.value
-        val date = _date.value
+        val date = currentStatus.targetDate
         val alreadyReviewed = state.value.review != null
 
         viewModelScope.launch {

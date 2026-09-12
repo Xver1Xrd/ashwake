@@ -47,6 +47,10 @@ interface RitualRepository {
 
     fun observeReviews(from: LocalDate, to: LocalDate): Flow<List<DailyReview>>
 
+    fun observeAllReviews(): Flow<List<DailyReview>>
+
+    suspend fun getReview(date: LocalDate): DailyReview?
+
     // --- аналитика ---------------------------------------------------------
 
     suspend fun correlations(windowDays: Long = 90): CorrelationReport

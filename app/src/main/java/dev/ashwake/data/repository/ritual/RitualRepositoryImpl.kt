@@ -59,11 +59,14 @@ class RitualRepositoryImpl @Inject constructor(
     override fun observeRitual(date: LocalDate): Flow<RitualState> = combine(
         dao.observeReview(date.toEpochDayInt()),
         tasks.observeTasksInRange(date.minusDays(30), date, includeDone = false),
-        habits.observeHabitsWithProgress(date)
-    ) { review, openTasks, habitList ->
+        habits.observeHabitsWithProgress(date),
+        dao.observeAllTopTasks()
+    ) { review, openTasks, habitList, allTopTasks ->
+        val dateInt = date.toEpochDayInt()
+        val topIds = allTopTasks.filter { it.date == dateInt }.map { it.taskId }
         RitualState(
             date = date,
-            review = review?.toDomain(),
+            review = review?.toDomain(topIds),
             // Незакрытыми считаются и просроченные: их тоже нужно разобрать
             openTasks = openTasks.filterNot { it.isDone },
             unmarkedHabits = habitList.filter { it.dueToday && !it.paused && it.todayEntry == null },
@@ -116,9 +119,34 @@ class RitualRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun observeReviews(from: LocalDate, to: LocalDate): Flow<List<DailyReview>> =
-        dao.observeReviews(from.toEpochDayInt(), to.toEpochDayInt())
-            .map { list -> list.map { it.toDomain() } }
+    override fun observeReviews(from: LocalDate, to: LocalDate): Flow<List<DailyReview>> = combine(
+        dao.observeReviews(from.toEpochDayInt(), to.toEpochDayInt()),
+        dao.observeAllTopTasks()
+    ) { reviews, allTopTasks ->
+        val topTasksByDate = allTopTasks.groupBy { it.date }
+        reviews.map { entity ->
+            val topIds = topTasksByDate[entity.date]?.map { it.taskId } ?: emptyList()
+            entity.toDomain(topIds)
+        }
+    }
+
+    override fun observeAllReviews(): Flow<List<DailyReview>> = combine(
+        dao.observeAllReviews(),
+        dao.observeAllTopTasks()
+    ) { reviews, allTopTasks ->
+        val topTasksByDate = allTopTasks.groupBy { it.date }
+        reviews.map { entity ->
+            val topIds = topTasksByDate[entity.date]?.map { it.taskId } ?: emptyList()
+            entity.toDomain(topIds)
+        }
+    }
+
+    override suspend fun getReview(date: LocalDate): DailyReview? {
+        val dateInt = date.toEpochDayInt()
+        val entity = dao.review(dateInt) ?: return null
+        val topTasks = dao.topTasks(dateInt).map { it.taskId }
+        return entity.toDomain(topTasks)
+    }
 
     // --- аналитика ---------------------------------------------------------
 
@@ -246,14 +274,15 @@ class RitualRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun DailyReviewEntity.toDomain() = DailyReview(
+    private fun DailyReviewEntity.toDomain(topTaskIds: List<Long> = emptyList()) = DailyReview(
         date = date.toLocalDate(),
         dayRating = dayRating,
         mood = mood,
         energy = energy,
         note = note,
         completedAt = java.time.Instant.ofEpochMilli(completedAt),
-        completedAs = ReviewCompletion.valueOf(completedAs)
+        completedAs = ReviewCompletion.valueOf(completedAs),
+        topTaskIds = topTaskIds
     )
 
     private companion object {

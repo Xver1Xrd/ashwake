@@ -16,6 +16,9 @@ interface RitualDao {
     @Query("SELECT * FROM daily_reviews WHERE date = :date")
     fun observeReview(date: Int): Flow<DailyReviewEntity?>
 
+    @Query("SELECT * FROM daily_reviews ORDER BY date DESC")
+    fun observeAllReviews(): Flow<List<DailyReviewEntity>>
+
     @Query("SELECT * FROM daily_reviews WHERE date = :date")
     suspend fun review(date: Int): DailyReviewEntity?
 
@@ -39,6 +42,9 @@ interface RitualDao {
 
     @Query("SELECT * FROM daily_review_top_tasks WHERE date = :date ORDER BY position")
     suspend fun topTasks(date: Int): List<DailyReviewTopTaskEntity>
+
+    @Query("SELECT * FROM daily_review_top_tasks ORDER BY date DESC, position ASC")
+    fun observeAllTopTasks(): Flow<List<DailyReviewTopTaskEntity>>
 
     @Upsert
     suspend fun upsertWeeklyReport(report: WeeklyReportEntity)
