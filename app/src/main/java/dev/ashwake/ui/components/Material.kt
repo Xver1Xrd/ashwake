@@ -2,6 +2,7 @@ package dev.ashwake.ui.components
 
 import android.os.Build
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -78,16 +79,17 @@ fun Modifier.glass(
     // Размытие можно выключить в редакторе темы: на слабых устройствах
     // оно стоит заметных кадров, а читаемость от заливки не страдает
     return if (blurSupported && AshTheme.blurEnabled) {
-        hazeChild(
-            state = state,
-            shape = shape,
-            style = HazeStyle(
-                backgroundColor = colors.background,
-                tint = HazeTint(colors.materialTint),
-                blurRadius = BLUR_RADIUS,
-                noiseFactor = 0f
+        this
+            .clip(shape)
+            .hazeChild(
+                state = state,
+                style = HazeStyle(
+                    backgroundColor = colors.background,
+                    tint = HazeTint(colors.materialTint),
+                    blurRadius = BLUR_RADIUS,
+                    noiseFactor = 0f
+                )
             )
-        )
     } else {
         background(colors.surface1, shape)
     }

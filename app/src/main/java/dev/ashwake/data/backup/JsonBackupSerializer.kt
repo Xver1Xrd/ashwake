@@ -392,6 +392,7 @@ class JsonBackupSerializer @Inject constructor(
         projectId = optLongOrNull("projectId"),
         parentTaskId = optLongOrNull("parentTaskId"),
         priority = optString("priority", "P4"),
+        difficulty = optInt("difficulty", 1),
         dueDate = optIntOrNull("dueDate"),
         dueTime = optIntOrNull("dueTime"),
         estimateMinutes = optIntOrNull("estimateMinutes"),
@@ -508,6 +509,7 @@ class JsonBackupSerializer @Inject constructor(
         put("projectId", projectId)
         put("parentTaskId", parentTaskId)
         put("priority", priority)
+        put("difficulty", difficulty)
         put("dueDate", dueDate)
         put("dueTime", dueTime)
         put("estimateMinutes", estimateMinutes)

@@ -31,6 +31,7 @@ fun AshContextMenu(
     modifier: Modifier = Modifier,
     offset: DpOffset = DpOffset(0.dp, 0.dp)
 ) {
+    if (!expanded) return
     val colors = AshTheme.colors
     DropdownMenu(
         expanded = expanded,

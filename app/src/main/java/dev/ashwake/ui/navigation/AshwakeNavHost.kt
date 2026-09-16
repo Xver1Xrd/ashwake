@@ -181,18 +181,13 @@ fun AshwakeRoot(
                 composable(TABS_ROUTE) {
                     HorizontalPager(
                         state = pagerState,
-                        // Соседняя страница готовится заранее: иначе переход
-                        // пальцем открывает пустоту и достраивается на ходу
                         beyondViewportPageCount = 1
                     ) { page ->
-                        // Уезжающая страница отстаёт и мельчает. Без этого
-                        // переключение вкладок — подмена картинки; с ним видно,
-                        // что страницы лежат рядом, а не поверх друг друга
-                        val offset = pagerState.pageOffset(page)
                         TabPage(
                             destination = Destination.bottomBar[page],
                             navController = navController,
                             modifier = Modifier.graphicsLayer {
+                                val offset = pagerState.pageOffset(page)
                                 if (reduceMotion) return@graphicsLayer
                                 translationX = -offset * size.width * PARALLAX_SHARE
                                 val scale = 1f - PARALLAX_SCALE * minOf(abs(offset), 1f)

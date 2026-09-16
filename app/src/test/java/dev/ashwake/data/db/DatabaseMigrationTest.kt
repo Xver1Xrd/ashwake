@@ -82,6 +82,7 @@ class DatabaseMigrationTest {
             assertNull(db.singleString("SELECT emoji FROM tasks"))
             assertNull(db.singleString("SELECT iconPath FROM tasks"))
             assertNull(db.singleString("SELECT iconPath FROM habits"))
+            assertEquals("1", db.singleString("SELECT difficulty FROM tasks"))
         }
     }
 

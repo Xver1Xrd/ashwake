@@ -44,23 +44,23 @@ import dev.ashwake.ui.theme.AshTheme
 enum class FlameLevel(val title: String, val description: String) {
     BLAZING(
         "Яркое пламя",
-        "Вы полны энергии и активны! Огонь пылает ярко."
+        "Огонёк полностью восстановлен за 3 дня активности и ярко пылает!"
     ),
     BURNING(
-        "Горящий огонёк",
-        "Отличный темп, огонёк горит уверенно."
+        "Разгорающийся огонь",
+        "Огонёк разгорается (2 дня активности подряд). Ещё 1 день до полного восстановления!"
     ),
     EMBER(
-        "Тлеющие угли",
-        "Огонёк затихает. Выполните дело, чтобы подбросить углей!"
+        "Первая искра",
+        "Искра зажглась (1-й день активности)! Продолжайте завтра и послезавтра."
     ),
     DIM(
         "Угасающий огонёк",
-        "Огонь почти погас. Самое время вернуться к делам."
+        "Огонёк угасает из-за дня бездействия. Закройте дело сегодня, чтобы не дать ему погаснуть!"
     ),
     ASH(
-        "Остывший пепел",
-        "Огонь превратился в пепел. Выполните задачу или привычку, чтобы зажечь его вновь!"
+        "Погасший огонёк",
+        "Огонёк угас после бездействия. Выполните любое дело, чтобы вернуть первую искру!"
     )
 }
 
@@ -78,7 +78,7 @@ fun ActivityFlame(
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
     val transition = rememberInfiniteTransition(label = "flame")
-    val pulse by transition.animateFloat(
+    val pulseState = transition.animateFloat(
         initialValue = 0.88f,
         targetValue = 1.14f,
         animationSpec = infiniteRepeatable(
@@ -88,7 +88,7 @@ fun ActivityFlame(
         label = "flame-pulse"
     )
 
-    val glowAlpha by transition.animateFloat(
+    val glowAlphaState = transition.animateFloat(
         initialValue = 0.25f,
         targetValue = 0.65f,
         animationSpec = infiniteRepeatable(
@@ -98,7 +98,7 @@ fun ActivityFlame(
         label = "flame-glow"
     )
 
-    val flutterPhase by transition.animateFloat(
+    val flutterPhaseState = transition.animateFloat(
         initialValue = 0f,
         targetValue = (2 * Math.PI).toFloat(),
         animationSpec = infiniteRepeatable(
@@ -123,7 +123,7 @@ fun ActivityFlame(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(34.dp)) {
-            drawFlame(level, pulse, glowAlpha, flutterPhase)
+            drawFlame(level, pulseState.value, glowAlphaState.value, flutterPhaseState.value)
         }
     }
 
@@ -282,11 +282,11 @@ private fun FlameDetailsDialog(
                 ) {
                     Text(
                         text = when (level) {
-                            FlameLevel.BLAZING -> "🔥 Поддерживайте огонь ежедневными привычками и задачами."
-                            FlameLevel.BURNING -> "✨ Огонёк горит ровно. Еще пара дел раздует его до максимума!"
-                            FlameLevel.EMBER -> "🍂 Пропуски остужают угли. Сделайте одно дело, чтобы разжечь огонь."
-                            FlameLevel.DIM -> "⏳ Огонь затухает. Достаточно закрыть 1 задачу, чтобы вернуть тепло."
-                            FlameLevel.ASH -> "🌱 Из пепла рождается новое пламя! Любое завершенное дело вернёт искру."
+                            FlameLevel.BLAZING -> "🔥 3+ дня активности: огонь полностью восстановлен. Не пропускайте дни!"
+                            FlameLevel.BURNING -> "✨ 2 дня активности: огонь разгорается. Еще 1 день до полного пламени!"
+                            FlameLevel.EMBER -> "🍂 1 день активности: искра зажглась. Чтобы разжечь пламя, нужно 3 дня активности."
+                            FlameLevel.DIM -> "⏳ 1 день бездействия: огонёк угасает. Сделайте дело сегодня, чтобы не дать ему погаснуть."
+                            FlameLevel.ASH -> "💨 Огонёк погас. Любое закрытое дело вернёт первую искру!"
                         },
                         style = AshTheme.type.footnote,
                         color = colors.text2

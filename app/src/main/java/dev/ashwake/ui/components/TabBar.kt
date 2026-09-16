@@ -2,22 +2,21 @@ package dev.ashwake.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.drag
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -28,36 +27,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.HapticKind
 import dev.ashwake.ui.theme.rememberHaptics
+import kotlin.math.abs
 
 /**
- * Панель вкладок.
- *
- * Панель не приклеена к нижнему краю, а висит над содержимым отдельной
- * таблеткой: у экрана появляется дно, содержимое видно под панелью, и вся
- * нижняя часть интерфейса перестаёт быть прямоугольной плашкой во всю ширину.
- *
- * По панели можно **вести пальцем**: вкладка переключается на ту, над которой
- * палец сейчас находится. Это быстрее, чем целиться в каждую по очереди, и
- * работает одним жестом с любого места панели.
- *
- * Жест обрабатывается панелью целиком, а не каждой вкладкой по отдельности.
- * Если бы у ячеек был свой обработчик нажатия, он забирал бы касание себе, и
- * ведение пальцем разваливалось бы на серию отдельных тапов по соседям.
- *
- * Панель полупрозрачная и размывает то, что уезжает под неё.
+ * Вкладка нижней панели навигации (тянущийся остров).
  */
 data class TabItem(
     val route: String,
@@ -65,14 +58,18 @@ data class TabItem(
     val icon: ImageVector
 )
 
-private val TabBarHeight = 58.dp
-
-/** Поля вокруг панели: воздух, из-за которого она читается как объект. */
-private val TabBarInset = 14.dp
-
-/** Заливка под активной вкладкой. */
+private val TabBarHeight = 52.dp
+private val TabBarInset = 24.dp
 private const val SELECTED_FILL_ALPHA = 0.16f
 
+/**
+ * Парящий тянущийся остров навигации (Island Tab Bar).
+ *
+ * Особенности:
+ * - Без текстовых подписей: чистый, современный минимализм.
+ * - Тянущийся бегунок (Squash & Stretch fluid physics) при переключении между экранами.
+ * - Детальные микроанимации для каждой иконки при выборе (поворот солнца, спин стрелок, наклон галочки).
+ */
 @Composable
 fun AshTabBar(
     tabs: List<TabItem>,
@@ -85,38 +82,35 @@ fun AshTabBar(
     val haze = LocalHazeState.current
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
+    val reduceMotion = AshTheme.reduceMotion
 
-    // Ячейка под пальцем: по ней рисуется отклик на нажатие, пока палец
-    // не отпустили. Индекс, а не ссылка на вкладку, чтобы сравнение было
-    // дешёвым на каждом событии перемещения
     var pressedIndex by remember { mutableIntStateOf(-1) }
 
     Box(
-        modifier
+        modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = TabBarInset, vertical = 10.dp)
+            .padding(horizontal = TabBarInset, vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
-        // Бегунок под вкладками: единый объект, который едет между ними.
-        // Раньше подсветка гасла у одной ячейки и загоралась у другой —
-        // это читается как две вспышки, а не как переход
-        val target = when {
+        val targetIndex = when {
             pressedIndex >= 0 -> pressedIndex.toFloat()
             else -> tabs.indexOfFirst { it.route == selectedRoute }
                 .takeIf { it >= 0 }?.toFloat() ?: -1f
         }
-        val indicator by animateFloatAsState(
-            targetValue = target.coerceAtLeast(0f),
-            animationSpec = responseSpring(),
-            label = "tab-indicator"
+
+        val indicatorPos by animateFloatAsState(
+            targetValue = targetIndex.coerceAtLeast(0f),
+            animationSpec = spring(dampingRatio = 0.68f, stiffness = 340f),
+            label = "island-indicator"
         )
         val indicatorAlpha by animateFloatAsState(
-            targetValue = if (target < 0f) 0f else 1f,
-            label = "tab-indicator-alpha"
+            targetValue = if (targetIndex < 0f) 0f else 1f,
+            label = "island-indicator-alpha"
         )
 
         Row(
-            Modifier
+            modifier = Modifier
                 .fillMaxWidth()
                 .height(TabBarHeight)
                 .clip(AshShapes.pill)
@@ -124,9 +118,7 @@ fun AshTabBar(
                     if (haze != null) Modifier.glass(haze, AshShapes.pill)
                     else Modifier.background(colors.surface1, AshShapes.pill)
                 )
-                // Тонкий контур вместо тени: на светлой теме стекло почти
-                // сливается с фоном, и без границы панель теряет края
-                .border(0.5.dp, colors.separator, AshShapes.pill)
+                .border(0.75.dp, colors.surface3, AshShapes.pill)
                 .pointerInput(tabs) {
                     if (tabs.isEmpty()) return@pointerInput
 
@@ -137,9 +129,6 @@ fun AshTabBar(
                         haptics.play(HapticKind.LIGHT)
                         select(tabs[index])
 
-                        // Ведение: вкладка меняется, как только палец
-                        // переходит границу соседней. Отдача — на каждой
-                        // смене, чтобы переключение чувствовалось вслепую
                         drag(down.id) { change ->
                             val next = tabIndexAt(change.position.x, size.width, tabs.size)
                             if (next != index) {
@@ -153,24 +142,43 @@ fun AshTabBar(
                         pressedIndex = -1
                     }
                 }
-                .padding(horizontal = 6.dp)
+                .padding(horizontal = 4.dp)
                 .drawBehind {
                     if (tabs.isEmpty() || indicatorAlpha <= 0f) return@drawBehind
+
                     val cell = size.width / tabs.size
-                    val inset = 3.dp.toPx()
+                    val inset = 4.dp.toPx()
+                    val baseWidth = cell - inset * 2
+                    val baseHeight = size.height - inset * 2
+
+                    // Физика растяжения (Squash & Stretch): при движении индикатор удлиняется по X и сжимается по Y
+                    val delta = if (reduceMotion) 0f else (targetIndex - indicatorPos)
+                    val stretchFactor = (abs(delta) * 1.5f).coerceIn(0f, 1f)
+                    val elongation = stretchFactor * cell * 0.42f
+                    val squash = stretchFactor * 4.dp.toPx()
+
+                    val dynamicWidth = baseWidth + elongation
+                    val dynamicHeight = baseHeight - squash
+
+                    val centerX = (indicatorPos * cell) + (cell / 2f)
+                    val left = centerX - (dynamicWidth / 2f)
+                    val top = (size.height - dynamicHeight) / 2f
+
+                    // Подложка активного острова
                     drawRoundRect(
                         color = accentColor.copy(alpha = SELECTED_FILL_ALPHA * indicatorAlpha),
-                        topLeft = androidx.compose.ui.geometry.Offset(
-                            x = indicator * cell + inset,
-                            y = inset
-                        ),
-                        size = androidx.compose.ui.geometry.Size(
-                            width = cell - inset * 2,
-                            height = size.height - inset * 2
-                        ),
-                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                            (size.height - inset * 2) / 2f
-                        )
+                        topLeft = Offset(left, top),
+                        size = Size(dynamicWidth, dynamicHeight),
+                        cornerRadius = CornerRadius(dynamicHeight / 2f)
+                    )
+
+                    // Тонкий контур островка
+                    drawRoundRect(
+                        color = accentColor.copy(alpha = 0.35f * indicatorAlpha),
+                        topLeft = Offset(left, top),
+                        size = Size(dynamicWidth, dynamicHeight),
+                        cornerRadius = CornerRadius(dynamicHeight / 2f),
+                        style = Stroke(width = 1.dp.toPx())
                     )
                 },
             verticalAlignment = Alignment.CenterVertically
@@ -178,14 +186,7 @@ fun AshTabBar(
             tabs.forEachIndexed { index, tab ->
                 TabCell(
                     tab = tab,
-                    // Пока палец на панели, подсветка идёт за ним, а не за
-                    // страницей: пейджер долистывает с задержкой, и ждать
-                    // его — значит вести пальцем по неподсвеченным вкладкам
-                    selected = if (pressedIndex >= 0) {
-                        index == pressedIndex
-                    } else {
-                        tab.route == selectedRoute
-                    },
+                    selected = if (pressedIndex >= 0) index == pressedIndex else tab.route == selectedRoute,
                     pressed = index == pressedIndex,
                     onActivate = { select(tab) },
                     modifier = Modifier.weight(1f)
@@ -195,11 +196,6 @@ fun AshTabBar(
     }
 }
 
-/**
- * Вкладка под точкой [x]. Ячейки одной ширины, поэтому индекс считается
- * делением, а не поиском по разметке: разметку тут знать неоткуда, а ширина
- * панели известна.
- */
 private fun tabIndexAt(x: Float, width: Int, count: Int): Int {
     if (width <= 0 || count <= 0) return 0
     val cell = width.toFloat() / count
@@ -217,48 +213,60 @@ private fun TabCell(
     val colors = AshTheme.colors
     val reduceMotion = AshTheme.reduceMotion
 
-    // Цвет и подсветка догоняют переключение, а не перескакивают вместе с ним
     val contentColor by animateColorAsState(
         targetValue = if (selected) colors.accent else colors.text2,
-        label = "tab-content"
+        label = "tab-content-color"
     )
+
     val iconScale by animateFloatAsState(
         targetValue = when {
             reduceMotion -> 1f
-            pressed -> 0.92f
-            selected -> 1.08f
+            pressed -> 0.88f
+            selected -> 1.12f
             else -> 1f
         },
-        animationSpec = ashSpring(),
-        label = "tab-icon"
+        animationSpec = spring(dampingRatio = 0.55f, stiffness = 420f),
+        label = "tab-icon-scale"
     )
 
-    Column(
+    // Детальные микроанимации для каждой иконки при выборе
+    val iconRotation by animateFloatAsState(
+        targetValue = when {
+            reduceMotion -> 0f
+            !selected -> 0f
+            tab.route == "today" -> 45f      // Солнце делает плавный доворот
+            tab.route == "tasks" -> -8f      // Чекбокс делает лёгкий наклон
+            tab.route == "habits" -> 360f    // Повторы делают оборот цикла
+            else -> 0f
+        },
+        animationSpec = spring(dampingRatio = 0.65f, stiffness = 320f),
+        label = "tab-icon-rotation"
+    )
+
+    Box(
         modifier = modifier
-            .padding(vertical = 5.dp)
+            .fillMaxHeight()
             .clip(AshShapes.pill)
-            // Жест живёт на панели целиком, поэтому у ячейки нет своего
-            // обработчика нажатия — а озвучке нужно и то, что это вкладка,
-            // и способ её активировать
             .semantics {
                 this.selected = selected
                 this.role = Role.Tab
+                this.contentDescription = tab.title
+                set(SemanticsProperties.Text, listOf(AnnotatedString(tab.title)))
                 onClick(label = tab.title) { onActivate(); true }
-            }
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+            },
+        contentAlignment = Alignment.Center
     ) {
         Icon(
             imageVector = tab.icon,
-            contentDescription = tab.title,
+            contentDescription = null,
             tint = contentColor,
-            modifier = Modifier.size(22.dp).scale(iconScale)
-        )
-        Text(
-            text = tab.title,
-            style = AshTheme.type.caption,
-            color = contentColor
+            modifier = Modifier
+                .size(24.dp)
+                .graphicsLayer {
+                    scaleX = iconScale
+                    scaleY = iconScale
+                    rotationZ = iconRotation
+                }
         )
     }
 }

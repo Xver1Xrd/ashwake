@@ -3,6 +3,7 @@ package dev.ashwake.ui.tasks.components
 import dev.ashwake.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -74,8 +75,29 @@ fun TaskRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     expanded: Boolean = false,
-    onExpandToggle: (() -> Unit)? = null
+    onExpandToggle: (() -> Unit)? = null,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onSelectToggle: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null
 ) {
+    if (selectionMode) {
+        TaskRowContent(
+            task = task,
+            today = today,
+            onClick = { onSelectToggle?.invoke() },
+            onComplete = null,
+            onPostpone = null,
+            expanded = expanded,
+            onExpandToggle = onExpandToggle,
+            selectionMode = true,
+            selected = selected,
+            onLongClick = onLongClick,
+            modifier = modifier
+        )
+        return
+    }
+
     val complete by rememberUpdatedState(onComplete)
     val postpone by rememberUpdatedState(onPostpone)
 
@@ -102,7 +124,10 @@ fun TaskRow(
                 onComplete = complete,
                 onPostpone = { postpone() },
                 expanded = expanded,
-                onExpandToggle = onExpandToggle
+                onExpandToggle = onExpandToggle,
+                selectionMode = false,
+                selected = false,
+                onLongClick = onLongClick
             )
         }
     )
@@ -145,7 +170,11 @@ private fun TaskRowContent(
     onComplete: (() -> Unit)? = null,
     onPostpone: (() -> Unit)? = null,
     expanded: Boolean,
-    onExpandToggle: (() -> Unit)?
+    onExpandToggle: (() -> Unit)?,
+    selectionMode: Boolean = false,
+    selected: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
     var isCompleting by remember(task.id) { mutableStateOf(false) }
@@ -182,7 +211,7 @@ private fun TaskRowContent(
         }
     }
 
-    Box {
+    Box(modifier) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -194,46 +223,72 @@ private fun TaskRowContent(
                 .background(colors.surface1, AshShapes.card)
                 .tappable(
                     onClick = onClick,
-                    onLongClick = { showMenu = true }
+                    onLongClick = {
+                        if (onLongClick != null) onLongClick() else showMenu = true
+                    }
                 )
                 .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-        Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(AshShapes.squircle(13.dp))
-                .background(
-                    if (isTaskDone) colors.success.copy(alpha = 0.2f)
-                    else if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
-                    else colors.surface2
-                )
-                .tappable { triggerComplete() },
-            contentAlignment = Alignment.Center
-        ) {
-            if (isTaskDone) {
-                Icon(
-                    AshIcons.Check,
-                    contentDescription = "Выполнено",
-                    tint = colors.success,
-                    modifier = Modifier.size(20.dp)
-                )
-            } else if (task.emoji != null || task.iconPath != null) {
-                EntityIcon(
-                    emoji = task.emoji,
-                    iconPath = task.iconPath,
-                    size = 30.dp
-                )
-            } else {
-                Box(
-                    Modifier
-                        .size(12.dp)
-                        .background(
-                            if (task.priority.hasMark) priorityColor else colors.text3,
-                            AshShapes.pill
-                        )
-                )
+        if (selectionMode) {
+            Box(
+                modifier = Modifier
+                    .size(26.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(if (selected) colors.accent else Color.Transparent)
+                    .border(
+                        width = if (selected) 0.dp else 2.dp,
+                        color = if (selected) colors.accent else colors.text3,
+                        shape = androidx.compose.foundation.shape.CircleShape
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) {
+                    Icon(
+                        AshIcons.Check,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(15.dp)
+                    )
+                }
+            }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(AshShapes.squircle(13.dp))
+                    .background(
+                        if (isTaskDone) colors.success.copy(alpha = 0.2f)
+                        else if (task.priority.hasMark) priorityColor.copy(alpha = 0.16f)
+                        else colors.surface2
+                    )
+                    .tappable { triggerComplete() },
+                contentAlignment = Alignment.Center
+            ) {
+                if (isTaskDone) {
+                    Icon(
+                        AshIcons.Check,
+                        contentDescription = "Выполнено",
+                        tint = colors.success,
+                        modifier = Modifier.size(20.dp)
+                    )
+                } else if (task.emoji != null || task.iconPath != null) {
+                    EntityIcon(
+                        emoji = task.emoji,
+                        iconPath = task.iconPath,
+                        size = 30.dp
+                    )
+                } else {
+                    Box(
+                        Modifier
+                            .size(12.dp)
+                            .background(
+                                if (task.priority.hasMark) priorityColor else colors.text3,
+                                AshShapes.pill
+                            )
+                    )
+                }
             }
         }
 
@@ -257,13 +312,21 @@ private fun TaskRowContent(
                     }
                 }
             )
-            val meta = buildMeta(task, today)
-            if (meta.isNotEmpty()) {
-                Text(
-                    text = meta,
-                    style = AshTheme.type.footnote,
-                    color = if (task.isOverdue(today)) colors.danger else colors.text2
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                DifficultyDots(difficulty = task.difficulty)
+                val meta = buildMeta(task, today)
+                if (meta.isNotEmpty()) {
+                    Text(
+                        text = meta,
+                        style = AshTheme.type.footnote,
+                        color = if (task.isOverdue(today)) colors.danger else colors.text2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
             if (task.tags.isNotEmpty()) {
                 Text(
@@ -401,7 +464,7 @@ private fun buildMeta(task: Task, today: LocalDate): String {
     }
     val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
     task.dueTime?.let { parts += dev.ashwake.ui.theme.formatTime(it, is24Hour) }
-    task.estimateMinutes?.let { parts += formatEstimate(it) }
+    task.estimateMinutes?.let { parts += formatEstimateRu(it) }
     if (task.subtasks.isNotEmpty()) {
         parts += "${task.subtasks.count { it.isDone }}/${task.subtasks.size}"
     }
@@ -410,8 +473,4 @@ private fun buildMeta(task: Task, today: LocalDate): String {
 }
 
 @Composable
-private fun formatEstimate(minutes: Int): String = when {
-    minutes < 60 -> stringResource(R.string.components_1_sm, minutes)
-    minutes % 60 == 0 -> stringResource(R.string.components_1_sch, minutes / 60)
-    else -> stringResource(R.string.components_1_sch_2_sm, minutes / 60, minutes % 60)
-}
+private fun formatEstimate(minutes: Int): String = formatEstimateRu(minutes)

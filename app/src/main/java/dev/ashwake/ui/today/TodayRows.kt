@@ -1,6 +1,8 @@
 package dev.ashwake.ui.today
 
 import androidx.compose.ui.res.stringResource
+import dev.ashwake.ui.tasks.components.DifficultyDots
+import dev.ashwake.ui.tasks.components.formatEstimateRu
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -509,15 +511,21 @@ private fun TaskTodayRowContent(
                         }
                 )
             }
-            val meta = taskMeta(task, today)
-            if (meta.isNotEmpty()) {
-                Text(
-                    text = meta,
-                    style = AshTheme.type.subhead,
-                    color = if (overdue) colors.danger else colors.text2,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                DifficultyDots(difficulty = task.difficulty)
+                val meta = taskMeta(task, today)
+                if (meta.isNotEmpty()) {
+                    Text(
+                        text = meta,
+                        style = AshTheme.type.subhead,
+                        color = if (overdue) colors.danger else colors.text2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
         }
@@ -549,7 +557,7 @@ private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList
     if (task.priority.hasMark) add(task.priority.meaning)
     val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
     task.dueTime?.let { add(dev.ashwake.ui.theme.formatTime(it, is24Hour)) }
-    task.estimateMinutes?.let { add(stringResource(R.string.settings_1_s_min, it)) }
+    task.estimateMinutes?.let { add(formatEstimateRu(it)) }
     task.tags.take(2).forEach { add("#${it.name}") }
 }.joinToString(" · ")
 

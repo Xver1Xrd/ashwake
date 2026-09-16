@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.model.Priority
 import dev.ashwake.core.time.AppClock
+import dev.ashwake.data.export.ImageExporter
 import dev.ashwake.domain.engine.nlp.ParsedQuickInput
 import dev.ashwake.domain.engine.nlp.QuickInputParser
 import dev.ashwake.domain.engine.tasks.EisenhowerClassifier
@@ -46,14 +47,6 @@ import javax.inject.Inject
 
 enum class TasksViewMode { LIST, MATRIX, CALENDAR, TIMEBOX }
 
-enum class SmartFilter(val title: String) {
-    ALL("Все"),
-    QUICK("⚡ Быстрые (<15м)"),
-    STALE("⏳ Залежавшиеся"),
-    HIGH_NO_DATE("🔥 Важные без срока"),
-    TODAY("📅 На сегодня")
-}
-
 /** Масштаб календаря: месяц / неделя / день (п. 17, экран «Задачи»). */
 enum class CalendarScale { MONTH, WEEK, DAY }
 
@@ -72,7 +65,6 @@ data class TasksUiState(
     val projects: List<Project> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val filter: TaskFilter = TaskFilter(),
-    val smartFilter: SmartFilter = SmartFilter.ALL,
     val viewMode: TasksViewMode = TasksViewMode.LIST,
     val quickInput: String = "",
     val parsed: ParsedQuickInput? = null,
@@ -167,7 +159,8 @@ class TasksViewModel @Inject constructor(
     private val postponeTask: PostponeTaskUseCase,
     private val undoPostpone: UndoPostponeUseCase,
     private val deleteTask: DeleteTaskUseCase,
-    private val voiceInput: VoiceInput
+    private val voiceInput: VoiceInput,
+    private val imageExporter: ImageExporter
 ) : ViewModel() {
 
     private data class Quad<A, B, C, D>(
@@ -179,7 +172,6 @@ class TasksViewModel @Inject constructor(
 
     private data class UiBits(
         val filter: TaskFilter,
-        val smartFilter: SmartFilter,
         val mode: TasksViewMode,
         val input: String,
         val staleTaskId: Long?,
@@ -187,19 +179,18 @@ class TasksViewModel @Inject constructor(
     )
 
     private val filter = MutableStateFlow(TaskFilter())
-    private val smartFilter = MutableStateFlow(SmartFilter.ALL)
     private val viewMode = MutableStateFlow(TasksViewMode.LIST)
     private val quickInput = MutableStateFlow("")
     private val staleTaskId = MutableStateFlow<Long?>(null)
     private val expandedTaskIds = MutableStateFlow<Set<Long>>(emptySet())
 
     private val uiBits = combine(
-        combine(filter, smartFilter) { f, sf -> f to sf },
+        filter,
         combine(viewMode, quickInput, staleTaskId, expandedTaskIds) { vm, qi, st, exp ->
             Quad(vm, qi, st, exp)
         }
-    ) { (f, sf), quad ->
-        UiBits(f, sf, quad.first, quad.second, quad.third, quad.fourth)
+    ) { f, quad ->
+        UiBits(f, quad.first, quad.second, quad.third, quad.fourth)
     }
 
     val state: StateFlow<TasksUiState> = combine(
@@ -209,25 +200,14 @@ class TasksViewModel @Inject constructor(
         uiBits
     ) { taskList, projectList, tagList, bits ->
         val today = clock.today()
-        val filtered = when (bits.smartFilter) {
-            SmartFilter.ALL -> taskList
-            SmartFilter.QUICK -> taskList.filter { (it.estimateMinutes ?: 0) in 1..15 }
-            SmartFilter.STALE -> taskList.filter { it.postponeCount >= 3 }
-            SmartFilter.HIGH_NO_DATE -> taskList.filter {
-                (it.priority == Priority.P1 || it.priority == Priority.P2) && it.dueDate == null
-            }
-            SmartFilter.TODAY -> taskList.filter { it.dueDate == today || it.isOverdue(today) }
-        }
-
-        val groups = groupTasksByDay(filtered, today)
+        val groups = groupTasksByDay(taskList, today)
 
         TasksUiState(
-            tasks = filtered,
+            tasks = taskList,
             dayGroups = groups,
             projects = projectList,
             tags = tagList,
             filter = bits.filter,
-            smartFilter = bits.smartFilter,
             viewMode = bits.mode,
             quickInput = bits.input,
             // Разбор идёт на каждое нажатие клавиши: парсер чистый и дешёвый,
@@ -457,10 +437,6 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    fun setSmartFilter(filter: SmartFilter) {
-        smartFilter.value = filter
-    }
-
     // --- фильтры и режим ---------------------------------------------------
 
     fun setViewMode(mode: TasksViewMode) { viewMode.value = mode }
@@ -475,6 +451,20 @@ class TasksViewModel @Inject constructor(
 
     fun quadrantOf(task: Task, today: LocalDate): EisenhowerQuadrant =
         classifier.quadrantOf(task, today)
+
+    fun shareTasksAsImage(
+        selectedTasks: List<Task>,
+        dateTitle: String,
+        onReady: (android.content.Intent) -> Unit
+    ) {
+        viewModelScope.launch {
+            val bitmap = imageExporter.renderTasksCard(selectedTasks, dateTitle)
+            val intent = imageExporter.shareIntent(bitmap, "tasks_${clock.today()}")
+            if (intent != null) {
+                onReady(intent)
+            }
+        }
+    }
 
     private companion object {
         const val STALE_DIALOG_THRESHOLD = 5
