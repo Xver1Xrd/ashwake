@@ -33,6 +33,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import dev.ashwake.ui.theme.HapticKind
+import dev.ashwake.ui.theme.rememberHaptics
 import androidx.compose.ui.text.style.TextDecoration
 import dev.ashwake.ui.components.responseSpring
 import androidx.compose.ui.text.style.TextOverflow
@@ -359,6 +363,9 @@ private fun TaskRowContent(
         }
     }
 
+    val clipboard = LocalClipboardManager.current
+    val haptics = rememberHaptics()
+
     AshContextMenu(
         expanded = showMenu,
         onDismissRequest = { showMenu = false },
@@ -367,6 +374,24 @@ private fun TaskRowContent(
                 title = stringResource(R.string.context_menu_edit),
                 icon = AshIcons.Edit,
                 onClick = onClick
+            ),
+            ContextMenuItem(
+                title = "Скопировать",
+                icon = AshIcons.Copy,
+                onClick = {
+                    val text = buildString {
+                        append(task.title)
+                        if (task.subtasks.isNotEmpty()) {
+                            task.subtasks.forEach { sub ->
+                                append("\n- ")
+                                append(if (sub.isDone) "[x] " else "[ ] ")
+                                append(sub.title)
+                            }
+                        }
+                    }
+                    clipboard.setText(AnnotatedString(text))
+                    haptics.play(HapticKind.LIGHT)
+                }
             ),
             onPostpone?.let {
                 ContextMenuItem(

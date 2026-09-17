@@ -363,6 +363,8 @@ fun TaskEditorScreen(
 
             // --- подзадачи ------------------------------------------------------
             Section(stringResource(R.string.editor_podzadachi)) {
+                val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+                val haptics = dev.ashwake.ui.theme.rememberHaptics()
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.subtasks.forEachIndexed { index, subtask ->
                         SubtaskRow(
@@ -370,7 +372,10 @@ fun TaskEditorScreen(
                             done = subtask.done,
                             onToggle = { viewModel.toggleSubtask(index) },
                             onEdit = { newTitle -> viewModel.editSubtask(index, newTitle) },
-                            onDuplicate = { viewModel.duplicateSubtask(index) },
+                            onCopy = {
+                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(subtask.title))
+                                haptics.play(dev.ashwake.ui.theme.HapticKind.LIGHT)
+                            },
                             onRemove = { viewModel.removeSubtask(index) }
                         )
                     }
@@ -571,7 +576,7 @@ private fun SubtaskRow(
     done: Boolean,
     onToggle: () -> Unit,
     onEdit: (String) -> Unit,
-    onDuplicate: () -> Unit,
+    onCopy: () -> Unit,
     onRemove: () -> Unit
 ) {
     val colors = AshTheme.colors
@@ -624,9 +629,9 @@ private fun SubtaskRow(
             )
             IconAction(
                 icon = AshIcons.Copy,
-                contentDescription = "Дублировать",
+                contentDescription = "Скопировать в буфер",
                 tint = colors.text3,
-                onClick = onDuplicate
+                onClick = onCopy
             )
             IconAction(
                 icon = AshIcons.Close,

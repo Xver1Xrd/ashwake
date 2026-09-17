@@ -1,5 +1,9 @@
 package dev.ashwake.ui.today
 
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import dev.ashwake.ui.theme.HapticKind
+import dev.ashwake.ui.theme.rememberHaptics
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.ui.tasks.components.DifficultyDots
 import dev.ashwake.ui.tasks.components.formatEstimateRu
@@ -530,6 +534,9 @@ private fun TaskTodayRowContent(
         }
         }
 
+        val clipboard = LocalClipboardManager.current
+        val haptics = rememberHaptics()
+
         AshContextMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
@@ -538,6 +545,24 @@ private fun TaskTodayRowContent(
                     title = stringResource(R.string.context_menu_edit),
                     icon = AshIcons.Edit,
                     onClick = onOpen
+                ),
+                ContextMenuItem(
+                    title = "Скопировать",
+                    icon = AshIcons.Copy,
+                    onClick = {
+                        val text = buildString {
+                            append(task.title)
+                            if (task.subtasks.isNotEmpty()) {
+                                task.subtasks.forEach { sub ->
+                                    append("\n- ")
+                                    append(if (sub.isDone) "[x] " else "[ ] ")
+                                    append(sub.title)
+                                }
+                            }
+                        }
+                        clipboard.setText(AnnotatedString(text))
+                        haptics.play(HapticKind.LIGHT)
+                    }
                 ),
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_postpone_tomorrow),
