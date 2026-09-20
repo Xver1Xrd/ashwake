@@ -408,7 +408,7 @@ private fun TaskTodayRowContent(
     onOpen: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var isCompleting by remember(task.id) { mutableStateOf(false) }
+    var isCompleting by remember(task.id, task.isDone) { mutableStateOf(false) }
     val isTaskDone = task.isDone || isCompleting
     val scope = rememberCoroutineScope()
     val colors = AshTheme.colors
@@ -465,6 +465,7 @@ private fun TaskTodayRowContent(
                         onToggle()
                     }
                 } else {
+                    isCompleting = false
                     onToggle()
                 }
             },
