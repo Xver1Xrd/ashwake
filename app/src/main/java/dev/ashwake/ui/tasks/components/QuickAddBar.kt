@@ -3,6 +3,8 @@ package dev.ashwake.ui.tasks.components
 import dev.ashwake.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,7 +74,13 @@ fun QuickAddBar(
             .fillMaxWidth()
             .imePadding()
             .navigationBarsPadding()
-            .background(colors.surface1, AshShapes.sheetTop)
+            .clip(AshShapes.sheetTop)
+            .background(colors.surface1)
+            .border(
+                width = if (colors.isDark) 0.dp else 0.75.dp,
+                color = if (colors.isDark) Color.Transparent else colors.surface3,
+                shape = AshShapes.sheetTop
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (parsed != null && parsed.hasAnyMarkup) {

@@ -10,6 +10,8 @@ import dev.ashwake.ui.tasks.components.formatEstimateRu
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -437,7 +439,13 @@ private fun TaskTodayRowContent(
                     scaleY = cardScale
                     alpha = cardAlpha
                 }
+                .clip(AshShapes.card)
                 .background(colors.surface1)
+                .border(
+                    width = if (colors.isDark) 0.dp else 0.75.dp,
+                    color = if (colors.isDark) Color.Transparent else colors.surface3,
+                    shape = AshShapes.card
+                )
                 .tappable(
                     onClick = onOpen,
                     onLongClick = { showMenu = true }
@@ -607,6 +615,13 @@ fun AbstinenceTodayRow(
         Row(
             Modifier
                 .fillMaxWidth()
+                .clip(AshShapes.card)
+                .background(colors.surface1)
+                .border(
+                    width = if (colors.isDark) 0.dp else 0.75.dp,
+                    color = if (colors.isDark) Color.Transparent else colors.surface3,
+                    shape = AshShapes.card
+                )
                 .tappable(
                     onClick = onOpen,
                     onLongClick = { showMenu = true }

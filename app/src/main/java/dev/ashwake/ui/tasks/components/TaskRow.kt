@@ -224,7 +224,13 @@ private fun TaskRowContent(
                     scaleY = cardScale
                     alpha = cardAlpha
                 }
-                .background(colors.surface1, AshShapes.card)
+                .clip(AshShapes.card)
+                .background(colors.surface1)
+                .border(
+                    width = if (colors.isDark) 0.dp else 0.75.dp,
+                    color = if (colors.isDark) Color.Transparent else colors.surface3,
+                    shape = AshShapes.card
+                )
                 .tappable(
                     onClick = onClick,
                     onLongClick = {

@@ -82,26 +82,26 @@ private val DarkText2 = Color(0xA3E4E4F2)   // 64%
 private val DarkText3 = Color(0x59E4E4F2)   // 35%
 private val DarkSeparator = Color(0x2E9A9AC0)
 
-// Светлая тема — вторая. Тот же подтон, только светлотой наоборот.
-private val LightBackground = Color(0xFFF4F4F8)
+// Светлая тема — вторая. Чистая, контрастная и благородная палитра.
+private val LightBackground = Color(0xFFF5F6FA)
 private val LightSurface1 = Color(0xFFFFFFFF)
-private val LightSurface2 = Color(0xFFEDEDF4)
-private val LightSurface3 = Color(0xFFE1E1EC)
-private val LightText = Color(0xFF14141B)
-private val LightText2 = Color(0xA31B1B2E)
-private val LightText3 = Color(0x591B1B2E)
-private val LightSeparator = Color(0x2E4A4A70)
+private val LightSurface2 = Color(0xFFEBEDF3)
+private val LightSurface3 = Color(0xFFDCDFE7)
+private val LightText = Color(0xFF111218)
+private val LightText2 = Color(0xFF5A5D72)
+private val LightText3 = Color(0xFF8F92A3)
+private val LightSeparator = Color(0x1F111218)
 
 // Семантика. Одни и те же роли в обеих темах, разной светлоты: на тёмном
 // фоне нужны более светлые тона, иначе контраст проваливается.
 private val WarmDark = Color(0xFFFFB84D)
-private val WarmLight = Color(0xFFE8890B)
+private val WarmLight = Color(0xFFD97706)
 private val ColdDark = Color(0xFF4CC9F0)
-private val ColdLight = Color(0xFF0E92C4)
+private val ColdLight = Color(0xFF0284C7)
 private val DangerDark = Color(0xFFFF6B6B)
-private val DangerLight = Color(0xFFE03131)
+private val DangerLight = Color(0xFFDC2626)
 private val SuccessDark = Color(0xFF3FDC9A)
-private val SuccessLight = Color(0xFF12A06A)
+private val SuccessLight = Color(0xFF16A34A)
 
 /**
  * Акценты, из которых пользователь выбирает свой.
@@ -176,7 +176,7 @@ fun lightAshColors(accent: AccentColor = AccentColor.DEFAULT): AshColors = AshCo
     success = SuccessLight,
     accent = accent.resolve(isDark = false),
     accentAlt = accent.resolveAlt(isDark = false),
-    materialTint = LightSurface1.copy(alpha = 0.72f),
+    materialTint = Color(0xFFFBFBFE).copy(alpha = 0.65f),
     isDark = false
 )
 

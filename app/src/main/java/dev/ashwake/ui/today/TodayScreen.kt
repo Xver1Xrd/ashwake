@@ -3,6 +3,7 @@ package dev.ashwake.ui.today
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -333,7 +334,13 @@ private fun TodaySummaryCard(
     Box(
         modifier
             .fillMaxWidth()
-            .background(gradient, AshShapes.sheet)
+            .clip(AshShapes.sheet)
+            .background(gradient)
+            .border(
+                width = if (colors.isDark) 0.dp else 0.75.dp,
+                color = if (colors.isDark) androidx.compose.ui.graphics.Color.Transparent else colors.surface3,
+                shape = AshShapes.sheet
+            )
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

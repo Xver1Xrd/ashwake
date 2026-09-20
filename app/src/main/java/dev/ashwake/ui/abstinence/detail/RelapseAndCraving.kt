@@ -3,6 +3,7 @@ package dev.ashwake.ui.abstinence.detail
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,7 +27,9 @@ import dev.ashwake.ui.components.AshTextField
 import dev.ashwake.ui.components.PrimaryButton
 import dev.ashwake.ui.components.TextAction
 import dev.ashwake.ui.components.ChipButton
+import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
+import androidx.compose.ui.draw.clip
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -157,12 +160,13 @@ fun CravingSheet(
     triggers: List<CravingTrigger>,
     onStart: (intensity: Int, triggerId: Long?) -> Unit,
     onFinish: (resisted: Boolean, durationSeconds: Int?, note: String?) -> Unit,
-    onRelapse: (durationSeconds: Int?, note: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val colors = AshTheme.colors
     var intensity by remember { mutableIntStateOf(3) }
     var triggerId by remember { mutableStateOf<Long?>(null) }
     var started by remember { mutableStateOf(false) }
+    var showBreathing by remember { mutableStateOf(false) }
     var breathingSeconds by remember { mutableIntStateOf(0) }
     var breathingRunning by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf("") }
@@ -201,17 +205,48 @@ fun CravingSheet(
                 HorizontalDivider()
             }
 
-            BreathingTimer(
-                seconds = breathingSeconds,
-                running = breathingRunning,
-                onToggle = {
-                    breathingRunning = !breathingRunning
-                    if (breathingRunning && !started) {
-                        started = true
-                        onStart(intensity, triggerId)
+            // Дыхательная практика предлагается, но не навязывается
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(AshShapes.card)
+                    .background(colors.surface2)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Дыхательная практика", style = AshTheme.type.headline)
+                        Text("Помогает снять острый позыв (цикл 4-4-4)", style = AshTheme.type.caption, color = colors.text2)
                     }
+                    ChipButton(
+                        text = if (showBreathing) "Скрыть" else "Подышать",
+                        selected = showBreathing,
+                        onClick = {
+                            showBreathing = !showBreathing
+                            if (!showBreathing) breathingRunning = false
+                        }
+                    )
                 }
-            )
+
+                if (showBreathing) {
+                    BreathingTimer(
+                        seconds = breathingSeconds,
+                        running = breathingRunning,
+                        onToggle = {
+                            breathingRunning = !breathingRunning
+                            if (breathingRunning && !started) {
+                                started = true
+                                onStart(intensity, triggerId)
+                            }
+                        }
+                    )
+                }
+            }
 
             HorizontalDivider()
             Text(stringResource(R.string.detail_naskolko_silno), style = AshTheme.type.subhead)
@@ -246,12 +281,10 @@ fun CravingSheet(
 
             HorizontalDivider()
 
-            // Три исхода вместо двух. «Не помогло» раньше означало только
-            // «тяга не прошла», но читалось как отметка срыва — теперь срыв
-            // это отдельный, названный своим словом выход
+            // В «Тяжело» нет срыва — срыв вынесен отдельной красной кнопкой на главный экран
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 PrimaryButton(
-                    text = stringResource(R.string.detail_spravilsya),
+                    text = "Я справился",
                     modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
@@ -260,7 +293,7 @@ fun CravingSheet(
                 )
 
                 ChipButton(
-                    text = stringResource(R.string.detail_otpustilo_samo),
+                    text = "Тяжело, но держусь",
                     modifier = Modifier.weight(1f),
                     onClick = {
                         if (!started) onStart(intensity, triggerId)
@@ -268,19 +301,6 @@ fun CravingSheet(
                     }
                 )
             }
-
-            TextAction(
-                text = stringResource(R.string.detail_ne_spravilsya_otmetit_sryv),
-                color = AshTheme.colors.danger,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = {
-                    if (!started) onStart(intensity, triggerId)
-                    onRelapse(
-                        breathingSeconds.takeIf { it > 0 },
-                        note.takeIf { it.isNotBlank() }
-                    )
-                }
-            )
 
             Text(
                 stringResource(R.string.detail_poka_vy_ne_otmetili_sryv_schetchik_idet_dals),

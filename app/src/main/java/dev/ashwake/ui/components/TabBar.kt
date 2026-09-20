@@ -1,6 +1,7 @@
 package dev.ashwake.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -25,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +53,7 @@ import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.HapticKind
 import dev.ashwake.ui.theme.rememberHaptics
+import kotlinx.coroutines.launch
 import kotlin.math.abs
 
 /**
@@ -69,12 +72,10 @@ private const val SELECTED_FILL_ALPHA = 0.18f
 /**
  * Парящий тянущийся остров навигации в стиле iOS Dynamic Island.
  *
- * Особенности физики Dynamic Island:
- * - Двухточечный жидкостный стрейч (Liquid Elasticity): ведущий край вытягивается первым,
- *   остров растягивается в эластичную капсулу, а задний край подтягивается с упругим хлопком.
- * - Сохранение объёма (Squash & Stretch): при растяжении по X высота острова слегка сжимается по Y.
- * - Жест протяжки: остров натягивается вслед за пальцем как резина.
- * - Переработанная анимация стрелочек (Habits): упругий механический щелчок цикла со сдвигом по X вместо вращения.
+ * Особенности:
+ * - Сам остров (контейнер) растягивается и пружинит при переключении и свайпе (Dynamic Island Morphing).
+ * - Капля внутри идеально выровнена по центрам всех иконок, включая стрелочки.
+ * - Полностью переработана анимация иконок: упругий iOS-style Spring Bounce без вертолётных вращений и смещений.
  */
 @Composable
 fun AshTabBar(
@@ -89,9 +90,10 @@ fun AshTabBar(
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
     val reduceMotion = AshTheme.reduceMotion
+    val scope = rememberCoroutineScope()
 
     var pressedIndex by remember { mutableIntStateOf(-1) }
-    var dragShiftPx by remember { mutableFloatStateOf(0f) }
+    var dragRatio by remember { mutableFloatStateOf(0f) }
 
     val activeIndex = when {
         pressedIndex >= 0 -> pressedIndex
@@ -99,35 +101,60 @@ fun AshTabBar(
     }
 
     var prevIndex by remember { mutableIntStateOf(activeIndex) }
+    val islandStretchX = remember { Animatable(1f) }
+    val islandSquashY = remember { Animatable(1f) }
+
+    // При смене вкладки весь остров делает упругий Dynamic Island стрейч
     LaunchedEffect(activeIndex) {
+        val distance = abs(activeIndex - prevIndex)
+        if (distance > 0 && !reduceMotion) {
+            val stretchAmount = 1f + (distance * 0.035f).coerceAtMost(0.09f)
+            val squashAmount = 1f - (distance * 0.025f).coerceAtMost(0.06f)
+
+            launch {
+                islandStretchX.animateTo(
+                    targetValue = stretchAmount,
+                    animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f)
+                )
+                islandStretchX.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(dampingRatio = 0.65f, stiffness = 380f)
+                )
+            }
+            launch {
+                islandSquashY.animateTo(
+                    targetValue = squashAmount,
+                    animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f)
+                )
+                islandSquashY.animateTo(
+                    targetValue = 1f,
+                    animationSpec = spring(dampingRatio = 0.65f, stiffness = 380f)
+                )
+            }
+        }
         prevIndex = activeIndex
     }
 
+    // Двухточечная жидкостная анимация внутренней капли
     val movingRight = activeIndex >= prevIndex
-
-    // Быстрая ведущая пружина Dynamic Island
     val leadSpring = remember(reduceMotion) {
         if (reduceMotion) tween<Float>(0)
         else spring<Float>(dampingRatio = 0.62f, stiffness = 420f)
     }
-    // Догоняющая хвостовая пружина
     val trailSpring = remember(reduceMotion) {
         if (reduceMotion) tween<Float>(0)
-        else spring<Float>(dampingRatio = 0.74f, stiffness = 260f)
+        else spring<Float>(dampingRatio = 0.72f, stiffness = 280f)
     }
 
     val targetFloat = activeIndex.toFloat()
 
-    val leftEdgeTarget = if (movingRight) targetFloat else targetFloat
-    val rightEdgeTarget = if (movingRight) targetFloat else targetFloat
-
     val leftEdge by animateFloatAsState(
-        targetValue = leftEdgeTarget,
+        targetValue = targetFloat,
         animationSpec = if (movingRight) trailSpring else leadSpring,
         label = "island-left-edge"
     )
     val rightEdge by animateFloatAsState(
-        targetValue = rightEdgeTarget,
+        targetValue = targetFloat,
         animationSpec = if (movingRight) leadSpring else trailSpring,
         label = "island-right-edge"
     )
@@ -138,18 +165,18 @@ fun AshTabBar(
         label = "island-alpha"
     )
 
-    val isTouching = pressedIndex >= 0
+    // Общая деформация острова при перетаскивании пальцем
+    val dynamicBarScaleX = if (pressedIndex >= 0 && !reduceMotion) {
+        1f + abs(dragRatio) * 0.04f
+    } else {
+        islandStretchX.value
+    }
 
-    val barScaleX by animateFloatAsState(
-        targetValue = if (isTouching) 1.015f else 1f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
-        label = "bar-scale-x"
-    )
-    val barScaleY by animateFloatAsState(
-        targetValue = if (isTouching) 0.98f else 1f,
-        animationSpec = spring(dampingRatio = 0.7f, stiffness = 400f),
-        label = "bar-scale-y"
-    )
+    val dynamicBarScaleY = if (pressedIndex >= 0 && !reduceMotion) {
+        1f - abs(dragRatio) * 0.03f
+    } else {
+        islandSquashY.value
+    }
 
     Box(
         modifier = modifier
@@ -163,15 +190,19 @@ fun AshTabBar(
                 .fillMaxWidth()
                 .height(TabBarHeight)
                 .graphicsLayer {
-                    scaleX = barScaleX
-                    scaleY = barScaleY
+                    scaleX = dynamicBarScaleX
+                    scaleY = dynamicBarScaleY
                 }
                 .clip(AshShapes.pill)
                 .then(
                     if (haze != null) Modifier.glass(haze, AshShapes.pill)
                     else Modifier.background(colors.surface1, AshShapes.pill)
                 )
-                .border(0.75.dp, colors.surface3, AshShapes.pill)
+                .border(
+                    width = if (colors.isDark) 0.75.dp else 1.dp,
+                    color = if (colors.isDark) colors.surface3 else colors.separator,
+                    shape = AshShapes.pill
+                )
                 .pointerInput(tabs) {
                     if (tabs.isEmpty()) return@pointerInput
 
@@ -179,26 +210,26 @@ fun AshTabBar(
                         val down = awaitFirstDown()
                         var index = tabIndexAt(down.position.x, size.width, tabs.size)
                         pressedIndex = index
-                        dragShiftPx = 0f
+                        dragRatio = 0f
                         haptics.play(HapticKind.LIGHT)
                         select(tabs[index])
 
                         drag(down.id) { change ->
                             val next = tabIndexAt(change.position.x, size.width, tabs.size)
                             val currentCellCenter = (index + 0.5f) * (size.width / tabs.size)
-                            dragShiftPx = (change.position.x - currentCellCenter) * 0.45f
+                            dragRatio = ((change.position.x - currentCellCenter) / (size.width / tabs.size)).coerceIn(-1f, 1f)
 
                             if (next != index) {
                                 index = next
                                 pressedIndex = next
-                                dragShiftPx = 0f
+                                dragRatio = 0f
                                 haptics.play(HapticKind.LIGHT)
                                 select(tabs[next])
                             }
                             change.consume()
                         }
                         pressedIndex = -1
-                        dragShiftPx = 0f
+                        dragRatio = 0f
                     }
                 }
                 .padding(horizontal = 4.dp)
@@ -210,22 +241,22 @@ fun AshTabBar(
                     val basePillWidth = cell - pad * 2
                     val baseHeight = size.height - pad * 2
 
-                    // Вычисляем координаты краев островка с учётом жидкостной физики
+                    // Центры левого и правого краев капли
                     val leftCenter = (minOf(leftEdge, rightEdge) * cell) + (cell / 2f)
                     val rightCenter = (maxOf(leftEdge, rightEdge) * cell) + (cell / 2f)
 
-                    // Эластичное растяжение при движении и перетягивании пальцем
-                    val dynamicLeft = (leftCenter - basePillWidth / 2f) + minOf(0f, dragShiftPx)
-                    val dynamicRight = (rightCenter + basePillWidth / 2f) + maxOf(0f, dragShiftPx)
+                    val dragExtra = dragRatio * (cell * 0.35f)
+                    val dynamicLeft = (leftCenter - basePillWidth / 2f) + minOf(0f, dragExtra)
+                    val dynamicRight = (rightCenter + basePillWidth / 2f) + maxOf(0f, dragExtra)
 
                     val islandWidth = (dynamicRight - dynamicLeft).coerceAtLeast(basePillWidth)
                     val stretchExcess = (islandWidth - basePillWidth) / basePillWidth
-                    val squashY = (stretchExcess * 3.5.dp.toPx()).coerceAtMost(baseHeight * 0.22f)
+                    val squashY = (stretchExcess * 3.5.dp.toPx()).coerceAtMost(baseHeight * 0.2f)
 
                     val dynamicHeight = baseHeight - squashY
                     val top = (size.height - dynamicHeight) / 2f
 
-                    // Жидкая фоновая заливка Dynamic Island
+                    // Жидкая фоновая капсула
                     drawRoundRect(
                         color = accentColor.copy(alpha = SELECTED_FILL_ALPHA * islandAlpha),
                         topLeft = Offset(dynamicLeft, top),
@@ -233,9 +264,9 @@ fun AshTabBar(
                         cornerRadius = CornerRadius(dynamicHeight / 2f)
                     )
 
-                    // Тонкое контрастное окаймление островка
+                    // Чёткий контур активной зоны
                     drawRoundRect(
-                        color = accentColor.copy(alpha = 0.38f * islandAlpha),
+                        color = accentColor.copy(alpha = (if (colors.isDark) 0.38f else 0.5f) * islandAlpha),
                         topLeft = Offset(dynamicLeft, top),
                         size = Size(islandWidth, dynamicHeight),
                         cornerRadius = CornerRadius(dynamicHeight / 2f),
@@ -276,46 +307,24 @@ private fun TabCell(
 
     val contentColor by animateColorAsState(
         targetValue = if (selected) colors.accent else colors.text2,
-        animationSpec = tween(220),
+        animationSpec = tween(200),
         label = "tab-content-color"
     )
 
+    // Полностью переработанная анимация иконок: упругий iOS Spring Bounce
+    // Иконка строго центрирована, без боковых сдвигов (translationX = 0)
     val iconScale by animateFloatAsState(
         targetValue = when {
             reduceMotion -> 1f
-            pressed -> 0.86f
-            selected -> 1.12f
+            pressed -> 0.85f
+            selected -> 1.14f
             else -> 1f
         },
-        animationSpec = spring(dampingRatio = 0.52f, stiffness = 420f),
+        animationSpec = spring(
+            dampingRatio = if (selected) 0.52f else 0.7f,
+            stiffness = if (selected) 460f else 380f
+        ),
         label = "tab-icon-scale"
-    )
-
-    val density = androidx.compose.ui.platform.LocalDensity.current.density
-
-    // Новая анимация для стрелочек (Habits/Repeat) с нуля:
-    // Вместо вертолетного вращения на 360° — упругий горизонтальный щелчок цикла (Cycle Spring Nudge)
-    val cycleShiftX by animateFloatAsState(
-        targetValue = when {
-            reduceMotion -> 0f
-            selected && tab.route == "habits" -> 3f
-            else -> 0f
-        },
-        animationSpec = spring(dampingRatio = 0.42f, stiffness = 500f),
-        label = "tab-cycle-shift"
-    )
-
-    // Мягкий деликатный наклон только для солнца (Today)
-    val iconRotation by animateFloatAsState(
-        targetValue = when {
-            reduceMotion -> 0f
-            !selected -> 0f
-            tab.route == "today" -> 20f
-            tab.route == "tasks" -> -6f
-            else -> 0f // Никакого вращения для стрелочек и остальных!
-        },
-        animationSpec = spring(dampingRatio = 0.65f, stiffness = 360f),
-        label = "tab-icon-rotation"
     )
 
     Box(
@@ -340,8 +349,7 @@ private fun TabCell(
                 .graphicsLayer {
                     scaleX = iconScale
                     scaleY = iconScale
-                    rotationZ = iconRotation
-                    translationX = cycleShiftX * density
+                    // translationX = 0 и rotationZ = 0 гарантируют идеальную соосность с каплей
                 }
         )
     }
