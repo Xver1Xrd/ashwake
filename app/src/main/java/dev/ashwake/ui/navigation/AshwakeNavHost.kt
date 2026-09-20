@@ -37,7 +37,9 @@ import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.backup.BackupScreen
 import dev.ashwake.ui.blocking.BlockingScreen
 import dev.ashwake.ui.character.CharacterScreen
+import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshTabBar
+import androidx.compose.ui.graphics.vector.ImageVector
 import dev.ashwake.ui.components.NORMAL_MS
 import dev.ashwake.ui.components.LocalHazeState
 import dev.ashwake.ui.components.TabItem
@@ -392,14 +394,32 @@ private fun screenPopExit(reduceMotion: Boolean) =
         fadeOut(tween(screenDuration(reduceMotion)))
 
 /**
+ * Динамическая иконка первой вкладки («Сегодня») в зависимости от времени суток:
+ * - ночью: полумесяц (Moon)
+ * - утром: восход солнца (Sunrise)
+ * - днем: солнце (Sun)
+ * - вечером: заход солнца (Sunset)
+ */
+fun todayAtmosphereIcon(hour: Int = java.time.LocalTime.now().hour): ImageVector = when (hour) {
+    in 5..8 -> AshIcons.Sunrise
+    in 9..17 -> AshIcons.Sun
+    in 18..21 -> AshIcons.Sunset
+    else -> AshIcons.Moon
+}
+
+/**
  * Вкладки нижней панели.
  *
  * Собираются в композиции, а не в статическом списке: подписи теперь живут
  * в ресурсах, а `stringResource` без композиции не прочитать.
  */
 @Composable
-private fun tabs(): List<TabItem> = Destination.bottomBar.map {
-    TabItem(route = it.route, title = stringResource(it.titleRes), icon = it.icon)
+private fun tabs(): List<TabItem> {
+    val currentHour = java.time.LocalTime.now().hour
+    return Destination.bottomBar.map {
+        val icon = if (it == Destination.Today) todayAtmosphereIcon(currentHour) else it.icon
+        TabItem(route = it.route, title = stringResource(it.titleRes), icon = icon)
+    }
 }
 
 /** Маршрут из виджета в экран приложения. */

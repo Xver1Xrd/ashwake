@@ -432,8 +432,6 @@ private fun TodaySummaryCard(
                 }
             }
         }
-
-        CelebrationParticles(trigger = isCompleted)
     }
 }
 

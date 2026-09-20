@@ -2,7 +2,6 @@ package dev.ashwake.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -26,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.contentDescription
@@ -70,20 +69,25 @@ private val TabBarHeight = 52.dp
 private val TabBarInset = 24.dp
 private const val SELECTED_FILL_ALPHA = 0.18f
 
-private fun rubberBand(offset: Float, limit: Float = 110f): Float {
-    val sign = if (offset < 0f) -1f else 1f
-    val absOffset = abs(offset)
-    return sign * (limit * (1f - (1f / (absOffset * 0.42f / limit + 1f))))
+/**
+ * Безупречная функция резинового растяжения (iOS Rubber Band Physics).
+ * Не даёт резких перегибов, монотонно сопротивляется и полностью исключает дрожание.
+ */
+private fun rubberBandOffset(offsetPx: Float, maxStretchPx: Float = 75f): Float {
+    if (offsetPx == 0f) return 0f
+    val sign = if (offsetPx < 0f) -1f else 1f
+    val absOffset = abs(offsetPx)
+    return sign * (maxStretchPx * (1f - (1f / (absOffset * 0.35f / maxStretchPx + 1f))))
 }
 
 /**
  * Парящий тянущийся остров навигации в стиле iOS Dynamic Island.
  *
  * Особенности:
- * - При оттягивании пальцем за пределы бара сам остров растягивается резиной (Rubber-Band Jelly Stretch).
- * - Капля гарантированно удерживается внутри острова и не улетает в никуда.
- * - При переключении остров делает эластичный стрейч и возвращается на место.
- * - Иконки центрированы с каплей (соосность 100%), стрелочки цикла используют упругий iOS Spring Bounce.
+ * - Обработка жестов вынесена на стабильный контейнер — нулевая тряска и дрожание даже при сильном оттягивании.
+ * - При оттягивании пальцем за края бара сам остров плавно тянется резиной (Rubber-Band Jelly Stretch).
+ * - Капля строго удерживается в границах острова и не улетает в никуда.
+ * - Иконки центрированы с каплей (соосность 100%), анимация стрелочек — упругий iOS Spring Bounce.
  */
 @Composable
 fun AshTabBar(
@@ -98,11 +102,11 @@ fun AshTabBar(
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
     val reduceMotion = AshTheme.reduceMotion
-    val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
+    val insetPx = with(density) { TabBarInset.toPx() }
 
     var pressedIndex by remember { mutableIntStateOf(-1) }
-    var dragRatio by remember { mutableFloatStateOf(0f) }
-    val animatedOverscroll = remember { Animatable(0f) }
+    var rawOverscrollPx by remember { mutableFloatStateOf(0f) }
 
     val activeIndex = when {
         pressedIndex >= 0 -> pressedIndex
@@ -110,41 +114,29 @@ fun AshTabBar(
     }
 
     var prevIndex by remember { mutableIntStateOf(activeIndex) }
-    val islandStretchX = remember { Animatable(1f) }
-    val islandSquashY = remember { Animatable(1f) }
+    val tabSwitchBounceX = remember { Animatable(1f) }
+    val tabSwitchBounceY = remember { Animatable(1f) }
 
-    // При смене вкладки весь остров делает упругий Dynamic Island стрейч
+    // Эластичный микровсплеск острова при смене вкладки
     LaunchedEffect(activeIndex) {
         val distance = abs(activeIndex - prevIndex)
         if (distance > 0 && !reduceMotion) {
-            val stretchAmount = 1f + (distance * 0.035f).coerceAtMost(0.09f)
-            val squashAmount = 1f - (distance * 0.025f).coerceAtMost(0.06f)
+            val stretch = 1f + (distance * 0.025f).coerceAtMost(0.06f)
+            val squash = 1f - (distance * 0.018f).coerceAtMost(0.04f)
 
             launch {
-                islandStretchX.animateTo(
-                    targetValue = stretchAmount,
-                    animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f)
-                )
-                islandStretchX.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(dampingRatio = 0.65f, stiffness = 380f)
-                )
+                tabSwitchBounceX.animateTo(stretch, spring(dampingRatio = 0.5f, stiffness = 700f))
+                tabSwitchBounceX.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = 400f))
             }
             launch {
-                islandSquashY.animateTo(
-                    targetValue = squashAmount,
-                    animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f)
-                )
-                islandSquashY.animateTo(
-                    targetValue = 1f,
-                    animationSpec = spring(dampingRatio = 0.65f, stiffness = 380f)
-                )
+                tabSwitchBounceY.animateTo(squash, spring(dampingRatio = 0.5f, stiffness = 700f))
+                tabSwitchBounceY.animateTo(1f, spring(dampingRatio = 0.7f, stiffness = 400f))
             }
         }
         prevIndex = activeIndex
     }
 
-    // Двухточечная жидкостная анимация внутренней капли
+    // Двухточечная жидкостная физика внутренней капли
     val movingRight = activeIndex >= prevIndex
     val leadSpring = remember(reduceMotion) {
         if (reduceMotion) tween<Float>(0)
@@ -170,40 +162,75 @@ fun AshTabBar(
 
     val islandAlpha by animateFloatAsState(
         targetValue = if (selectedRoute == null && pressedIndex < 0) 0f else 1f,
-        animationSpec = tween(250),
+        animationSpec = tween(220),
         label = "island-alpha"
     )
 
-    // Расчёт физики резинового растяжения острова при оттягивании за границы
-    val currentOverscroll = animatedOverscroll.value
-    val rubberOffset = if (reduceMotion) 0f else rubberBand(currentOverscroll, 85f)
-    val extraStretchX = (abs(rubberOffset) / 200f).coerceAtMost(0.24f)
-    val extraSquashY = (abs(rubberOffset) / 400f).coerceAtMost(0.12f)
+    // Плавный амортизированный оверскролл без рывков
+    val smoothOverscroll by animateFloatAsState(
+        targetValue = if (reduceMotion) 0f else rawOverscrollPx,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 550f),
+        label = "island-overscroll"
+    )
 
-    val dynamicBarScaleX = (if (pressedIndex >= 0 && !reduceMotion) {
-        1f + abs(dragRatio) * 0.03f
-    } else {
-        islandStretchX.value
-    }) + extraStretchX
+    val rubberDist = rubberBandOffset(smoothOverscroll, maxStretchPx = with(density) { 70.dp.toPx() })
+    val extraStretchX = (abs(rubberDist) / with(density) { 260.dp.toPx() }).coerceAtMost(0.22f)
+    val extraSquashY = (abs(rubberDist) / with(density) { 520.dp.toPx() }).coerceAtMost(0.11f)
 
-    val dynamicBarScaleY = (if (pressedIndex >= 0 && !reduceMotion) {
-        1f - abs(dragRatio) * 0.02f
-    } else {
-        islandSquashY.value
-    }) - extraSquashY
-
-    val barTranslationX = rubberOffset * 0.5f
-    val transformOrigin = when {
-        rubberOffset > 2f -> TransformOrigin(0f, 0.5f) // тянем вправо -> закреплён левый край
-        rubberOffset < -2f -> TransformOrigin(1f, 0.5f) // тянем влево -> закреплён правый край
-        else -> TransformOrigin.Center
-    }
+    val islandScaleX = tabSwitchBounceX.value + extraStretchX
+    val islandScaleY = tabSwitchBounceY.value - extraSquashY
+    val islandTranslationX = rubberDist * 0.55f
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = TabBarInset, vertical = 8.dp),
+            .padding(horizontal = TabBarInset, vertical = 8.dp)
+            .pointerInput(tabs) {
+                if (tabs.isEmpty()) return@pointerInput
+
+                awaitEachGesture {
+                    val down = awaitFirstDown()
+                    val barLeft = insetPx
+                    val barRight = (size.width - insetPx).coerceAtLeast(barLeft + 1f)
+                    val barWidth = barRight - barLeft
+                    val cellWidth = barWidth / tabs.size
+                    var currentTab = ((down.position.x - barLeft) / cellWidth).toInt().coerceIn(0, tabs.size - 1)
+
+                    pressedIndex = currentTab
+                    rawOverscrollPx = 0f
+                    haptics.play(HapticKind.LIGHT)
+                    select(tabs[currentTab])
+
+                    drag(down.id) { change ->
+                        val currentX = change.position.x
+
+                        // Расчёт оверскролла строго от физических краёв плашки
+                        rawOverscrollPx = when {
+                            currentX < barLeft -> currentX - barLeft
+                            currentX > barRight -> currentX - barRight
+                            else -> 0f
+                        }
+
+                        // Выбор вкладки только внутри границ острова
+                        if (currentX in barLeft..barRight) {
+                            val newTab = ((currentX - barLeft) / cellWidth).toInt().coerceIn(0, tabs.size - 1)
+                            if (newTab != currentTab) {
+                                currentTab = newTab
+                                pressedIndex = newTab
+                                haptics.play(HapticKind.LIGHT)
+                                select(tabs[newTab])
+                            }
+                        }
+
+                        change.consume()
+                    }
+
+                    // При отпускании пружина плавно возвращает остров на место
+                    pressedIndex = -1
+                    rawOverscrollPx = 0f
+                }
+            },
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -211,10 +238,10 @@ fun AshTabBar(
                 .fillMaxWidth()
                 .height(TabBarHeight)
                 .graphicsLayer {
-                    scaleX = dynamicBarScaleX
-                    scaleY = dynamicBarScaleY
-                    translationX = barTranslationX
-                    this.transformOrigin = transformOrigin
+                    scaleX = islandScaleX
+                    scaleY = islandScaleY
+                    translationX = islandTranslationX
+                    transformOrigin = TransformOrigin.Center
                 }
                 .clip(AshShapes.pill)
                 .then(
@@ -226,53 +253,6 @@ fun AshTabBar(
                     color = if (colors.isDark) colors.surface3 else colors.separator,
                     shape = AshShapes.pill
                 )
-                .pointerInput(tabs) {
-                    if (tabs.isEmpty()) return@pointerInput
-
-                    awaitEachGesture {
-                        val down = awaitFirstDown()
-                        var index = tabIndexAt(down.position.x, size.width, tabs.size)
-                        pressedIndex = index
-                        dragRatio = 0f
-                        scope.launch { animatedOverscroll.snapTo(0f) }
-                        haptics.play(HapticKind.LIGHT)
-                        select(tabs[index])
-
-                        drag(down.id) { change ->
-                            val rawX = change.position.x
-                            val totalW = size.width.toFloat()
-                            val next = tabIndexAt(rawX, size.width, tabs.size)
-                            val currentCellCenter = (index + 0.5f) * (size.width / tabs.size)
-                            dragRatio = ((rawX - currentCellCenter) / (size.width / tabs.size)).coerceIn(-1f, 1f)
-
-                            val overscroll = when {
-                                rawX < 0f -> rawX
-                                rawX > totalW -> rawX - totalW
-                                else -> 0f
-                            }
-                            scope.launch { animatedOverscroll.snapTo(overscroll) }
-
-                            if (next != index) {
-                                index = next
-                                pressedIndex = next
-                                dragRatio = 0f
-                                haptics.play(HapticKind.LIGHT)
-                                select(tabs[next])
-                            }
-                            change.consume()
-                        }
-
-                        // При отпускании остров пружинно возвращается на место
-                        scope.launch {
-                            animatedOverscroll.animateTo(
-                                0f,
-                                animationSpec = spring(dampingRatio = 0.58f, stiffness = 420f)
-                            )
-                        }
-                        pressedIndex = -1
-                        dragRatio = 0f
-                    }
-                }
                 .padding(horizontal = 4.dp)
                 .drawBehind {
                     if (tabs.isEmpty() || islandAlpha <= 0f) return@drawBehind
@@ -286,13 +266,12 @@ fun AshTabBar(
                     val leftCenter = (minOf(leftEdge, rightEdge) * cell) + (cell / 2f)
                     val rightCenter = (maxOf(leftEdge, rightEdge) * cell) + (cell / 2f)
 
-                    val dragExtra = dragRatio * (cell * 0.35f)
-                    val rawLeft = (leftCenter - basePillWidth / 2f) + minOf(0f, dragExtra)
-                    val rawRight = (rightCenter + basePillWidth / 2f) + maxOf(0f, dragExtra)
+                    val rawLeft = leftCenter - basePillWidth / 2f
+                    val rawRight = rightCenter + basePillWidth / 2f
 
-                    // Капля строго удерживается внутри острова и не улетает за его границы
-                    val dynamicLeft = rawLeft.coerceIn(0f, size.width - basePillWidth)
-                    val dynamicRight = rawRight.coerceIn(basePillWidth, size.width)
+                    // Капля ВСЕГДА строго удерживается внутри острова и не вылетает за границы
+                    val dynamicLeft = rawLeft.coerceIn(pad, size.width - pad - basePillWidth)
+                    val dynamicRight = rawRight.coerceIn(pad + basePillWidth, size.width - pad)
 
                     val islandWidth = (dynamicRight - dynamicLeft).coerceAtLeast(basePillWidth)
                     val stretchExcess = (islandWidth - basePillWidth) / basePillWidth
@@ -333,12 +312,6 @@ fun AshTabBar(
     }
 }
 
-private fun tabIndexAt(x: Float, width: Int, count: Int): Int {
-    if (width <= 0 || count <= 0) return 0
-    val cell = width.toFloat() / count
-    return (x / cell).toInt().coerceIn(0, count - 1)
-}
-
 @Composable
 private fun TabCell(
     tab: TabItem,
@@ -356,8 +329,7 @@ private fun TabCell(
         label = "tab-content-color"
     )
 
-    // Полностью переработанная анимация иконок: упругий iOS Spring Bounce
-    // Иконка строго центрирована, без боковых сдвигов (translationX = 0)
+    // Упругий iOS Spring Bounce — иконка строго центрирована, без сдвигов
     val iconScale by animateFloatAsState(
         targetValue = when {
             reduceMotion -> 1f

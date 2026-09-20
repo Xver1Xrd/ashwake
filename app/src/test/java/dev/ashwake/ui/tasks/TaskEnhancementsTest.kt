@@ -2,7 +2,9 @@ package dev.ashwake.ui.tasks
 
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.model.tasks.TaskStatus
+import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.FlameLevel
+import dev.ashwake.ui.navigation.todayAtmosphereIcon
 import dev.ashwake.ui.tasks.components.difficultyDescription
 import dev.ashwake.ui.tasks.components.formatEstimateRu
 import dev.ashwake.ui.today.TodayUiState
@@ -78,5 +80,26 @@ class TaskEnhancementsTest {
             activeTwoDaysAgo = true
         )
         assertEquals(FlameLevel.BLAZING, day3State.flameLevel)
+    }
+
+    @Test
+    fun `todayAtmosphereIcon changes based on hour of day`() {
+        // Утро (5..8) -> Восход
+        assertEquals(AshIcons.Sunrise, todayAtmosphereIcon(5))
+        assertEquals(AshIcons.Sunrise, todayAtmosphereIcon(8))
+
+        // День (9..17) -> Солнце
+        assertEquals(AshIcons.Sun, todayAtmosphereIcon(9))
+        assertEquals(AshIcons.Sun, todayAtmosphereIcon(14))
+        assertEquals(AshIcons.Sun, todayAtmosphereIcon(17))
+
+        // Вечер (18..21) -> Закат
+        assertEquals(AshIcons.Sunset, todayAtmosphereIcon(18))
+        assertEquals(AshIcons.Sunset, todayAtmosphereIcon(21))
+
+        // Ночь (22..4) -> Полумесяц
+        assertEquals(AshIcons.Moon, todayAtmosphereIcon(22))
+        assertEquals(AshIcons.Moon, todayAtmosphereIcon(0))
+        assertEquals(AshIcons.Moon, todayAtmosphereIcon(4))
     }
 }
