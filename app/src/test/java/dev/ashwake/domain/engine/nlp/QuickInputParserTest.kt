@@ -172,4 +172,83 @@ class QuickInputParserTest {
         assertEquals(LocalTime.of(9, 0), resultAm.time)
         assertEquals("планёрка", resultAm.title)
     }
+
+    @Test
+    fun `разбирает сложный пример с опечаткой, 12-часовым временем и подзадачами через запятую`() {
+        val input = "завттра в 5 вечера сходить в магазин, купить молоко, сливки, спаржу(200 рублей)"
+        val result = parser.parse(input, today)
+
+        assertEquals("сходить в магазин", result.title)
+        assertEquals(LocalDate.of(2026, 1, 8), result.date)
+        assertEquals(LocalTime.of(17, 0), result.time)
+        assertEquals("🛒", result.emoji)
+        assertEquals(
+            listOf("купить молоко", "сливки", "спаржу(200 рублей)"),
+            result.subtasks
+        )
+    }
+
+    @Test
+    fun `разбирает 12-часовые разговорные форматы на русском`() {
+        assertEquals(LocalTime.of(15, 0), parser.parse("созвон в 3 дня", today).time)
+        assertEquals(LocalTime.of(10, 0), parser.parse("планёрка в 10 утра", today).time)
+        assertEquals(LocalTime.of(21, 0), parser.parse("кино в 9 вечера", today).time)
+        assertEquals(LocalTime.of(23, 0), parser.parse("сон в 11 ночи", today).time)
+        assertEquals(LocalTime.of(13, 0), parser.parse("встреча в обед", today).time)
+        assertEquals(LocalTime.of(12, 0), parser.parse("митинг в полдень", today).time)
+        assertEquals(LocalTime.of(0, 0), parser.parse("созвон в полночь", today).time)
+    }
+
+    @Test
+    fun `разбирает относительное время через N минут или часов`() {
+        val baseTime = LocalTime.of(14, 0)
+        assertEquals(LocalTime.of(14, 30), parser.parse("кофе через полчаса", today, baseTime).time)
+        assertEquals(LocalTime.of(15, 0), parser.parse("кофе через час", today, baseTime).time)
+        assertEquals(LocalTime.of(16, 0), parser.parse("созвон через 2 часа", today, baseTime).time)
+        assertEquals(LocalTime.of(14, 15), parser.parse("созвон через 15 минут", today, baseTime).time)
+    }
+
+    @Test
+    fun `разбирает подзадачи через двоеточие`() {
+        val result = parser.parse("Купить продукты: молоко, хлеб, сыр", today)
+        assertEquals("Купить продукты", result.title)
+        assertEquals(listOf("молоко", "хлеб", "сыр"), result.subtasks)
+        assertEquals("🛒", result.emoji)
+    }
+
+    @Test
+    fun `разбирает естественные приоритеты и сложности`() {
+        val p1 = parser.parse("срочно починить сервер *5", today)
+        assertEquals(Priority.P1, p1.priority)
+        assertEquals(5, p1.difficulty)
+        assertEquals("починить сервер", p1.title)
+
+        val p2 = parser.parse("важно подготовить отчёт легко", today)
+        assertEquals(Priority.P2, p2.priority)
+        assertEquals(2, p2.difficulty)
+
+        val diff3 = parser.parse("задача средне", today)
+        assertEquals(3, diff3.difficulty)
+    }
+
+    @Test
+    fun `разбирает естественные оценки времени и проекты`() {
+        val res = parser.parse("тренировка на 45 минут @спорт", today)
+        assertEquals(45, res.estimateMinutes)
+        assertEquals("спорт", res.projectName)
+        assertEquals("🏋️", res.emoji)
+
+        val resHours = parser.parse("работа на 2 часа", today)
+        assertEquals(120, resHours.estimateMinutes)
+    }
+
+    @Test
+    fun `распознает смысловые эмодзи по корням слов`() {
+        assertEquals("📞", parser.parse("позвонить коллеге", today).emoji)
+        assertEquals("🩺", parser.parse("визит к врачу", today).emoji)
+        assertEquals("🏃", parser.parse("пробежка в парке", today).emoji)
+        assertEquals("💳", parser.parse("оплатить налоги", today).emoji)
+        assertEquals("💻", parser.parse("пофиксить код", today).emoji)
+        assertEquals("✉️", parser.parse("написать письмо", today).emoji)
+    }
 }

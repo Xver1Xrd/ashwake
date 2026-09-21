@@ -32,6 +32,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -324,21 +325,35 @@ class TasksViewModel @Inject constructor(
     fun submitQuickInput() {
         val raw = quickInput.value
         if (raw.isBlank()) return
-        val parsed = parser.parse(raw, clock.today())
+        val nowTime = clock.now().atZone(clock.zone()).toLocalTime()
+        val parsed = parser.parse(raw, clock.today(), nowTime)
         if (parsed.title.isBlank()) return
 
         viewModelScope.launch {
-            saveTask(
+            val matchedProjectId = parsed.projectName?.let { pName ->
+                projects.observeProjects(includeArchived = false).firstOrNull()?.find {
+                    it.name.equals(pName, ignoreCase = true)
+                }?.id
+            } ?: filter.value.projectId
+
+            val taskId = saveTask(
                 Task(
                     title = parsed.title,
+                    emoji = parsed.emoji,
                     priority = parsed.priority ?: Priority.P4,
+                    difficulty = parsed.difficulty ?: 1,
                     dueDate = parsed.date,
                     dueTime = parsed.time,
                     estimateMinutes = parsed.estimateMinutes,
-                    projectId = filter.value.projectId,
+                    projectId = matchedProjectId,
                     tags = parsed.tagNames.map { Tag(name = it, color = 0) }
                 )
             )
+
+            if (parsed.subtasks.isNotEmpty()) {
+                tasks.addSubtasks(taskId, parsed.subtasks)
+            }
+
             quickInput.value = ""
         }
     }
@@ -346,10 +361,14 @@ class TasksViewModel @Inject constructor(
     /** Создание задачи из «поделиться» (п. 11): ссылка кладётся в отдельное поле. */
     fun createFromShared(text: String, link: String?) {
         viewModelScope.launch {
-            val parsed = parser.parse(text, clock.today())
-            saveTask(
+            val nowTime = clock.now().atZone(clock.zone()).toLocalTime()
+            val parsed = parser.parse(text, clock.today(), nowTime)
+            val taskId = saveTask(
                 Task(
                     title = parsed.title.ifBlank { text.take(120) },
+                    emoji = parsed.emoji,
+                    priority = parsed.priority ?: Priority.P4,
+                    difficulty = parsed.difficulty ?: 1,
                     dueDate = parsed.date,
                     dueTime = parsed.time,
                     estimateMinutes = parsed.estimateMinutes,
@@ -357,6 +376,9 @@ class TasksViewModel @Inject constructor(
                     tags = parsed.tagNames.map { Tag(name = it, color = 0) }
                 )
             )
+            if (parsed.subtasks.isNotEmpty()) {
+                tasks.addSubtasks(taskId, parsed.subtasks)
+            }
         }
     }
 
