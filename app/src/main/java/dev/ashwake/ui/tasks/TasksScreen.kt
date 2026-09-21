@@ -56,7 +56,9 @@ import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
 import androidx.compose.foundation.layout.navigationBarsPadding
 import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.SecondaryButton
 import dev.ashwake.ui.components.TextAction
+import androidx.compose.material3.AlertDialog
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
@@ -81,6 +83,7 @@ fun TasksScreen(
     val undoText = stringResource(R.string.toast_undo)
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedTaskIds by remember { mutableStateOf(setOf<Long>()) }
+    var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
@@ -162,15 +165,23 @@ fun TasksScreen(
         },
         bottomBar = {
             if (isSelectionMode) {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(AshTheme.colors.surface1)
                         .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .navigationBarsPadding()
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    SecondaryButton(
+                        text = "Удалить (${selectedTaskIds.size})",
+                        enabled = selectedTaskIds.isNotEmpty(),
+                        onClick = { showDeleteSelectedConfirm = true },
+                        modifier = Modifier.weight(1f)
+                    )
                     PrimaryButton(
-                        text = "Поделиться картинкой (${selectedTaskIds.size})",
+                        text = "Поделиться (${selectedTaskIds.size})",
                         enabled = selectedTaskIds.isNotEmpty(),
                         onClick = {
                             val selectedTasks = state.tasks.filter { it.id in selectedTaskIds }
@@ -182,7 +193,8 @@ fun TasksScreen(
                                 isSelectionMode = false
                                 selectedTaskIds = emptySet()
                             }
-                        }
+                        },
+                        modifier = Modifier.weight(1f)
                     )
                 }
             } else {
@@ -277,7 +289,8 @@ fun TasksScreen(
                                                 isSelectionMode = true
                                                 selectedTaskIds = setOf(task.id)
                                             }
-                                        }
+                                        },
+                                        onDelete = { viewModel.delete(task) }
                                     )
                                     if (task.id in state.expandedTaskIds) {
                                         SubtaskList(
@@ -315,6 +328,34 @@ fun TasksScreen(
                         onCreate = viewModel::createProject,
                         onArchive = viewModel::archiveProject,
                         onDismiss = { showProjects = false }
+                    )
+                }
+
+                if (showDeleteSelectedConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteSelectedConfirm = false },
+                        title = { Text("Удалить выбранные задачи?") },
+                        text = { Text("Будет удалено задач: ${selectedTaskIds.size}. Вы уверены?") },
+                        confirmButton = {
+                            TextAction(
+                                text = stringResource(R.string.blocking_udalit),
+                                color = AshTheme.colors.danger,
+                                onClick = {
+                                    val count = selectedTaskIds.size
+                                    viewModel.deleteTasks(selectedTaskIds)
+                                    isSelectionMode = false
+                                    selectedTaskIds = emptySet()
+                                    showDeleteSelectedConfirm = false
+                                    toast.show("Удалено задач: $count")
+                                }
+                            )
+                        },
+                        dismissButton = {
+                            TextAction(
+                                text = stringResource(R.string.detail_otmena),
+                                onClick = { showDeleteSelectedConfirm = false }
+                            )
+                        }
                     )
                 }
             }

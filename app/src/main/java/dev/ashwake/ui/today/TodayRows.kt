@@ -1,5 +1,7 @@
 package dev.ashwake.ui.today
 
+import androidx.compose.material3.AlertDialog
+import dev.ashwake.ui.components.TextAction
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import dev.ashwake.ui.theme.HapticKind
@@ -92,10 +94,12 @@ fun HabitTodayRow(
     onCounterClick: (() -> Unit)? = null,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var markCenter by remember { mutableStateOf(Offset.Zero) }
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val habit = progress.habit
 
@@ -219,9 +223,41 @@ fun HabitTodayRow(
                         icon = AshIcons.ExpandMore,
                         onClick = it
                     )
+                },
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
                 }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить привычку?") },
+                text = { Text("Привычка «${habit.name}» будет удалена из списка.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -328,6 +364,7 @@ fun TaskTodayRow(
     onToggle: (from: Offset) -> Unit,
     onPostpone: () -> Unit,
     onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // Точка, из которой вылетает монета. Свайп тоже закрывает задачу,
@@ -358,7 +395,8 @@ fun TaskTodayRow(
                 onToggle = { onToggle(markCenter) },
                 onPostpone = onPostpone,
                 onMarkPositioned = { markCenter = it },
-                onOpen = onOpen
+                onOpen = onOpen,
+                onDelete = onDelete
             )
         }
     )
@@ -405,9 +443,11 @@ private fun TaskTodayRowContent(
     onToggle: () -> Unit,
     onPostpone: () -> Unit,
     onMarkPositioned: (Offset) -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var isCompleting by remember(task.id, task.isDone) { mutableStateOf(false) }
     val isTaskDone = task.isDone || isCompleting
     val scope = rememberCoroutineScope()
@@ -549,7 +589,7 @@ private fun TaskTodayRowContent(
         AshContextMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            items = listOf(
+            items = listOfNotNull(
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_edit),
                     icon = AshIcons.Edit,
@@ -577,9 +617,41 @@ private fun TaskTodayRowContent(
                     title = stringResource(R.string.context_menu_postpone_tomorrow),
                     icon = AshIcons.Calendar,
                     onClick = onPostpone
-                )
+                ),
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить задачу?") },
+                text = { Text("Задача «${task.title}» будет перемещена в корзину.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -606,9 +678,11 @@ private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList
 fun AbstinenceTodayRow(
     item: AbstinenceWithStats,
     onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val days = item.stats.currentDays
 
@@ -681,14 +755,46 @@ fun AbstinenceTodayRow(
         AshContextMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            items = listOf(
+            items = listOfNotNull(
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_open),
                     icon = AshIcons.ArrowRight,
                     onClick = onOpen
-                )
+                ),
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить отказ?") },
+                text = { Text("Счётчик отказа «${item.abstinence.name}» будет удалён.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 

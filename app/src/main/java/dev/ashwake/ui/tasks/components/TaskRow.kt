@@ -83,7 +83,8 @@ fun TaskRow(
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onSelectToggle: (() -> Unit)? = null,
-    onLongClick: (() -> Unit)? = null
+    onLongClick: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
 ) {
     if (selectionMode) {
         TaskRowContent(
@@ -97,6 +98,7 @@ fun TaskRow(
             selectionMode = true,
             selected = selected,
             onLongClick = onLongClick,
+            onDelete = onDelete,
             modifier = modifier
         )
         return
@@ -131,7 +133,8 @@ fun TaskRow(
                 onExpandToggle = onExpandToggle,
                 selectionMode = false,
                 selected = false,
-                onLongClick = onLongClick
+                onLongClick = onLongClick,
+                onDelete = onDelete
             )
         }
     )
@@ -178,9 +181,11 @@ private fun TaskRowContent(
     selectionMode: Boolean = false,
     selected: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     var isCompleting by remember(task.id, task.isDone) { mutableStateOf(false) }
     val isTaskDone = task.isDone || isCompleting
     val scope = rememberCoroutineScope()
@@ -406,9 +411,41 @@ private fun TaskRowContent(
                     icon = AshIcons.Calendar,
                     onClick = it
                 )
+            },
+            onDelete?.let {
+                ContextMenuItem(
+                    title = stringResource(R.string.blocking_udalit),
+                    icon = AshIcons.Delete,
+                    isDestructive = true,
+                    onClick = { showDeleteConfirm = true }
+                )
             }
         )
     )
+
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { androidx.compose.material3.Text("Удалить задачу?") },
+            text = { androidx.compose.material3.Text("Задача «${task.title}» будет перемещена в корзину.") },
+            confirmButton = {
+                dev.ashwake.ui.components.TextAction(
+                    text = stringResource(R.string.blocking_udalit),
+                    color = AshTheme.colors.danger,
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete?.invoke()
+                    }
+                )
+            },
+            dismissButton = {
+                dev.ashwake.ui.components.TextAction(
+                    text = stringResource(R.string.detail_otmena),
+                    onClick = { showDeleteConfirm = false }
+                )
+            }
+        )
+    }
     }
 }
 

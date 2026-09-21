@@ -226,6 +226,18 @@ class TodayViewModel @Inject constructor(
         }
     }
 
+    fun deleteTask(id: Long) {
+        viewModelScope.launch { tasks.delete(id) }
+    }
+
+    fun deleteHabit(id: Long) {
+        viewModelScope.launch { habits.archiveHabit(id) }
+    }
+
+    fun deleteAbstinence(id: Long) {
+        viewModelScope.launch { abstinences.archive(id) }
+    }
+
     fun reorderHabits(fromIndex: Int, toIndex: Int) {
         val current = state.value.habits
         if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return

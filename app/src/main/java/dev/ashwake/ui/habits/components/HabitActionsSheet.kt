@@ -33,6 +33,8 @@ import dev.ashwake.domain.model.habits.HabitType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.domain.model.habits.SkipReason
 import androidx.compose.ui.res.stringResource
+import dev.ashwake.ui.components.AshIcons
+import androidx.compose.material3.AlertDialog
 import dev.ashwake.R
 
 /**
@@ -57,11 +59,13 @@ fun HabitActionsSheet(
     onEdit: () -> Unit,
     onArchive: () -> Unit,
     onClear: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     onDismiss: () -> Unit
 ) {
     val habit = progress.habit
     var note by remember { mutableStateOf(progress.todayEntry?.note.orEmpty()) }
     var counter by remember { mutableFloatStateOf(progress.todayValue) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -155,7 +159,38 @@ fun HabitActionsSheet(
                     icon = Icons.Filled.Archive,
                     onClick = onArchive
                 )
+                onDelete?.let {
+                    ChipButton(
+                        text = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
             }
         }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Удалить привычку?") },
+            text = { Text("Привычка «${progress.habit.name}» будет удалена.") },
+            confirmButton = {
+                TextAction(
+                    text = stringResource(R.string.blocking_udalit),
+                    color = AshTheme.colors.danger,
+                    onClick = {
+                        showDeleteConfirm = false
+                        onDelete?.invoke()
+                    }
+                )
+            },
+            dismissButton = {
+                TextAction(
+                    text = stringResource(R.string.detail_otmena),
+                    onClick = { showDeleteConfirm = false }
+                )
+            }
+        )
     }
 }

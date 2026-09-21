@@ -236,7 +236,8 @@ fun TodayScreen(
                                         viewModel.undoPostpone(task.id)
                                     }
                                 },
-                                onOpen = { onOpenTask(task.id) }
+                                onOpen = { onOpenTask(task.id) },
+                                onDelete = { viewModel.deleteTask(task.id) }
                             )
                         }
                     }
@@ -259,7 +260,8 @@ fun TodayScreen(
                                     onOpen = { onOpenHabit(progress.habit.id) },
                                     onCounterClick = { counterDialogTarget = progress },
                                     onMoveUp = if (index > 0) { { viewModel.reorderHabits(index, index - 1) } } else null,
-                                    onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null
+                                    onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null,
+                                    onDelete = { viewModel.deleteHabit(progress.habit.id) }
                                 )
                                 if (index != state.habits.lastIndex) {
                                     ListDivider(56.dp)
@@ -281,7 +283,8 @@ fun TodayScreen(
                         ) { item ->
                             AbstinenceTodayRow(
                                 item = item,
-                                onOpen = { onOpenAbstinence(item.abstinence.id) }
+                                onOpen = { onOpenAbstinence(item.abstinence.id) },
+                                onDelete = { viewModel.deleteAbstinence(item.abstinence.id) }
                             )
                         }
                     }

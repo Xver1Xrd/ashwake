@@ -385,6 +385,12 @@ class TasksViewModel @Inject constructor(
         viewModelScope.launch { deleteTask(task.id) }
     }
 
+    fun deleteTasks(ids: Set<Long>) {
+        viewModelScope.launch {
+            ids.forEach { deleteTask(it) }
+        }
+    }
+
     fun toggleExpanded(taskId: Long) {
         expandedTaskIds.update { current ->
             if (taskId in current) current - taskId else current + taskId
