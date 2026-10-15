@@ -55,6 +55,7 @@ import dev.ashwake.ui.settings.SettingsScreen
 import dev.ashwake.ui.settings.theme.ThemeEditorScreen
 import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.tasks.TasksScreen
+import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 import dev.ashwake.ui.tasks.trash.TrashScreen
 import dev.ashwake.ui.theme.AshTheme
@@ -206,7 +207,19 @@ fun AshwakeRoot(
                 }
 
                 composable(
-                    route = "task?taskId={taskId}",
+                    route = "task/{taskId}",
+                    arguments = listOf(
+                        navArgument("taskId") { type = NavType.StringType }
+                    )
+                ) {
+                    TaskDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onEdit = { id -> navController.navigate("task-edit?taskId=$id") }
+                    )
+                }
+
+                composable(
+                    route = "task-edit?taskId={taskId}",
                     arguments = listOf(
                         navArgument("taskId") { type = NavType.StringType; defaultValue = "0" }
                     )
@@ -334,13 +347,13 @@ private fun TabPage(
     when (destination) {
         Destination.Today -> TodayScreen(
             onOpenHabit = { id -> navController.navigate("habit/$id") },
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") },
-            onCreateTask = { navController.navigate("task?taskId=0") },
+            onOpenTask = { id -> navController.navigate("task/$id") },
+            onCreateTask = { navController.navigate("task-edit?taskId=0") },
             onOpenAbstinence = { id -> navController.navigate("abstinence/$id") }
         )
 
         Destination.Tasks -> TasksScreen(
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") },
+            onOpenTask = { id -> navController.navigate("task/$id") },
             onOpenRitual = { navController.navigate("ritual") },
             onOpenStats = { navController.navigate(Destination.Stats.route) }
         )
@@ -351,14 +364,13 @@ private fun TabPage(
         )
 
         Destination.More -> MoreScreen(
-            onOpenCharacter = { navController.navigate(Destination.Character.route) },
             onOpenAbstinence = { navController.navigate(Destination.Abstinence.route) },
             onOpenTimers = { navController.navigate(Destination.Timers.route) },
             onOpenStats = { navController.navigate(Destination.Stats.route) },
             onOpenRitual = { navController.navigate("ritual") },
             onOpenSettings = { navController.navigate(Destination.Settings.route) },
             onOpenTrash = { navController.navigate("trash") },
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") }
+            onOpenTask = { id -> navController.navigate("task/$id") }
         )
 
         else -> Unit
@@ -417,7 +429,7 @@ private fun tabs(): List<TabItem> = Destination.bottomBar.map {
 /** Маршрут из виджета в экран приложения. */
 private fun destinationFor(route: String): String = when (route) {
     AppRoutes.TASKS -> Destination.Tasks.route
-    AppRoutes.NEW_TASK -> "task?taskId=0"
+    AppRoutes.NEW_TASK -> "task-edit?taskId=0"
     AppRoutes.HABITS -> Destination.Habits.route
     AppRoutes.ABSTINENCE -> Destination.Abstinence.route
     AppRoutes.TIMERS, AppRoutes.FOCUS_START, AppRoutes.ROUTINE_START -> Destination.Timers.route
@@ -433,6 +445,6 @@ private fun destinationFor(route: String): String = when (route) {
  */
 private val FULLSCREEN_ROUTE_PREFIXES =
     listOf(
-        "task?", "habit-editor?", "routine-run", "routine-editor?", "ritual",
+        "task/", "task-edit?", "habit-editor?", "routine-run", "routine-editor?", "ritual",
         "blocking", "backup", "theme", ONBOARDING_ROUTE
     )

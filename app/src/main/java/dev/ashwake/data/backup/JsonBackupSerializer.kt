@@ -319,7 +319,12 @@ class JsonBackupSerializer @Inject constructor(
                 backupDao.clearChests()
                 backupDao.clearLedger()
 
-                backupDao.insertTasks(tasks)
+                // Старые архивы не содержали проектов и правил повтора. Их id
+                // могли остаться в задачах, но после очистки таблиц на них уже
+                // некому ссылаться — именно это давало SQLITE_CONSTRAINT_FOREIGNKEY.
+                // Сохраняем сами задачи и их иерархию, а отсутствующие ссылки
+                // честно обнуляем.
+                backupDao.insertTasks(legacyTasksForRestore(tasks))
                 backupDao.insertTaskAttachments(attachments)
                 backupDao.insertHabits(habits)
                 backupDao.insertHabitEntries(entries)
@@ -611,10 +616,15 @@ class JsonBackupSerializer @Inject constructor(
         val sql = db.openHelper.writableDatabase
         val currentTables = currentTableNames()
         sql.execSQL("PRAGMA defer_foreign_keys = ON")
-        currentTables.forEach { table -> sql.execSQL("DELETE FROM ${table.quoted()}") }
+        val orderedCurrentTables = tablesInDependencyOrder(currentTables)
+        orderedCurrentTables.asReversed().forEach { table ->
+            sql.execSQL("DELETE FROM ${table.quoted()}")
+        }
 
-        snapshot.getJSONArray("tables").objects().forEach { table ->
-            val name = table.getString("name")
+        val snapshotTables = snapshot.getJSONArray("tables").objects()
+            .associateBy { it.getString("name") }
+        tablesInDependencyOrder(snapshotTables.keys).forEach { name ->
+            val table = snapshotTables.getValue(name)
             val columns = table.getJSONArray("columns").strings()
             val statement = sql.compileStatement(
                 "INSERT INTO ${name.quoted()} (${columns.joinToString { it.quoted() }}) " +
@@ -631,6 +641,62 @@ class JsonBackupSerializer @Inject constructor(
                 statement.executeInsert()
             }
         }
+    }
+
+    /** Родительские таблицы идут раньше дочерних и при вставке, и при удалении наоборот. */
+    private fun tablesInDependencyOrder(tables: Set<String>): List<String> {
+        val sql = db.openHelper.readableDatabase
+        val dependencies = tables.associateWith { table ->
+            sql.query("PRAGMA foreign_key_list(${table.quoted()})").use { cursor ->
+                buildSet {
+                    val column = cursor.getColumnIndexOrThrow("table")
+                    while (cursor.moveToNext()) {
+                        cursor.getString(column)
+                            .takeIf { it in tables && it != table }
+                            ?.let(::add)
+                    }
+                }
+            }
+        }
+        val remaining = tables.toMutableSet()
+        val result = mutableListOf<String>()
+        while (remaining.isNotEmpty()) {
+            val ready = remaining.filter { table ->
+                dependencies.getValue(table).none { it in remaining }
+            }.sorted()
+            require(ready.isNotEmpty()) { "В схеме базы найдена циклическая внешняя ссылка" }
+            result += ready
+            remaining.removeAll(ready.toSet())
+        }
+        return result
+    }
+
+    private fun legacyTasksForRestore(tasks: List<TaskEntity>): List<TaskEntity> {
+        val byId = tasks.associateBy { it.id }
+        val remaining = tasks.associateBy { it.id }.toMutableMap()
+        val result = mutableListOf<TaskEntity>()
+        while (remaining.isNotEmpty()) {
+            val ready = remaining.values.filter { task ->
+                task.parentTaskId == null || task.parentTaskId !in remaining
+            }
+            if (ready.isEmpty()) {
+                // Повреждённая циклическая иерархия не должна ломать весь
+                // бэкап: восстанавливаем задачи без циклической связи.
+                result += remaining.values.sortedBy { it.id }.map {
+                    it.copy(projectId = null, recurrenceId = null, parentTaskId = null)
+                }
+                break
+            }
+            ready.sortedBy { it.id }.forEach { task ->
+                result += task.copy(
+                    projectId = null,
+                    recurrenceId = null,
+                    parentTaskId = task.parentTaskId?.takeIf { parent -> parent in byId }
+                )
+                remaining.remove(task.id)
+            }
+        }
+        return result
     }
 
     private fun currentTableNames(): Set<String> = db.openHelper.readableDatabase.query(

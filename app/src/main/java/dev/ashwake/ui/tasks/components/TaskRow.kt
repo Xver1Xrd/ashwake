@@ -80,6 +80,10 @@ fun TaskRow(
     val postpone by rememberUpdatedState(onPostpone)
 
     val dismissState = rememberSwipeToDismissBoxState(
+        // Случайное короткое движение при прокрутке не должно закрывать
+        // задачу. Действие срабатывает только после осознанного длинного
+        // свайпа почти на две трети ширины строки.
+        positionalThreshold = { distance -> distance * 0.68f },
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> complete()

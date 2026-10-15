@@ -227,6 +227,37 @@ class BackupRoundTripTest {
     }
 
     @Test
+    fun `старый архив с удалённым проектом восстанавливает задачу`() = runTest {
+        // В старом формате проекты в архив не попадали, хотя id проекта мог
+        // остаться в задаче. Восстановление не должно падать на FK-ограничении.
+        val legacy = """
+            {
+              "version": 1,
+              "tasks": [{
+                "id": 42,
+                "title": "Задача из старой копии",
+                "projectId": 900,
+                "priority": "P2",
+                "status": "ACTIVE",
+                "createdAt": 1,
+                "updatedAt": 1
+              }],
+              "habits": [],
+              "habitEntries": [],
+              "abstinences": [],
+              "abstinenceAttempts": [],
+              "dailyReviews": []
+            }
+        """.trimIndent()
+
+        serializer.import(legacy)
+
+        val restored = db.taskDao().getTask(42)?.task
+        assertEquals("Задача из старой копии", restored?.title)
+        assertEquals(null, restored?.projectId)
+    }
+
+    @Test
     fun `экспорт в CSV выдаёт валидные строки с запятыми`() = runTest {
         seed()
         val exporter = CsvExporter(db.taskDao(), db.habitDao())

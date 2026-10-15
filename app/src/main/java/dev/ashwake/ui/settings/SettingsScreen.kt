@@ -6,6 +6,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -32,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -236,10 +239,12 @@ private fun AppIconSection(
         header = "Иконка приложения",
         footer = "Исходная иконка сохранена. Android может обновить значок на рабочем столе с небольшой задержкой."
     ) {
-        FlowRow(
-            modifier = Modifier.fillMaxWidth().padding(ChipRowPadding),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(ChipRowPadding),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             AppIcon.entries.forEach { icon ->
                 Column(
@@ -252,11 +257,12 @@ private fun AppIconSection(
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(58.dp)
-                            .background(colors.surface2, AshTheme.shapes.small)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(colors.surface2, RoundedCornerShape(15.dp))
                             .border(
                                 width = if (selected == icon) 2.dp else 0.dp,
                                 color = if (selected == icon) colors.accent else Color.Transparent,
-                                shape = AshTheme.shapes.small
+                                shape = RoundedCornerShape(15.dp)
                             )
                             .tappable { onSelect(icon) }
                     )
