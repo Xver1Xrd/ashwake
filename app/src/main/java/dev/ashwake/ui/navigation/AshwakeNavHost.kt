@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
@@ -155,11 +154,14 @@ fun AshwakeRoot(
                     )
                 }
             }
-        ) { padding ->
+        ) { _ ->
+            // Контент идёт до нижнего края, а остров лежит поверх него.
+            // Иначе Scaffold резервирует под меню прямоугольную полосу,
+            // которую видно за капсулой на экранах с градиентом.
             NavHost(
                 navController = navController,
                 startDestination = if (showOnboarding) ONBOARDING_ROUTE else TABS_ROUTE,
-                modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
+                modifier = Modifier,
                 // Экран поверх вкладок вырастает из содержимого и слегка
                 // отодвигает то, что под ним: видно, что он лёг сверху,
                 // а не заменил собой всё. Стандартный сдвиг сбоку тут врёт —
