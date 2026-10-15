@@ -82,6 +82,18 @@ class BackupRoundTripTest {
         assertEquals(exported.tasks, restored.tasks)
         assertEquals(exported.habitEntries, restored.habitEntries)
 
+        // Базовые поля задачи, включая время выполнения и на какое время поставлена
+        val tasks = db.taskDao().observeTasks(1, null, null, null, null, 0, null).first()
+        assertEquals(1, tasks.size)
+        val restoredTask = tasks.first().task
+        assertEquals("Дописать отчёт", restoredTask.title)
+        assertEquals(20_000, restoredTask.dueDate)
+        assertEquals(840, restoredTask.dueTime)
+        assertEquals(1_726_900_000_000L, restoredTask.completedAt)
+        assertEquals(45, restoredTask.estimateMinutes)
+        assertEquals(3, restoredTask.difficulty)
+        assertEquals("Важная заметка к задаче", restoredTask.note)
+
         // История отметок — то, без чего score и heatmap не пересчитать
         val entries = db.habitDao().observeEntriesInRange(0, 47_500).first()
         assertEquals(3, entries.size)
@@ -162,8 +174,9 @@ class BackupRoundTripTest {
         val exporter = CsvExporter(db.taskDao(), db.habitDao())
         val taskCsv = exporter.exportTasksCsv().getOrNull()
         assertNotNull(taskCsv)
-        assertTrue(taskCsv!!.startsWith("id,title,status,priority,completedAt,createdAt,postponeCount\n"))
+        assertTrue(taskCsv!!.startsWith("id,title,status,priority,completedAt,createdAt,postponeCount,dueDate,dueTime,estimateMinutes,difficulty,note\n"))
         assertTrue(taskCsv.contains("1,Дописать отчёт,ACTIVE,P2,"))
+        assertTrue(taskCsv.contains("14:00,45,3,Важная заметка к задаче"))
 
         val habitCsv = exporter.exportHabitsCsv().getOrNull()
         assertNotNull(habitCsv)
@@ -255,11 +268,23 @@ class BackupRoundTripTest {
         }
     }
 
-    private fun task(id: Long, title: String) = TaskEntity(
+    private fun task(
+        id: Long,
+        title: String,
+        dueDate: Int? = 20_000,
+        dueTime: Int? = 840,
+        completedAt: Long? = 1_726_900_000_000L
+    ) = TaskEntity(
         id = id,
         title = title,
         priority = "P2",
         status = "ACTIVE",
+        dueDate = dueDate,
+        dueTime = dueTime,
+        completedAt = completedAt,
+        estimateMinutes = 45,
+        difficulty = 3,
+        note = "Важная заметка к задаче",
         createdAt = 0,
         updatedAt = 0
     )

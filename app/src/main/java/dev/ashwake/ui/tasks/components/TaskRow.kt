@@ -14,10 +14,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,7 +62,8 @@ import java.util.Locale
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
-private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", Locale("ru"))
+private val RU_LOCALE = Locale("ru")
+private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM", RU_LOCALE)
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
 /**
@@ -107,21 +110,40 @@ fun TaskRow(
     val complete by rememberUpdatedState(onComplete)
     val postpone by rememberUpdatedState(onPostpone)
 
+    val dismissStateHolder = remember { arrayOf<SwipeToDismissBoxState?>(null) }
     val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { distance -> distance * 0.50f },
         confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> complete()
-                SwipeToDismissBoxValue.EndToStart -> postpone()
-                SwipeToDismissBoxValue.Settled -> Unit
+            val progress = dismissStateHolder[0]?.progress ?: 0f
+            if (progress >= 0.50f) {
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> complete()
+                    SwipeToDismissBoxValue.EndToStart -> postpone()
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
             }
             false
         }
     )
+    dismissStateHolder[0] = dismissState
+
+    val haptics = rememberHaptics()
+    val reachedThreshold = dismissState.progress >= 0.50f
+    LaunchedEffect(reachedThreshold) {
+        if (reachedThreshold && dismissState.currentValue == SwipeToDismissBoxValue.Settled) {
+            haptics.play(HapticKind.LIGHT)
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
-        backgroundContent = { SwipeBackground(dismissState.dismissDirection) },
+        backgroundContent = {
+            SwipeBackground(
+                direction = dismissState.dismissDirection,
+                reachedThreshold = reachedThreshold
+            )
+        },
         content = {
             TaskRowContent(
                 task = task,
@@ -141,7 +163,10 @@ fun TaskRow(
 }
 
 @Composable
-private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
+private fun SwipeBackground(
+    direction: SwipeToDismissBoxValue,
+    reachedThreshold: Boolean = false
+) {
     val colors = AshTheme.colors
     val (color, icon, alignment) = when (direction) {
         SwipeToDismissBoxValue.StartToEnd ->
@@ -155,7 +180,7 @@ private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
         modifier = Modifier
             .fillMaxSize()
             .clip(AshShapes.card)
-            .background(color)
+            .background(if (reachedThreshold) color else color.copy(alpha = 0.55f))
             .padding(horizontal = 24.dp),
         contentAlignment = alignment
     ) {
@@ -163,7 +188,12 @@ private fun SwipeBackground(direction: SwipeToDismissBoxValue) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (colors.isDark) Color.Black else Color.White
+                tint = if (colors.isDark) Color.Black else Color.White,
+                modifier = Modifier.graphicsLayer {
+                    scaleX = if (reachedThreshold) 1.2f else 0.85f
+                    scaleY = if (reachedThreshold) 1.2f else 0.85f
+                    alpha = if (reachedThreshold) 1f else 0.65f
+                }
             )
         }
     }
@@ -526,7 +556,7 @@ private fun buildMeta(task: Task, today: LocalDate): String {
             today.plusDays(1) -> stringResource(R.string.ritual_zavtra)
             today.minusDays(1) -> stringResource(R.string.components_vchera)
             else -> {
-                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale("ru"))
+                val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, RU_LOCALE)
                 "$dayOfWeek, ${date.format(DATE_FORMAT)}"
             }
         }

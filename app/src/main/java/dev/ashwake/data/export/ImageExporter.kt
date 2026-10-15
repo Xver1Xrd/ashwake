@@ -15,7 +15,11 @@ import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.ashwake.domain.engine.analytics.YearSummary
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.core.model.Priority
 import dev.ashwake.ui.tasks.components.formatEstimateRu
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -146,7 +150,7 @@ class ImageExporter @Inject constructor(
     }
 
     /**
-     * Рендерит список задач (вместе со сложностью, временем и подзадачами)
+     * Рендерит список задач (сгруппированных по дням со всеми подробностями, заметками и подзадачами)
      * в высокоэстетичную карточку-постер премиального качества для шеринга.
      */
     fun renderTasksCard(tasks: List<Task>, dateTitle: String = "Задачи"): Bitmap {
@@ -155,7 +159,10 @@ class ImageExporter @Inject constructor(
         val cardInnerPad = 40f
         val cardWidth = width - outerPad * 2
 
-        // Точный расчёт высоты для гармоничной компоновки без сжатия
+        val groups: Map<LocalDate?, List<Task>> = tasks.groupBy { it.dueDate }
+            .toSortedMap(compareBy<LocalDate?> { it ?: LocalDate.MAX })
+
+        // Точный расчёт высоты для гармоничной компоновки с группировкой по дням
         var contentHeight = 0f
         // Header
         contentHeight += 50f // brand & progress
@@ -163,15 +170,20 @@ class ImageExporter @Inject constructor(
         contentHeight += 40f // summary
         contentHeight += 25f // divider gap
 
-        tasks.forEach { task ->
-            var itemH = 32f // top/bottom padding
-            itemH += 44f    // title
-            val hasBadges = task.difficulty > 1 || task.estimateMinutes != null || task.tags.isNotEmpty()
-            if (hasBadges) itemH += 40f // badges
-            if (task.subtasks.isNotEmpty()) {
-                itemH += 20f + task.subtasks.size * 42f // subtask container
+        groups.forEach { (_, groupTasks) ->
+            contentHeight += 48f // date group header
+            groupTasks.forEach { task ->
+                var itemH = 32f // top/bottom padding
+                itemH += 44f    // title
+                if (!task.note.isNullOrBlank()) itemH += 38f // note
+                val hasBadges = task.difficulty > 1 || task.estimateMinutes != null || task.dueTime != null || task.priority != Priority.P4 || task.tags.isNotEmpty()
+                if (hasBadges) itemH += 38f // badges
+                if (task.subtasks.isNotEmpty()) {
+                    itemH += 20f + task.subtasks.size * 42f // subtask container
+                }
+                contentHeight += itemH + 16f // item + gap
             }
-            contentHeight += itemH + 18f // item + gap
+            contentHeight += 16f // gap between groups
         }
 
         contentHeight += 70f // footer
@@ -255,7 +267,7 @@ class ImageExporter @Inject constructor(
 
         curY += 60f
 
-        // Заголовок даты
+        // Заголовок карточки
         val titlePaint = Paint().apply {
             isAntiAlias = true
             color = android.graphics.Color.rgb(244, 244, 248)
@@ -265,9 +277,11 @@ class ImageExporter @Inject constructor(
         canvas.drawText(dateTitle, outerPad + cardInnerPad, curY + 36f, titlePaint)
         curY += 58f
 
-        // Подпись с общим временем
+        // Подпись с общим временем и количеством дней
         val totalMinutes = tasks.mapNotNull { it.estimateMinutes }.sum()
-        val summaryText = if (totalMinutes > 0) "Оценка: ${formatEstimateRu(totalMinutes)}" else "Список дел на день"
+        val daysCount = groups.size
+        val daysSummary = if (daysCount > 1) " · $daysCount дней" else ""
+        val summaryText = (if (totalMinutes > 0) "Оценка: ${formatEstimateRu(totalMinutes)}" else "Список дел") + daysSummary
         val subTitlePaint = Paint().apply {
             isAntiAlias = true
             color = android.graphics.Color.rgb(140, 135, 155)
@@ -284,7 +298,15 @@ class ImageExporter @Inject constructor(
         canvas.drawLine(outerPad + cardInnerPad, curY, width - outerPad - cardInnerPad, curY, divPaint)
         curY += 24f
 
-        // 4. Карточки задач
+        // 4. Отрисовка задач по группам дней
+        val dayHeaderPaint = Paint().apply {
+            isAntiAlias = true
+            color = android.graphics.Color.rgb(180, 160, 240)
+            textSize = 24f
+            isFakeBoldText = true
+            letterSpacing = 0.05f
+        }
+
         val taskBgPaint = Paint().apply {
             isAntiAlias = true
             color = android.graphics.Color.rgb(27, 25, 36)
@@ -337,6 +359,11 @@ class ImageExporter @Inject constructor(
             color = android.graphics.Color.rgb(175, 170, 190)
             textSize = 20f
         }
+        val noteTextPaint = Paint().apply {
+            isAntiAlias = true
+            color = android.graphics.Color.rgb(170, 165, 190)
+            textSize = 22f
+        }
         val subtaskBgPaint = Paint().apply {
             isAntiAlias = true
             color = android.graphics.Color.rgb(21, 20, 29)
@@ -354,129 +381,168 @@ class ImageExporter @Inject constructor(
             isStrikeThruText = true
         }
 
-        tasks.forEach { task ->
-            val hasBadges = task.difficulty > 1 || task.estimateMinutes != null || task.tags.isNotEmpty()
-            var itemH = 32f + 44f
-            if (hasBadges) itemH += 38f
-            if (task.subtasks.isNotEmpty()) {
-                itemH += 18f + task.subtasks.size * 42f
+        groups.forEach { (date, groupTasks) ->
+            // Заголовок дня
+            val dayLabel = when (date) {
+                null -> "БЕЗ СРОКА"
+                else -> date.format(DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale("ru"))).uppercase()
             }
+            canvas.drawText("📅 $dayLabel", outerPad + cardInnerPad, curY + 28f, dayHeaderPaint)
+            curY += 44f
 
-            val itemRect = android.graphics.RectF(outerPad + cardInnerPad, curY, width - outerPad - cardInnerPad, curY + itemH)
-            canvas.drawRoundRect(itemRect, 20f, 20f, taskBgPaint)
-            canvas.drawRoundRect(itemRect, 20f, 20f, taskBorderPaint)
-
-            val contentX = outerPad + cardInnerPad + 22f
-            var taskY = curY + 22f
-
-            // Чекбокс задачи
-            val boxRadius = 14f
-            val boxCenterX = contentX + boxRadius
-            val boxCenterY = taskY + 16f
-
-            if (task.isDone) {
-                canvas.drawCircle(boxCenterX, boxCenterY, boxRadius, checkFillPaint)
-                val path = android.graphics.Path().apply {
-                    moveTo(boxCenterX - 6f, boxCenterY)
-                    lineTo(boxCenterX - 1.5f, boxCenterY + 4.5f)
-                    lineTo(boxCenterX + 6f, boxCenterY - 4.5f)
+            groupTasks.forEach { task ->
+                val hasBadges = task.difficulty > 1 || task.estimateMinutes != null || task.dueTime != null || task.priority != Priority.P4 || task.tags.isNotEmpty()
+                var itemH = 32f + 44f
+                if (!task.note.isNullOrBlank()) itemH += 38f
+                if (hasBadges) itemH += 38f
+                if (task.subtasks.isNotEmpty()) {
+                    itemH += 18f + task.subtasks.size * 42f
                 }
-                canvas.drawPath(path, checkmarkPaint)
-            } else {
-                canvas.drawCircle(boxCenterX, boxCenterY, boxRadius, checkBorderPaint)
-            }
 
-            // Название задачи
-            val textLeft = contentX + boxRadius * 2 + 18f
-            val titleP = if (task.isDone) taskTitleDonePaint else taskTitlePaint
-            canvas.drawText(task.title, textLeft, taskY + 24f, titleP)
-            taskY += 44f
+                val itemRect = android.graphics.RectF(outerPad + cardInnerPad, curY, width - outerPad - cardInnerPad, curY + itemH)
+                canvas.drawRoundRect(itemRect, 20f, 20f, taskBgPaint)
+                canvas.drawRoundRect(itemRect, 20f, 20f, taskBorderPaint)
 
-            // Бейджи (сложность, время, теги)
-            if (hasBadges) {
-                var badgeX = textLeft
+                val contentX = outerPad + cardInnerPad + 22f
+                var taskY = curY + 22f
 
-                // Сложность (кружочки 1..5)
-                if (task.difficulty > 0) {
-                    val diffPillW = 120f
-                    val diffRect = android.graphics.RectF(badgeX, taskY, badgeX + diffPillW, taskY + 28f)
-                    canvas.drawRoundRect(diffRect, 14f, 14f, badgeBgPaint)
+                // Чекбокс задачи
+                val boxRadius = 14f
+                val boxCenterX = contentX + boxRadius
+                val boxCenterY = taskY + 16f
 
-                    val dotR = 4.5f
-                    var dotX = badgeX + 16f
-                    val dotY = taskY + 14f
-                    val dotColor = when (task.difficulty) {
-                        1 -> android.graphics.Color.rgb(52, 211, 153)
-                        2 -> android.graphics.Color.rgb(56, 189, 248)
-                        3 -> android.graphics.Color.rgb(251, 191, 36)
-                        4 -> android.graphics.Color.rgb(251, 146, 60)
-                        else -> android.graphics.Color.rgb(248, 113, 113)
+                if (task.isDone) {
+                    canvas.drawCircle(boxCenterX, boxCenterY, boxRadius, checkFillPaint)
+                    val path = android.graphics.Path().apply {
+                        moveTo(boxCenterX - 6f, boxCenterY)
+                        lineTo(boxCenterX - 1.5f, boxCenterY + 4.5f)
+                        lineTo(boxCenterX + 6f, boxCenterY - 4.5f)
                     }
-                    val dotP = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
-                    for (i in 1..5) {
-                        dotP.color = if (i <= task.difficulty) dotColor else android.graphics.Color.rgb(65, 60, 80)
-                        canvas.drawCircle(dotX, dotY, dotR, dotP)
-                        dotX += dotR * 2 + 6f
+                    canvas.drawPath(path, checkmarkPaint)
+                } else {
+                    canvas.drawCircle(boxCenterX, boxCenterY, boxRadius, checkBorderPaint)
+                }
+
+                // Название задачи
+                val textLeft = contentX + boxRadius * 2 + 18f
+                val titleP = if (task.isDone) taskTitleDonePaint else taskTitlePaint
+                canvas.drawText(task.title, textLeft, taskY + 24f, titleP)
+                taskY += 44f
+
+                // Заметка задачи (если есть)
+                if (!task.note.isNullOrBlank()) {
+                    val noteStr = "💬 ${task.note.take(90)}"
+                    canvas.drawText(noteStr, textLeft, taskY + 20f, noteTextPaint)
+                    taskY += 38f
+                }
+
+                // Бейджи (время, приоритет, сложность, оценка, теги)
+                if (hasBadges) {
+                    var badgeX = textLeft
+
+                    // Точное время
+                    task.dueTime?.let { t ->
+                        val timeText = "⏰ ${t.format(DateTimeFormatter.ofPattern("HH:mm"))}"
+                        val timeW = badgeTextPaint.measureText(timeText) + 24f
+                        val timeRect = android.graphics.RectF(badgeX, taskY, badgeX + timeW, taskY + 28f)
+                        canvas.drawRoundRect(timeRect, 14f, 14f, badgeBgPaint)
+                        canvas.drawText(timeText, badgeX + 12f, taskY + 20f, badgeTextPaint)
+                        badgeX += timeW + 10f
                     }
-                    badgeX += diffPillW + 10f
-                }
 
-                // Время оценки
-                task.estimateMinutes?.let { mins ->
-                    val estText = "⏱ ${formatEstimateRu(mins)}"
-                    val estW = badgeTextPaint.measureText(estText) + 24f
-                    val estRect = android.graphics.RectF(badgeX, taskY, badgeX + estW, taskY + 28f)
-                    canvas.drawRoundRect(estRect, 14f, 14f, badgeBgPaint)
-                    canvas.drawText(estText, badgeX + 12f, taskY + 20f, badgeTextPaint)
-                    badgeX += estW + 10f
-                }
+                    // Приоритет (если повышенный)
+                    if (task.priority == Priority.P1 || task.priority == Priority.P2) {
+                        val prioText = if (task.priority == Priority.P1) "🔥 Срочно" else "⚡ Важно"
+                        val prioW = badgeTextPaint.measureText(prioText) + 24f
+                        val prioRect = android.graphics.RectF(badgeX, taskY, badgeX + prioW, taskY + 28f)
+                        canvas.drawRoundRect(prioRect, 14f, 14f, badgeBgPaint)
+                        canvas.drawText(prioText, badgeX + 12f, taskY + 20f, badgeTextPaint)
+                        badgeX += prioW + 10f
+                    }
 
-                // Теги
-                task.tags.take(3).forEach { tag ->
-                    val tagText = "#${tag.name}"
-                    val tagW = badgeTextPaint.measureText(tagText) + 20f
-                    val tagRect = android.graphics.RectF(badgeX, taskY, badgeX + tagW, taskY + 28f)
-                    canvas.drawRoundRect(tagRect, 14f, 14f, badgeBgPaint)
-                    canvas.drawText(tagText, badgeX + 10f, taskY + 20f, badgeTextPaint)
-                    badgeX += tagW + 10f
-                }
+                    // Сложность (кружочки 1..5)
+                    if (task.difficulty > 0) {
+                        val diffPillW = 120f
+                        val diffRect = android.graphics.RectF(badgeX, taskY, badgeX + diffPillW, taskY + 28f)
+                        canvas.drawRoundRect(diffRect, 14f, 14f, badgeBgPaint)
 
-                taskY += 38f
-            }
-
-            // Подзадачи
-            if (task.subtasks.isNotEmpty()) {
-                val subH = 14f + task.subtasks.size * 42f
-                val subRect = android.graphics.RectF(textLeft, taskY, width - outerPad - cardInnerPad - 20f, taskY + subH)
-                canvas.drawRoundRect(subRect, 14f, 14f, subtaskBgPaint)
-
-                var subY = taskY + 12f
-                task.subtasks.forEach { sub ->
-                    val sCenterX = textLeft + 22f
-                    val sCenterY = subY + 16f
-                    val sRadius = 9f
-
-                    if (sub.isDone) {
-                        canvas.drawCircle(sCenterX, sCenterY, sRadius, checkFillPaint)
-                        val path = android.graphics.Path().apply {
-                            moveTo(sCenterX - 4f, sCenterY)
-                            lineTo(sCenterX - 1f, sCenterY + 3f)
-                            lineTo(sCenterX + 4f, sCenterY - 3f)
+                        val dotR = 4.5f
+                        var dotX = badgeX + 16f
+                        val dotY = taskY + 14f
+                        val dotColor = when (task.difficulty) {
+                            1 -> android.graphics.Color.rgb(52, 211, 153)
+                            2 -> android.graphics.Color.rgb(56, 189, 248)
+                            3 -> android.graphics.Color.rgb(251, 191, 36)
+                            4 -> android.graphics.Color.rgb(251, 146, 60)
+                            else -> android.graphics.Color.rgb(248, 113, 113)
                         }
-                        val miniCheckPaint = Paint(checkmarkPaint).apply { strokeWidth = 2.2f }
-                        canvas.drawPath(path, miniCheckPaint)
-                    } else {
-                        val miniBorderPaint = Paint(checkBorderPaint).apply { strokeWidth = 1.8f }
-                        canvas.drawCircle(sCenterX, sCenterY, sRadius, miniBorderPaint)
+                        val dotP = Paint().apply { isAntiAlias = true; style = Paint.Style.FILL }
+                        for (i in 1..5) {
+                            dotP.color = if (i <= task.difficulty) dotColor else android.graphics.Color.rgb(65, 60, 80)
+                            canvas.drawCircle(dotX, dotY, dotR, dotP)
+                            dotX += dotR * 2 + 6f
+                        }
+                        badgeX += diffPillW + 10f
                     }
 
-                    val stp = if (sub.isDone) subtaskDoneTextPaint else subtaskTextPaint
-                    canvas.drawText(sub.title, textLeft + 42f, subY + 23f, stp)
-                    subY += 42f
-                }
-            }
+                    // Время оценки
+                    task.estimateMinutes?.let { mins ->
+                        val estText = "⏱ ${formatEstimateRu(mins)}"
+                        val estW = badgeTextPaint.measureText(estText) + 24f
+                        val estRect = android.graphics.RectF(badgeX, taskY, badgeX + estW, taskY + 28f)
+                        canvas.drawRoundRect(estRect, 14f, 14f, badgeBgPaint)
+                        canvas.drawText(estText, badgeX + 12f, taskY + 20f, badgeTextPaint)
+                        badgeX += estW + 10f
+                    }
 
-            curY += itemH + 18f
+                    // Теги
+                    task.tags.take(3).forEach { tag ->
+                        val tagText = "#${tag.name}"
+                        val tagW = badgeTextPaint.measureText(tagText) + 20f
+                        val tagRect = android.graphics.RectF(badgeX, taskY, badgeX + tagW, taskY + 28f)
+                        canvas.drawRoundRect(tagRect, 14f, 14f, badgeBgPaint)
+                        canvas.drawText(tagText, badgeX + 10f, taskY + 20f, badgeTextPaint)
+                        badgeX += tagW + 10f
+                    }
+
+                    taskY += 38f
+                }
+
+                // Подзадачи
+                if (task.subtasks.isNotEmpty()) {
+                    val subH = 14f + task.subtasks.size * 42f
+                    val subRect = android.graphics.RectF(textLeft, taskY, width - outerPad - cardInnerPad - 20f, taskY + subH)
+                    canvas.drawRoundRect(subRect, 14f, 14f, subtaskBgPaint)
+
+                    var subY = taskY + 12f
+                    task.subtasks.forEach { sub ->
+                        val sCenterX = textLeft + 22f
+                        val sCenterY = subY + 16f
+                        val sRadius = 9f
+
+                        if (sub.isDone) {
+                            canvas.drawCircle(sCenterX, sCenterY, sRadius, checkFillPaint)
+                            val path = android.graphics.Path().apply {
+                                moveTo(sCenterX - 4f, sCenterY)
+                                lineTo(sCenterX - 1f, sCenterY + 3f)
+                                lineTo(sCenterX + 4f, sCenterY - 3f)
+                            }
+                            val miniCheckPaint = Paint(checkmarkPaint).apply { strokeWidth = 2.2f }
+                            canvas.drawPath(path, miniCheckPaint)
+                        } else {
+                            val miniBorderPaint = Paint(checkBorderPaint).apply { strokeWidth = 1.8f }
+                            canvas.drawCircle(sCenterX, sCenterY, sRadius, miniBorderPaint)
+                        }
+
+                        val stp = if (sub.isDone) subtaskDoneTextPaint else subtaskTextPaint
+                        canvas.drawText(sub.title, textLeft + 42f, subY + 23f, stp)
+                        subY += 42f
+                    }
+                }
+
+                curY += itemH + 16f
+            }
+            curY += 16f
         }
 
         // 5. Подвал

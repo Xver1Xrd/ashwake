@@ -414,12 +414,8 @@ fun todayAtmosphereIcon(hour: Int = java.time.LocalTime.now().hour): ImageVector
  * в ресурсах, а `stringResource` без композиции не прочитать.
  */
 @Composable
-private fun tabs(): List<TabItem> {
-    val currentHour = java.time.LocalTime.now().hour
-    return Destination.bottomBar.map {
-        val icon = if (it == Destination.Today) todayAtmosphereIcon(currentHour) else it.icon
-        TabItem(route = it.route, title = stringResource(it.titleRes), icon = icon)
-    }
+private fun tabs(): List<TabItem> = Destination.bottomBar.map {
+    TabItem(route = it.route, title = stringResource(it.titleRes), icon = it.icon)
 }
 
 /** Маршрут из виджета в экран приложения. */

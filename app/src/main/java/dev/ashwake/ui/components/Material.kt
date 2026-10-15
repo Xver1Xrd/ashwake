@@ -27,7 +27,7 @@ import dev.chrisbanes.haze.hazeChild
  *
  * Радиус 30dp, поверх — тонировка «Поверхности 1» с прозрачностью 70%.
  */
-private val BLUR_RADIUS = 30.dp
+private val BLUR_RADIUS = 16.dp
 
 /**
  * Размытие фона появилось в API 31. Ниже — сплошная «Поверхность 1»,
@@ -76,19 +76,25 @@ fun Modifier.glass(
     shape: Shape = RectangleShape
 ): Modifier {
     val colors = AshTheme.colors
-    // Размытие можно выключить в редакторе темы: на слабых устройствах
-    // оно стоит заметных кадров, а читаемость от заливки не страдает
-    return if (blurSupported && AshTheme.blurEnabled) {
+    val blurEnabled = AshTheme.blurEnabled
+    val bg = colors.background
+    val tint = colors.materialTint
+
+    val style = remember(bg, tint) {
+        HazeStyle(
+            backgroundColor = bg,
+            tint = HazeTint(tint),
+            blurRadius = BLUR_RADIUS,
+            noiseFactor = 0f
+        )
+    }
+
+    return if (blurSupported && blurEnabled) {
         this
             .clip(shape)
             .hazeChild(
                 state = state,
-                style = HazeStyle(
-                    backgroundColor = colors.background,
-                    tint = HazeTint(colors.materialTint),
-                    blurRadius = BLUR_RADIUS,
-                    noiseFactor = 0f
-                )
+                style = style
             )
     } else {
         background(colors.surface1, shape)

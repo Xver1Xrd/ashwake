@@ -85,6 +85,11 @@ fun TasksScreen(
     var selectedTaskIds by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
 
+    androidx.activity.compose.BackHandler(enabled = isSelectionMode) {
+        isSelectionMode = false
+        selectedTaskIds = emptySet()
+    }
+
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
     val micPermission = rememberLauncherForActivityResult(

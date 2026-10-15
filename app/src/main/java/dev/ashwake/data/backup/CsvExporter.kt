@@ -31,9 +31,14 @@ class CsvExporter @Inject constructor(
                 escape(task.title),
                 task.status,
                 task.priority,
-                isoDate(task.completedAt),
-                isoDate(task.createdAt),
-                task.postponeCount.toString()
+                isoDateTime(task.completedAt),
+                isoDateTime(task.createdAt),
+                task.postponeCount.toString(),
+                formatEpochDay(task.dueDate),
+                formatDueTime(task.dueTime),
+                task.estimateMinutes?.toString().orEmpty(),
+                task.difficulty.toString(),
+                escape(task.note.orEmpty())
             )
         }
         rows.joinToString("\n", postfix = "\n") { row -> row.joinToString(",") }
@@ -61,15 +66,30 @@ class CsvExporter @Inject constructor(
         return if (needsQuotes) "\"" + value.replace("\"", "\"\"") + "\"" else value
     }
 
-    private fun isoDate(millis: Long?): String {
+    private fun isoDateTime(millis: Long?): String {
         if (millis == null) return ""
-        return DateTimeFormatter.ISO_LOCAL_DATE.format(
-            Instant.ofEpochMilli(millis).atOffset(ZoneOffset.UTC).toLocalDate()
+        return DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(
+            Instant.ofEpochMilli(millis).atOffset(ZoneOffset.UTC)
         )
     }
 
+    private fun formatEpochDay(epochDay: Int?): String {
+        if (epochDay == null) return ""
+        return java.time.LocalDate.ofEpochDay(epochDay.toLong()).toString()
+    }
+
+    private fun formatDueTime(minutes: Int?): String {
+        if (minutes == null) return ""
+        val h = minutes / 60
+        val m = minutes % 60
+        return String.format(java.util.Locale.ROOT, "%02d:%02d", h, m)
+    }
+
     private companion object {
-        val TASK_HEADER = listOf("id", "title", "status", "priority", "completedAt", "createdAt", "postponeCount")
+        val TASK_HEADER = listOf(
+            "id", "title", "status", "priority", "completedAt", "createdAt",
+            "postponeCount", "dueDate", "dueTime", "estimateMinutes", "difficulty", "note"
+        )
         val HABIT_HEADER = listOf("date", "habit", "status", "value")
     }
 }

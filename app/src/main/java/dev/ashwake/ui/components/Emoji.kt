@@ -108,7 +108,7 @@ fun EmojiBadge(
 }
 
 /**
- * Выбор значка: категории эмодзи + ввод ЛЮБОГО эмодзи с клавиатуры.
+ * Выбор значка: удобные категории эмодзи (без текстового ввода).
  */
 @Composable
 fun EmojiPicker(
@@ -119,8 +119,6 @@ fun EmojiPicker(
 ) {
     val colors = AshTheme.colors
     var activeCategory by remember { mutableStateOf("Частые") }
-    var customEmojiText by remember { mutableStateOf("") }
-
     val currentItems = EmojiCategories[activeCategory] ?: TaskEmojiPresets
 
     Column(
@@ -130,39 +128,23 @@ fun EmojiPicker(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Поле ввода ЛЮБОГО эмодзи с клавиатуры
+        // Категории эмодзи
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            AshTextField(
-                value = customEmojiText,
-                onValueChange = { input ->
-                    customEmojiText = input
-                    val trimmed = input.trim()
-                    if (trimmed.isNotEmpty()) {
-                        onSelect(trimmed)
-                    }
-                },
-                placeholder = "Ввести любой эмодзи с клавиатуры ⌨️...",
-                singleLine = true,
-                modifier = Modifier.weight(1f)
-            )
-            if (selected != null) {
-                IconAction(
-                    icon = AshIcons.Close,
-                    contentDescription = stringResource(R.string.editor_ubrat),
-                    tint = colors.text2,
-                    onClick = {
-                        customEmojiText = ""
-                        onSelect(null)
-                    }
+            EmojiCategories.keys.forEach { cat ->
+                ChipButton(
+                    text = cat,
+                    selected = activeCategory == cat,
+                    onClick = { activeCategory = cat }
                 )
             }
         }
 
-        // Выбранный эмодзи, если он не из стандартных или просто активен
+        // Выбранный эмодзи + кнопка очистки
         if (selected != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -176,28 +158,18 @@ fun EmojiPicker(
                 )
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(34.dp)
                         .background(colors.accent.copy(alpha = 0.20f), AshShapes.small)
                         .border(1.5.dp, colors.accent, AshShapes.small),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = selected, fontSize = 20.sp)
+                    Text(text = selected, fontSize = 18.sp)
                 }
-            }
-        }
-
-        // Категории эмодзи
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            EmojiCategories.keys.forEach { cat ->
+                Spacer(Modifier.weight(1f))
                 ChipButton(
-                    text = cat,
-                    selected = activeCategory == cat,
-                    onClick = { activeCategory = cat }
+                    text = stringResource(R.string.components_ubrat_znachok),
+                    icon = AshIcons.Close,
+                    onClick = { onSelect(null) }
                 )
             }
         }
@@ -222,10 +194,7 @@ fun EmojiPicker(
                                 color = if (isSelected) colors.accent else Color.Transparent,
                                 shape = AshShapes.small
                             )
-                            .tappable(onClick = {
-                                customEmojiText = ""
-                                onSelect(emoji)
-                            })
+                            .tappable(onClick = { onSelect(emoji) })
                             .padding(vertical = 7.dp),
                         contentAlignment = Alignment.Center
                     ) {

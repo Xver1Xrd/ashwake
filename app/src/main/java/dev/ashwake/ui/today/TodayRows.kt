@@ -29,8 +29,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -373,21 +375,40 @@ fun TaskTodayRow(
     val complete by rememberUpdatedState { onToggle(markCenter) }
     val postpone by rememberUpdatedState(onPostpone)
 
+    val dismissStateHolder = remember { arrayOf<SwipeToDismissBoxState?>(null) }
     val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { distance -> distance * 0.50f },
         confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> complete()
-                SwipeToDismissBoxValue.EndToStart -> postpone()
-                SwipeToDismissBoxValue.Settled -> Unit
+            val progress = dismissStateHolder[0]?.progress ?: 0f
+            if (progress >= 0.50f) {
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> complete()
+                    SwipeToDismissBoxValue.EndToStart -> postpone()
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
             }
             false
         }
     )
+    dismissStateHolder[0] = dismissState
+
+    val haptics = rememberHaptics()
+    val reachedThreshold = dismissState.progress >= 0.50f
+    LaunchedEffect(reachedThreshold) {
+        if (reachedThreshold && dismissState.currentValue == SwipeToDismissBoxValue.Settled) {
+            haptics.play(HapticKind.LIGHT)
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
-        backgroundContent = { SwipeHint(dismissState.dismissDirection) },
+        backgroundContent = {
+            SwipeHint(
+                direction = dismissState.dismissDirection,
+                reachedThreshold = reachedThreshold
+            )
+        },
         content = {
             TaskTodayRowContent(
                 task = task,
@@ -404,7 +425,10 @@ fun TaskTodayRow(
 
 /** Подложка под уезжающей строкой: цвет и значок того, что произойдёт. */
 @Composable
-private fun SwipeHint(direction: SwipeToDismissBoxValue) {
+private fun SwipeHint(
+    direction: SwipeToDismissBoxValue,
+    reachedThreshold: Boolean = false
+) {
     val colors = AshTheme.colors
     val (color, icon, alignment) = when (direction) {
         SwipeToDismissBoxValue.StartToEnd ->
@@ -421,7 +445,7 @@ private fun SwipeHint(direction: SwipeToDismissBoxValue) {
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .background(color)
+            .background(if (reachedThreshold) color else color.copy(alpha = 0.55f))
             .padding(horizontal = 24.dp),
         contentAlignment = alignment
     ) {
@@ -430,7 +454,13 @@ private fun SwipeHint(direction: SwipeToDismissBoxValue) {
                 icon,
                 contentDescription = null,
                 tint = if (colors.isDark) Color.Black else Color.White,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        scaleX = if (reachedThreshold) 1.2f else 0.85f
+                        scaleY = if (reachedThreshold) 1.2f else 0.85f
+                        alpha = if (reachedThreshold) 1f else 0.65f
+                    }
             )
         }
     }

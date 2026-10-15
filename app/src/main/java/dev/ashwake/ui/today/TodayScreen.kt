@@ -410,6 +410,15 @@ private fun TodaySummaryCard(
             ) {
                 if (progress > 0f) {
                     val baseColor = if (isCompleted) colors.success else colors.accent
+                    val shimmerColors = remember(baseColor) {
+                        listOf(
+                            baseColor,
+                            baseColor,
+                            Color.White.copy(alpha = 0.75f),
+                            baseColor,
+                            baseColor
+                        )
+                    }
                     Box(
                         Modifier
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
@@ -419,13 +428,7 @@ private fun TodaySummaryCard(
                                 val phase = shimmerPhase.value
                                 val width = size.width
                                 val shimmerBrush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        baseColor,
-                                        baseColor,
-                                        Color.White.copy(alpha = 0.75f),
-                                        baseColor,
-                                        baseColor
-                                    ),
+                                    colors = shimmerColors,
                                     startX = phase * (width + 400f) - 200f,
                                     endX = phase * (width + 400f) + 200f
                                 )

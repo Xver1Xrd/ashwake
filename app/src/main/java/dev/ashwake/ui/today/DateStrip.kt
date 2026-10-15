@@ -84,69 +84,84 @@ fun DateStrip(
         verticalAlignment = Alignment.CenterVertically
     ) {
         days.forEach { item ->
-            val isSelected = item.date == selectedDate
-            val isToday = item.date == today
-
-            val bgColor by animateColorAsState(
-                targetValue = when {
-                    isSelected -> colors.surface2
-                    isToday -> colors.surface1
-                    else -> Color.Transparent
-                },
-                label = "strip-bg"
+            DateStripItem(
+                item = item,
+                isSelected = item.date == selectedDate,
+                isToday = item.date == today,
+                today = today,
+                onClick = {
+                    haptics.play(dev.ashwake.ui.theme.HapticKind.LIGHT)
+                    onSelectDate(item.date)
+                }
             )
-
-            val borderColor = when {
-                isSelected -> colors.accent
-                isToday -> colors.accent.copy(alpha = 0.5f)
-                else -> Color.Transparent
-            }
-
-            Column(
-                modifier = Modifier
-                    .width(48.dp)
-                    .clip(AshShapes.card)
-                    .background(bgColor)
-                    .border(
-                        width = if (isSelected || isToday) 1.5.dp else 0.dp,
-                        color = borderColor,
-                        shape = AshShapes.card
-                    )
-                    .clickable {
-                        haptics.play(dev.ashwake.ui.theme.HapticKind.LIGHT)
-                        onSelectDate(item.date)
-                    }
-                    .padding(vertical = 8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = item.dayOfWeek,
-                    style = AshTheme.type.caption,
-                    color = if (isSelected) colors.accent else colors.text2
-                )
-                Text(
-                    text = item.dayOfMonth,
-                    style = AshTheme.type.headline,
-                    fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isSelected) colors.text else colors.text2
-                )
-
-                // Точка статуса дня
-                Box(
-                    modifier = Modifier
-                        .size(4.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                isToday -> colors.accent
-                                item.date < today -> colors.text3
-                                else -> Color.Transparent
-                            }
-                        )
-                )
-            }
         }
+    }
+}
+
+@Composable
+private fun DateStripItem(
+    item: StripDay,
+    isSelected: Boolean,
+    isToday: Boolean,
+    today: LocalDate,
+    onClick: () -> Unit
+) {
+    val colors = AshTheme.colors
+    val bgColor by animateColorAsState(
+        targetValue = when {
+            isSelected -> colors.surface2
+            isToday -> colors.surface1
+            else -> Color.Transparent
+        },
+        label = "strip-bg"
+    )
+
+    val borderColor = when {
+        isSelected -> colors.accent
+        isToday -> colors.accent.copy(alpha = 0.5f)
+        else -> Color.Transparent
+    }
+
+    Column(
+        modifier = Modifier
+            .width(48.dp)
+            .clip(AshShapes.card)
+            .background(bgColor)
+            .border(
+                width = if (isSelected || isToday) 1.5.dp else 0.dp,
+                color = borderColor,
+                shape = AshShapes.card
+            )
+            .clickable(onClick = onClick)
+            .padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = item.dayOfWeek,
+            style = AshTheme.type.caption,
+            color = if (isSelected) colors.accent else colors.text2
+        )
+        Text(
+            text = item.dayOfMonth,
+            style = AshTheme.type.headline,
+            fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) colors.text else colors.text2
+        )
+
+        // Точка статуса дня
+        Box(
+            modifier = Modifier
+                .size(4.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        isToday -> colors.accent
+                        item.date < today -> colors.text3
+                        else -> Color.Transparent
+                    }
+                )
+        )
     }
 }
 

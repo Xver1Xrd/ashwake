@@ -93,7 +93,7 @@ fun QuickAddBar(
             AshTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = "Новая задача (например: завтра в 5 вечера сходить в магазин...)",
+                placeholder = "Новая задача:",
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )

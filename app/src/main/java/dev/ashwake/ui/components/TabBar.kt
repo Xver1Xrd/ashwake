@@ -173,14 +173,6 @@ fun AshTabBar(
         label = "island-overscroll"
     )
 
-    val rubberDist = rubberBandOffset(smoothOverscroll, maxStretchPx = with(density) { 70.dp.toPx() })
-    val extraStretchX = (abs(rubberDist) / with(density) { 260.dp.toPx() }).coerceAtMost(0.22f)
-    val extraSquashY = (abs(rubberDist) / with(density) { 520.dp.toPx() }).coerceAtMost(0.11f)
-
-    val islandScaleX = tabSwitchBounceX.value + extraStretchX
-    val islandScaleY = tabSwitchBounceY.value - extraSquashY
-    val islandTranslationX = rubberDist * 0.55f
-
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -238,9 +230,14 @@ fun AshTabBar(
                 .fillMaxWidth()
                 .height(TabBarHeight)
                 .graphicsLayer {
-                    scaleX = islandScaleX
-                    scaleY = islandScaleY
-                    translationX = islandTranslationX
+                    val currentOverscroll = smoothOverscroll
+                    val rDist = rubberBandOffset(currentOverscroll, maxStretchPx = 70.dp.toPx())
+                    val eStretchX = (abs(rDist) / 260.dp.toPx()).coerceAtMost(0.22f)
+                    val eSquashY = (abs(rDist) / 520.dp.toPx()).coerceAtMost(0.11f)
+
+                    scaleX = tabSwitchBounceX.value + eStretchX
+                    scaleY = tabSwitchBounceY.value - eSquashY
+                    translationX = rDist * 0.55f
                     transformOrigin = TransformOrigin.Center
                 }
                 .clip(AshShapes.pill)

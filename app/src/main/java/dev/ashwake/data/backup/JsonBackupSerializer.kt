@@ -20,7 +20,10 @@ import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
+import dev.ashwake.data.db.entity.tasks.ProjectEntity
+import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.icons.IconStore
 import kotlinx.coroutines.flow.first
 import org.json.JSONArray
@@ -60,6 +63,9 @@ class JsonBackupSerializer @Inject constructor(
 
     suspend fun export(): Pair<String, BackupContents> {
         val tasks = taskDao.allTasks()
+        val projects = backupDao.allProjects()
+        val tags = backupDao.allTags()
+        val taskTags = backupDao.allTaskTags()
         val habits = habitDao.observeHabits(1).first()
         val entries = habitDao.observeEntriesInRange(MIN_DAY, MAX_DAY).first()
         val abstinences = abstinenceDao.observeAll(1).first()
@@ -76,6 +82,30 @@ class JsonBackupSerializer @Inject constructor(
             put("version", FORMAT_VERSION)
             put("exportedAt", System.currentTimeMillis())
 
+            put("projects", JSONArray(projects.map { p ->
+                JSONObject().apply {
+                    put("id", p.id)
+                    put("name", p.name)
+                    put("color", p.color)
+                    put("icon", p.icon)
+                    put("position", p.position)
+                    put("archived", p.archived)
+                    put("createdAt", p.createdAt)
+                }
+            }))
+            put("tags", JSONArray(tags.map { t ->
+                JSONObject().apply {
+                    put("id", t.id)
+                    put("name", t.name)
+                    put("color", t.color)
+                }
+            }))
+            put("taskTags", JSONArray(taskTags.map { tt ->
+                JSONObject().apply {
+                    put("taskId", tt.taskId)
+                    put("tagId", tt.tagId)
+                }
+            }))
             put("tasks", JSONArray(tasks.map { it.toJson() }))
             put("habits", JSONArray(habits.map { habit ->
                 JSONObject().apply {
@@ -233,6 +263,30 @@ class JsonBackupSerializer @Inject constructor(
     suspend fun import(json: String): BackupContents = db.withTransaction {
         val root = JSONObject(json)
 
+        val projects = root.optJSONArray("projects").objects().map {
+            ProjectEntity(
+                id = it.optLong("id"),
+                name = it.optString("name"),
+                color = it.optInt("color"),
+                icon = it.optStringOrNull("icon"),
+                position = it.optInt("position", 0),
+                archived = it.optBoolean("archived", false),
+                createdAt = it.optLong("createdAt")
+            )
+        }
+        val tags = root.optJSONArray("tags").objects().map {
+            TagEntity(
+                id = it.optLong("id"),
+                name = it.optString("name"),
+                color = it.optInt("color")
+            )
+        }
+        val taskTags = root.optJSONArray("taskTags").objects().map {
+            TaskTagCrossRef(
+                taskId = it.optLong("taskId"),
+                tagId = it.optLong("tagId")
+            )
+        }
         val tasks = root.optJSONArray("tasks").objects().map { it.toTaskEntity() }
         val habits = root.optJSONArray("habits").objects().map { it.toHabitEntity() }
         val entries = root.optJSONArray("habitEntries").objects().map { it.toEntryEntity() }
@@ -257,6 +311,8 @@ class JsonBackupSerializer @Inject constructor(
         backupDao.clearTaskTags()
         backupDao.clearPostponements()
         backupDao.clearTasks()
+        backupDao.clearProjects()
+        backupDao.clearTags()
 
         backupDao.clearAttempts()
         backupDao.clearCravings()
@@ -274,7 +330,10 @@ class JsonBackupSerializer @Inject constructor(
         backupDao.clearChests()
         backupDao.clearLedger()
 
+        backupDao.insertProjects(projects)
+        backupDao.insertTags(tags)
         backupDao.insertTasks(tasks)
+        backupDao.insertTaskTags(taskTags)
         backupDao.insertHabits(habits)
         backupDao.insertHabitEntries(entries)
         backupDao.insertAbstinences(abstinences)
