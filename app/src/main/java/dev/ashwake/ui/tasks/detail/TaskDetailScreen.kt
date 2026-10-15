@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -42,6 +44,7 @@ import dev.ashwake.ui.components.tappable
 import dev.ashwake.domain.model.tasks.AttachmentKind
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.priorityColor
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -138,45 +141,9 @@ fun TaskDetailScreen(
                         color = if (current.isDone) colors.text3 else colors.text,
                         textDecoration = if (current.isDone) TextDecoration.LineThrough else null
                     )
-                    taskMeta(current, viewModel.today())?.let { meta ->
-                        Text(meta, style = AshTheme.type.subhead, color = colors.text2)
+                    taskDueLabel(current, viewModel.today())?.let { due ->
+                        Text(due, style = AshTheme.type.subhead, color = colors.text2)
                     }
-                    if (current.tags.isNotEmpty()) {
-                        Text(
-                            current.tags.joinToString(" ") { "#${it.name}" },
-                            style = AshTheme.type.footnote,
-                            color = colors.accent
-                        )
-                    }
-                }
-            }
-
-            current.note?.takeIf { it.isNotBlank() }?.let { note ->
-                ListGroup(header = "Описание") {
-                    Text(
-                        note,
-                        style = AshTheme.type.body,
-                        color = colors.text,
-                        modifier = Modifier.padding(16.dp)
-                    )
-                }
-            }
-
-            ListGroup(header = "Детали") {
-                ListRow(title = "Приоритет", subtitle = current.priority.name)
-                ListDivider()
-                ListRow(title = "Сложность", subtitle = "${current.difficulty} из 5")
-                current.recurrence?.let { rule ->
-                    ListDivider()
-                    ListRow(title = "Расписание", subtitle = recurrenceText(rule.type.name, rule.intervalDays))
-                }
-                current.persistentReminderMinutes?.let { minutes ->
-                    ListDivider()
-                    ListRow(title = "Напоминание", subtitle = "Каждые $minutes мин до выполнения")
-                }
-                current.sourceLink?.let { link ->
-                    ListDivider()
-                    ListRow(title = "Ссылка", subtitle = link)
                 }
             }
 
@@ -196,6 +163,12 @@ fun TaskDetailScreen(
                         )
                         if (index != current.subtasks.lastIndex) ListDivider()
                     }
+                }
+            }
+
+            current.note?.takeIf { it.isNotBlank() }?.let { note ->
+                ListGroup(header = "Заметка") {
+                    Text(note, style = AshTheme.type.body, color = colors.text, modifier = Modifier.padding(16.dp))
                 }
             }
 
@@ -234,6 +207,27 @@ fun TaskDetailScreen(
                 }
             }
 
+            ListGroup(header = "Параметры") {
+                ListRow(
+                    title = "Приоритет",
+                    subtitle = priorityLabel(current.priority.name),
+                    trailing = {
+                        androidx.compose.foundation.layout.Box(
+                            Modifier.size(14.dp).background(colors.priorityColor(current.priority), CircleShape)
+                        )
+                    }
+                )
+                ListDivider()
+                ListRow(
+                    title = "Время",
+                    subtitle = taskTimeLabel(current)
+                )
+                if (current.tags.isNotEmpty()) {
+                    ListDivider()
+                    ListRow(title = "Теги", subtitle = current.tags.joinToString(" ") { "#${it.name}" })
+                }
+            }
+
             PrimaryButton(
                 text = if (current.isDone) "Вернуть в работу" else "Отметить выполненной",
                 onClick = viewModel::toggleDone,
@@ -249,25 +243,30 @@ private fun formatAttachmentSize(bytes: Long): String = when {
     else -> "$bytes Б"
 }
 
-private fun recurrenceText(type: String, interval: Int?): String = when (type) {
-    "DAILY" -> "Каждый день"
-    "EVERY_N_DAYS" -> "Каждые ${interval ?: 1} дн."
-    "WEEKDAYS" -> "По дням недели"
-    "DAY_OF_MONTH" -> "По числам месяца"
-    else -> type
-}
-
-private fun taskMeta(task: Task, today: java.time.LocalDate): String? {
-    val values = mutableListOf<String>()
+private fun taskDueLabel(task: Task, today: java.time.LocalDate): String? {
     task.dueDate?.let { date ->
-        values += when {
+        return when {
             date == today -> "Сегодня"
             date == today.plusDays(1) -> "Завтра"
             date < today && !task.isDone -> "Просрочено: ${date.format(DateTimeFormatter.ofPattern("d MMMM"))}"
             else -> date.format(DateTimeFormatter.ofPattern("d MMMM"))
         }
     }
-    task.dueTime?.let { values += it.format(DateTimeFormatter.ofPattern("HH:mm")) }
-    task.estimateMinutes?.let { values += "$it мин" }
-    return values.takeIf { it.isNotEmpty() }?.joinToString(" · ")
+    return "Без срока"
+}
+
+private fun taskTimeLabel(task: Task): String = buildList {
+    task.dueTime?.let { add("с ${it.format(DateTimeFormatter.ofPattern("HH:mm"))}") }
+    task.estimateMinutes?.let { minutes ->
+        if (task.dueTime != null) add("до ${task.dueTime.plusMinutes(minutes.toLong()).format(DateTimeFormatter.ofPattern("HH:mm"))}")
+        else add("$minutes мин")
+    }
+    task.recurrence?.let { add("Повторяется") }
+}.joinToString(" · ").ifBlank { "Не задано" }
+
+private fun priorityLabel(priority: String): String = when (priority) {
+    "P1" -> "Срочно и важно"
+    "P2" -> "Важно"
+    "P3" -> "Обычный"
+    else -> "Без приоритета"
 }
