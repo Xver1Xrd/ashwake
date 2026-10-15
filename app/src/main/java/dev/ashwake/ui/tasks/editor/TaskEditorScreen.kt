@@ -66,6 +66,13 @@ import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.components.AshTextField
 import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.IconButtonSlot
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.SolidColor
+import dev.ashwake.ui.tasks.components.difficultyColor
+import dev.ashwake.ui.tasks.components.difficultyDescription
+import dev.ashwake.ui.tasks.components.formatEstimateRu
 import dev.ashwake.ui.components.IconPicker
 import dev.ashwake.ui.components.FieldLabel
 import dev.ashwake.ui.components.IconAction
@@ -99,8 +106,8 @@ import java.time.format.DateTimeFormatter
 private val DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMMM")
 private val TIME_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
 
-private val ESTIMATE_PRESETS = listOf(5, 15, 30, 45, 60, 90, 120)
 private val REMINDER_PRESETS = listOf(5, 10, 15, 30, 60)
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun TaskEditorScreen(
     onDone: () -> Unit,
@@ -221,6 +228,42 @@ fun TaskEditorScreen(
                 )
             }
 
+            // --- сложность (1..5) ---------------------------------------------
+            Section(
+                title = "Сложность",
+                footer = difficultyDescription(state.difficulty)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    val activeColor = difficultyColor(state.difficulty, colors)
+                    (1..5).forEach { level ->
+                        val isSelected = state.difficulty >= level
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .clip(CircleShape)
+                                .background(if (isSelected) activeColor else colors.surface2)
+                                .border(
+                                    width = if (state.difficulty == level) 2.dp else 0.dp,
+                                    color = if (state.difficulty == level) colors.text else Color.Transparent,
+                                    shape = CircleShape
+                                )
+                                .tappable { viewModel.setDifficulty(level) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "$level",
+                                style = AshTheme.type.headline,
+                                color = if (isSelected) Color.White else colors.text3
+                            )
+                        }
+                    }
+                }
+            }
+
             // --- срок ---------------------------------------------------------
             Section(stringResource(R.string.editor_srok)) {
                 DueDateRow(
@@ -235,21 +278,43 @@ fun TaskEditorScreen(
                 )
             }
 
-            // --- оценка -------------------------------------------------------
+            // --- оценка времени (ввод) ----------------------------------------
+            val est = state.estimateMinutes
             Section(
                 title = stringResource(R.string.editor_ocenka_vremeni),
-                footer = stringResource(R.string.editor_bez_ocenki_zadacha_ne_popadet_v_avtoraskladk)
+                footer = if (est != null && est > 0) {
+                    "Итого: ${formatEstimateRu(est)}"
+                } else {
+                    stringResource(R.string.editor_bez_ocenki_zadacha_ne_popadet_v_avtoraskladk)
+                }
             ) {
-                ChipRow {
-                    ESTIMATE_PRESETS.forEach { minutes ->
-                        ChipButton(
-                            text = formatMinutes(minutes),
-                            selected = state.estimateMinutes == minutes,
-                            onClick = {
-                                viewModel.setEstimate(
-                                    if (state.estimateMinutes == minutes) null else minutes
-                                )
-                            }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    AshTextField(
+                        value = state.estimateHours,
+                        onValueChange = viewModel::setEstimateHours,
+                        label = "Часы",
+                        placeholder = "0",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    AshTextField(
+                        value = state.estimateMinutesText,
+                        onValueChange = viewModel::setEstimateMinutesText,
+                        label = "Минуты",
+                        placeholder = "0",
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (state.estimateMinutes != null) {
+                        IconAction(
+                            icon = AshIcons.Close,
+                            contentDescription = "Очистить время",
+                            tint = colors.text3,
+                            onClick = viewModel::clearEstimate
                         )
                     }
                 }
@@ -273,12 +338,49 @@ fun TaskEditorScreen(
                 }
             }
 
-            AshTextField(
-                value = state.tagsInput,
-                onValueChange = viewModel::setTagsInput,
-                label = stringResource(R.string.editor_tegi),
-                placeholder = stringResource(R.string.editor_dom_srochnoe)
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                AshTextField(
+                    value = state.tagsInput,
+                    onValueChange = viewModel::setTagsInput,
+                    label = stringResource(R.string.editor_tegi),
+                    placeholder = stringResource(R.string.editor_dom_srochnoe)
+                )
+                val allTags by viewModel.availableTags.collectAsStateWithLifecycle()
+                val currentTagNames = remember(state.tagsInput) {
+                    state.tagsInput.split(Regex("[\\s,]+"))
+                        .map { it.trim().removePrefix("#").lowercase() }
+                        .filter { it.isNotEmpty() }
+                        .toSet()
+                }
+                val tagSuggestions = remember(allTags, currentTagNames) {
+                    allTags.filter { it.name.lowercase() !in currentTagNames }
+                }
+                if (tagSuggestions.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        tagSuggestions.take(12).forEach { tag ->
+                            Box(
+                                modifier = Modifier
+                                    .clip(AshShapes.pill)
+                                    .background(colors.surface2)
+                                    .tappable { viewModel.appendTag(tag.name) }
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                Text(
+                                    text = "+ #${tag.name}",
+                                    style = AshTheme.type.caption,
+                                    color = colors.text2
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Section(
                 title = "Вложения",
@@ -346,12 +448,19 @@ fun TaskEditorScreen(
 
             // --- подзадачи ------------------------------------------------------
             Section(stringResource(R.string.editor_podzadachi)) {
+                val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+                val haptics = dev.ashwake.ui.theme.rememberHaptics()
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     state.subtasks.forEachIndexed { index, subtask ->
                         SubtaskRow(
                             title = subtask.title,
                             done = subtask.done,
                             onToggle = { viewModel.toggleSubtask(index) },
+                            onEdit = { newTitle -> viewModel.editSubtask(index, newTitle) },
+                            onCopy = {
+                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(subtask.title))
+                                haptics.play(dev.ashwake.ui.theme.HapticKind.LIGHT)
+                            },
                             onRemove = { viewModel.removeSubtask(index) }
                         )
                     }
@@ -599,50 +708,99 @@ private fun SubtaskRow(
     title: String,
     done: Boolean,
     onToggle: () -> Unit,
+    onEdit: (String) -> Unit,
+    onCopy: () -> Unit,
     onRemove: () -> Unit
 ) {
     val colors = AshTheme.colors
+    var isEditing by remember { mutableStateOf(false) }
+    var editValue by remember(title) { mutableStateOf(title) }
+
     Row(
         Modifier
             .fillMaxWidth()
             .background(colors.surface1, AshShapes.group)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
-            Modifier
-                .size(22.dp)
-                .background(if (done) colors.accent else Color.Transparent, AshShapes.pill)
-                .border(
-                    width = if (done) 0.dp else 1.5.dp,
-                    color = colors.text3,
-                    shape = AshShapes.pill
-                )
-                .tappable(onClick = onToggle),
-            contentAlignment = Alignment.Center
-        ) {
-            if (done) {
-                Icon(
-                    AshIcons.Check,
-                    contentDescription = null,
-                    tint = if (colors.isDark) Color.Black else Color.White,
-                    modifier = Modifier.size(13.dp)
-                )
+        if (!isEditing) {
+            Box(
+                Modifier
+                    .size(22.dp)
+                    .background(if (done) colors.accent else Color.Transparent, AshShapes.pill)
+                    .border(
+                        width = if (done) 0.dp else 1.5.dp,
+                        color = colors.text3,
+                        shape = AshShapes.pill
+                    )
+                    .tappable(onClick = onToggle),
+                contentAlignment = Alignment.Center
+            ) {
+                if (done) {
+                    Icon(
+                        AshIcons.Check,
+                        contentDescription = null,
+                        tint = if (colors.isDark) Color.Black else Color.White,
+                        modifier = Modifier.size(13.dp)
+                    )
+                }
             }
+            Text(
+                text = title,
+                style = AshTheme.type.body,
+                color = if (done) colors.text3 else colors.text,
+                modifier = Modifier
+                    .weight(1f)
+                    .tappable { isEditing = true }
+            )
+            IconAction(
+                icon = AshIcons.Pencil,
+                contentDescription = "Редактировать",
+                tint = colors.text3,
+                onClick = { isEditing = true }
+            )
+            IconAction(
+                icon = AshIcons.Copy,
+                contentDescription = "Скопировать в буфер",
+                tint = colors.text3,
+                onClick = onCopy
+            )
+            IconAction(
+                icon = AshIcons.Close,
+                contentDescription = stringResource(R.string.editor_ubrat_podzadachu),
+                tint = colors.text3,
+                onClick = onRemove
+            )
+        } else {
+            BasicTextField(
+                value = editValue,
+                onValueChange = { editValue = it },
+                textStyle = AshTheme.type.body.copy(color = colors.text),
+                cursorBrush = SolidColor(colors.accent),
+                modifier = Modifier.weight(1f)
+            )
+            IconAction(
+                icon = AshIcons.Check,
+                contentDescription = "Сохранить",
+                tint = colors.accent,
+                onClick = {
+                    if (editValue.isNotBlank()) {
+                        onEdit(editValue.trim())
+                    }
+                    isEditing = false
+                }
+            )
+            IconAction(
+                icon = AshIcons.Close,
+                contentDescription = "Отмена",
+                tint = colors.text3,
+                onClick = {
+                    editValue = title
+                    isEditing = false
+                }
+            )
         }
-        Text(
-            text = title,
-            style = AshTheme.type.body,
-            color = if (done) colors.text3 else colors.text,
-            modifier = Modifier.weight(1f)
-        )
-        IconAction(
-            icon = AshIcons.Close,
-            contentDescription = stringResource(R.string.editor_ubrat_podzadachu),
-            tint = colors.text3,
-            onClick = onRemove
-        )
     }
 }
 
@@ -859,11 +1017,7 @@ private fun recurrenceLabel(type: RecurrenceType): String = when (type) {
 }
 
 @Composable
-private fun formatMinutes(minutes: Int): String = when {
-    minutes < 60 -> stringResource(R.string.settings_1_s_min, minutes)
-    minutes % 60 == 0 -> stringResource(R.string.editor_1_s_ch, minutes / 60)
-    else -> stringResource(R.string.editor_1_s_ch_2_s, minutes / 60, minutes % 60)
-}
+private fun formatMinutes(minutes: Int): String = formatEstimateRu(minutes)
 
 @Composable
 private fun TaskTemplatesDialog(

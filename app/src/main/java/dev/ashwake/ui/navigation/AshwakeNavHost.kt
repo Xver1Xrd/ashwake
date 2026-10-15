@@ -37,7 +37,9 @@ import dev.ashwake.ui.abstinence.detail.AbstinenceDetailScreen
 import dev.ashwake.ui.backup.BackupScreen
 import dev.ashwake.ui.blocking.BlockingScreen
 import dev.ashwake.ui.character.CharacterScreen
+import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshTabBar
+import androidx.compose.ui.graphics.vector.ImageVector
 import dev.ashwake.ui.components.NORMAL_MS
 import dev.ashwake.ui.components.LocalHazeState
 import dev.ashwake.ui.components.TabItem
@@ -183,18 +185,13 @@ fun AshwakeRoot(
                 composable(TABS_ROUTE) {
                     HorizontalPager(
                         state = pagerState,
-                        // Соседняя страница готовится заранее: иначе переход
-                        // пальцем открывает пустоту и достраивается на ходу
                         beyondViewportPageCount = 1
                     ) { page ->
-                        // Уезжающая страница отстаёт и мельчает. Без этого
-                        // переключение вкладок — подмена картинки; с ним видно,
-                        // что страницы лежат рядом, а не поверх друг друга
-                        val offset = pagerState.pageOffset(page)
                         TabPage(
                             destination = Destination.bottomBar[page],
                             navController = navController,
                             modifier = Modifier.graphicsLayer {
+                                val offset = pagerState.pageOffset(page)
                                 if (reduceMotion) return@graphicsLayer
                                 translationX = -offset * size.width * PARALLAX_SHARE
                                 val scale = 1f - PARALLAX_SCALE * minOf(abs(offset), 1f)
@@ -414,6 +411,20 @@ private fun screenPopEnter(reduceMotion: Boolean) =
 private fun screenPopExit(reduceMotion: Boolean) =
     scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.94f) +
         fadeOut(tween(screenDuration(reduceMotion)))
+
+/**
+ * Динамическая иконка первой вкладки («Сегодня») в зависимости от времени суток:
+ * - ночью: полумесяц (Moon)
+ * - утром: восход солнца (Sunrise)
+ * - днем: солнце (Sun)
+ * - вечером: заход солнца (Sunset)
+ */
+fun todayAtmosphereIcon(hour: Int = java.time.LocalTime.now().hour): ImageVector = when (hour) {
+    in 5..8 -> AshIcons.Sunrise
+    in 9..17 -> AshIcons.Sun
+    in 18..21 -> AshIcons.Sunset
+    else -> AshIcons.Moon
+}
 
 /**
  * Вкладки нижней панели.

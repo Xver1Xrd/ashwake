@@ -89,6 +89,7 @@ data class TaskEntity(
     val projectId: Long? = null,
     val parentTaskId: Long? = null,
     val priority: String,
+    val difficulty: Int = 1,
     val dueDate: Int? = null,
     val dueTime: Int? = null,
     val estimateMinutes: Int? = null,

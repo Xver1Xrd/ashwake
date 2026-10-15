@@ -10,13 +10,14 @@ import dev.ashwake.core.time.AppClock
 import dev.ashwake.data.assets.TaskPreset
 import dev.ashwake.data.assets.TaskPresetLoader
 import dev.ashwake.domain.model.tasks.Project
-import dev.ashwake.domain.model.tasks.AttachmentKind
-import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
+import dev.ashwake.domain.model.tasks.AttachmentKind
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.repository.tasks.ProjectRepository
+import dev.ashwake.domain.repository.tasks.TagRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
 import dev.ashwake.domain.repository.tasks.TaskAttachmentRepository
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
@@ -24,14 +25,11 @@ import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -57,9 +55,12 @@ data class TaskEditorState(
     val note: String = "",
     val projectId: Long? = null,
     val priority: Priority = Priority.P4,
+    val difficulty: Int = 1,
     val dueDate: LocalDate? = null,
     val dueTime: LocalTime? = null,
     val estimateMinutes: Int? = null,
+    val estimateHours: String = "",
+    val estimateMinutesText: String = "",
     val tagsInput: String = "",
     val persistentReminderMinutes: Int? = null,
     val sourceLink: String? = null,
@@ -77,24 +78,24 @@ data class TaskEditorState(
     val isDone: Boolean = false,
     val loading: Boolean = true,
     val saved: Boolean = false,
-    val today: LocalDate = LocalDate.ofEpochDay(0),
-    val attachmentError: String? = null
+    val attachmentError: String? = null,
+    val today: LocalDate = LocalDate.ofEpochDay(0)
 ) {
     val canSave: Boolean get() = title.isNotBlank()
 }
 
 @HiltViewModel
-@OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorViewModel @Inject constructor(
     private val tasks: TaskRepository,
     private val projects: ProjectRepository,
+    private val tags: TagRepository,
     private val saveTask: SaveTaskUseCase,
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
-    private val taskAttachments: TaskAttachmentRepository,
     private val presetLoader: TaskPresetLoader,
     private val clock: AppClock,
+    private val taskAttachments: TaskAttachmentRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -103,18 +104,19 @@ class TaskEditorViewModel @Inject constructor(
     private val _state = MutableStateFlow(TaskEditorState(taskId = taskId, isNew = taskId == 0L))
     val state: StateFlow<TaskEditorState> = _state.asStateFlow()
 
-    val attachments: StateFlow<List<TaskAttachment>> = state
-        .map { it.taskId }
-        .distinctUntilChanged()
-        .flatMapLatest { id ->
-            if (id == 0L) flowOf(emptyList()) else taskAttachments.observe(id)
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
-
     private val _presets = MutableStateFlow<List<TaskPreset>>(emptyList())
     val presets: StateFlow<List<TaskPreset>> = _presets.asStateFlow()
 
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val availableTags: StateFlow<List<Tag>> = tags.observeTags()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val attachments: StateFlow<List<TaskAttachment>> = state
+        .flatMapLatest { current ->
+            if (current.taskId == 0L) flowOf(emptyList()) else taskAttachments.observe(current.taskId)
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Подзадачи, удалённые в редакторе: применяются одной пачкой при сохранении. */
@@ -143,6 +145,9 @@ class TaskEditorViewModel @Inject constructor(
         }
         val rule = task.recurrence
         val today = clock.today()
+        val est = task.estimateMinutes
+        val hours = if (est != null && est >= 60) (est / 60).toString() else ""
+        val mins = if (est != null && est % 60 > 0) (est % 60).toString() else if (est != null && est < 60) est.toString() else ""
         _state.value = TaskEditorState(
             taskId = task.id,
             title = task.title,
@@ -151,9 +156,12 @@ class TaskEditorViewModel @Inject constructor(
             note = task.note.orEmpty(),
             projectId = task.projectId,
             priority = task.priority,
+            difficulty = task.difficulty,
             dueDate = task.dueDate,
             dueTime = task.dueTime,
             estimateMinutes = task.estimateMinutes,
+            estimateHours = hours,
+            estimateMinutesText = mins,
             tagsInput = task.tags.joinToString(" ") { it.name },
             persistentReminderMinutes = task.persistentReminderMinutes,
             sourceLink = task.sourceLink,
@@ -178,10 +186,16 @@ class TaskEditorViewModel @Inject constructor(
 
     fun applyPreset(preset: TaskPreset) {
         _state.update { current ->
+            val est = preset.estimateMinutes
+            val hours = if (est != null && est >= 60) (est / 60).toString() else ""
+            val mins = if (est != null && est % 60 > 0) (est % 60).toString() else if (est != null && est < 60) est.toString() else ""
             current.copy(
                 title = preset.title,
                 priority = preset.priority,
+                difficulty = 1,
                 estimateMinutes = preset.estimateMinutes,
+                estimateHours = hours,
+                estimateMinutesText = mins,
                 subtasks = preset.subtasks.map { EditableSubtask(title = it) }
             )
         }
@@ -197,16 +211,66 @@ class TaskEditorViewModel @Inject constructor(
     fun setNote(value: String) = _state.update { it.copy(note = value) }
     fun setProject(id: Long?) = _state.update { it.copy(projectId = id) }
     fun setPriority(value: Priority) = _state.update { it.copy(priority = value) }
+    fun setDifficulty(value: Int) = _state.update { it.copy(difficulty = value.coerceIn(1, 5)) }
     fun setDate(value: LocalDate?) = _state.update { it.copy(dueDate = value) }
     fun setTagsInput(value: String) = _state.update { it.copy(tagsInput = value) }
     fun setSourceLink(value: String?) = _state.update { it.copy(sourceLink = value) }
+
+    fun appendTag(name: String) {
+        val clean = name.trim().removePrefix("#")
+        if (clean.isBlank()) return
+        _state.update { current ->
+            val existing = current.tagsInput.split(Regex("[\\s,]+"))
+                .map { it.trim().removePrefix("#") }
+                .filter { it.isNotBlank() }
+            if (existing.any { it.equals(clean, ignoreCase = true) }) current
+            else {
+                val newTags = if (current.tagsInput.isBlank()) "#$clean" else "${current.tagsInput.trim()} #$clean"
+                current.copy(tagsInput = newTags)
+            }
+        }
+    }
 
     /** Время без даты бессмысленно: молча подставляем сегодня. */
     fun setTime(value: LocalTime?) = _state.update {
         it.copy(dueTime = value, dueDate = it.dueDate ?: value?.let { _ -> clock.today() })
     }
 
-    fun setEstimate(minutes: Int?) = _state.update { it.copy(estimateMinutes = minutes) }
+    fun setEstimate(minutes: Int?) = _state.update {
+        val h = if (minutes != null && minutes >= 60) (minutes / 60).toString() else ""
+        val m = if (minutes != null && minutes % 60 > 0) (minutes % 60).toString() else if (minutes != null && minutes < 60) minutes.toString() else ""
+        it.copy(estimateMinutes = minutes, estimateHours = h, estimateMinutesText = m)
+    }
+
+    fun setEstimateHours(hoursText: String) {
+        val filtered = hoursText.filter { it.isDigit() }.take(2)
+        _state.update { current ->
+            val h = filtered.toIntOrNull() ?: 0
+            val m = current.estimateMinutesText.toIntOrNull() ?: 0
+            val total = if (h == 0 && m == 0 && filtered.isEmpty() && current.estimateMinutesText.isEmpty()) null else h * 60 + m
+            current.copy(
+                estimateHours = filtered,
+                estimateMinutes = total
+            )
+        }
+    }
+
+    fun setEstimateMinutesText(minutesText: String) {
+        val filtered = minutesText.filter { it.isDigit() }.take(2)
+        _state.update { current ->
+            val h = current.estimateHours.toIntOrNull() ?: 0
+            val m = filtered.toIntOrNull() ?: 0
+            val total = if (h == 0 && m == 0 && current.estimateHours.isEmpty() && filtered.isEmpty()) null else h * 60 + m
+            current.copy(
+                estimateMinutesText = filtered,
+                estimateMinutes = total
+            )
+        }
+    }
+
+    fun clearEstimate() {
+        _state.update { it.copy(estimateHours = "", estimateMinutesText = "", estimateMinutes = null) }
+    }
 
     fun setPersistentReminder(minutes: Int?) =
         _state.update { it.copy(persistentReminderMinutes = minutes) }
@@ -238,6 +302,26 @@ class TaskEditorViewModel @Inject constructor(
         _state.update { it.copy(subtasks = it.subtasks + EditableSubtask(title = title.trim())) }
     }
 
+    fun editSubtask(index: Int, newTitle: String) {
+        if (newTitle.isBlank()) return
+        _state.update { current ->
+            val updated = current.subtasks.mapIndexed { i, subtask ->
+                if (i == index) subtask.copy(title = newTitle.trim()) else subtask
+            }
+            current.copy(subtasks = updated)
+        }
+    }
+
+    fun duplicateSubtask(index: Int) {
+        _state.update { current ->
+            val subtask = current.subtasks.getOrNull(index) ?: return@update current
+            val copy = EditableSubtask(id = 0, title = subtask.title, done = false)
+            val list = current.subtasks.toMutableList()
+            list.add(index + 1, copy)
+            current.copy(subtasks = list)
+        }
+    }
+
     fun removeSubtask(index: Int) {
         _state.update { current ->
             val target = current.subtasks.getOrNull(index) ?: return@update current
@@ -264,7 +348,6 @@ class TaskEditorViewModel @Inject constructor(
         viewModelScope.launch {
             saveMutex.withLock {
                 val savedId = saveMainTask(current)
-                applySubtasks(savedId, current.subtasks)
                 _state.update { it.copy(saved = true, taskId = savedId, isNew = false) }
             }
         }
@@ -273,59 +356,50 @@ class TaskEditorViewModel @Inject constructor(
     private suspend fun saveMainTask(current: TaskEditorState): Long {
         val existing = if (current.taskId != 0L) tasks.getTask(current.taskId) else null
         val task = (existing ?: Task(title = "")).copy(
-            id = current.taskId,
-            title = current.title.trim(),
-            emoji = current.emoji,
-            iconPath = current.iconPath,
-            note = current.note.takeIf { it.isNotBlank() },
-            projectId = current.projectId,
-            priority = current.priority,
-            dueDate = current.dueDate,
-            dueTime = current.dueTime,
-            estimateMinutes = current.estimateMinutes,
-            persistentReminderMinutes = current.persistentReminderMinutes,
-            sourceLink = current.sourceLink,
-            tags = parseTags(current.tagsInput),
-            recurrence = buildRecurrence(current)
+                id = current.taskId,
+                title = current.title.trim(),
+                emoji = current.emoji,
+                iconPath = current.iconPath,
+                note = current.note.takeIf { it.isNotBlank() },
+                projectId = current.projectId,
+                priority = current.priority,
+                difficulty = current.difficulty,
+                dueDate = current.dueDate,
+                dueTime = current.dueTime,
+                estimateMinutes = current.estimateMinutes,
+                persistentReminderMinutes = current.persistentReminderMinutes,
+                sourceLink = current.sourceLink,
+                tags = parseTags(current.tagsInput),
+                recurrence = buildRecurrence(current)
         )
         val savedId = saveTask(task)
-        _state.update {
-            it.copy(
-                taskId = savedId,
-                isNew = false,
-                attachmentError = null
-            )
-        }
+        applySubtasks(savedId, current.subtasks)
+        _state.update { it.copy(taskId = savedId, isNew = false, attachmentError = null) }
         return savedId
     }
 
     fun addAttachments(sourceUris: List<String>, kind: AttachmentKind) {
         if (sourceUris.isEmpty()) return
         viewModelScope.launch {
-            runCatching {
+            val error = runCatching {
                 saveMutex.withLock {
                     val current = _state.value
                     require(current.canSave) { "Сначала укажите название задачи" }
                     val id = saveMainTask(current)
-                    applySubtasks(id, current.subtasks)
-                    sourceUris.forEach { uri -> taskAttachments.add(id, uri, kind) }
+                    sourceUris.forEach { source -> taskAttachments.add(id, source, kind) }
                 }
-            }.onFailure { error ->
-                _state.update {
-                    it.copy(attachmentError = error.message ?: "Не удалось прикрепить файл")
-                }
-            }
+            }.exceptionOrNull()
+            error?.let { _state.update { state ->
+                state.copy(attachmentError = it.message ?: "Не удалось прикрепить файл")
+            } }
         }
     }
 
     fun deleteAttachment(id: Long) {
         viewModelScope.launch {
-            runCatching { taskAttachments.delete(id) }
-                .onFailure { error ->
-                    _state.update {
-                        it.copy(attachmentError = error.message ?: "Не удалось удалить вложение")
-                    }
-                }
+            runCatching { taskAttachments.delete(id) }.exceptionOrNull()?.let { error ->
+                _state.update { it.copy(attachmentError = error.message ?: "Не удалось удалить вложение") }
+            }
         }
     }
 
@@ -340,10 +414,13 @@ class TaskEditorViewModel @Inject constructor(
         val newTitles = subtasks.filter { it.id == 0L }.map { it.title }
         if (newTitles.isNotEmpty()) tasks.addSubtasks(parentId, newTitles)
 
-        // Существующие подзадачи: применяем только изменившийся статус
+        // Существующие подзадачи: применяем изменившееся название и статус
         val stored = tasks.getTask(parentId)?.subtasks.orEmpty().associateBy { it.id }
         subtasks.filter { it.id != 0L }.forEach { edited ->
             val before = stored[edited.id] ?: return@forEach
+            if (before.title != edited.title) {
+                tasks.upsert(before.copy(title = edited.title))
+            }
             if (before.isDone != edited.done) {
                 if (edited.done) completeTask(edited.id) else reopenTask(edited.id)
             }

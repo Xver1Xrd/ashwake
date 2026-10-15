@@ -3,6 +3,8 @@ package dev.ashwake.ui.tasks.components
 import dev.ashwake.R
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,7 +74,13 @@ fun QuickAddBar(
             .fillMaxWidth()
             .imePadding()
             .navigationBarsPadding()
-            .background(colors.surface1, AshShapes.sheetTop)
+            .clip(AshShapes.sheetTop)
+            .background(colors.surface1)
+            .border(
+                width = if (colors.isDark) 0.dp else 0.75.dp,
+                color = if (colors.isDark) Color.Transparent else colors.surface3,
+                shape = AshShapes.sheetTop
+            )
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         if (parsed != null && parsed.hasAnyMarkup) {
@@ -85,7 +93,7 @@ fun QuickAddBar(
             AshTextField(
                 value = value,
                 onValueChange = onValueChange,
-                placeholder = "Новая задача...",
+                placeholder = "Новая задача:",
                 singleLine = true,
                 modifier = Modifier.weight(1f)
             )
@@ -138,13 +146,20 @@ private fun ParsedChips(parsed: ParsedQuickInput) {
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
             .padding(bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
+        parsed.emoji?.let { Chip(it) }
         parsed.date?.let { Chip(it.format(DATE_FORMAT)) }
         parsed.time?.let { Chip(dev.ashwake.ui.theme.formatTime(it, is24Hour)) }
         parsed.priority?.let { Chip(it.colorTitle, colors.priorityColor(it)) }
-        parsed.estimateMinutes?.let { Chip(stringResource(R.string.components_1_s_min, it)) }
+        parsed.difficulty?.let { Chip("Сложность $it", difficultyColor(it, colors)) }
+        parsed.estimateMinutes?.let { Chip(formatEstimateRu(it)) }
+        parsed.projectName?.let { Chip("@$it", colors.accent) }
         parsed.tagNames.forEach { Chip("#$it") }
+        if (parsed.subtasks.isNotEmpty()) {
+            Chip("${parsed.subtasks.size} подзадач", colors.cold)
+        }
     }
 }
 

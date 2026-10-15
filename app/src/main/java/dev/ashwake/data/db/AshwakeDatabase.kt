@@ -165,7 +165,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
          * миграций с последней выгруженной схемой, и без имени сверять было
          * бы нечего.
          */
-        const val VERSION = 6
+        const val VERSION = 7
 
         /**
          * 1 → 2: у якоря появился день последнего срабатывания.
@@ -269,7 +269,21 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
+        /** 6 → 7: сложность задачи из ПК-версии. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN difficulty INTEGER NOT NULL DEFAULT 1")
+            }
+        }
+
         val MIGRATIONS: Array<Migration> =
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            arrayOf(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7
+            )
     }
 }

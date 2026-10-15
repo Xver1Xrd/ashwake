@@ -46,6 +46,8 @@ data class TodayUiState(
     val tasks: List<Task> = emptyList(),
     val habits: List<HabitWithProgress> = emptyList(),
     val abstinences: List<AbstinenceWithStats> = emptyList(),
+    val activeYesterday: Boolean = false,
+    val activeTwoDaysAgo: Boolean = false,
     /** Первый запрос к базе ещё не вернулся: показываем заготовку, а не пустоту. */
     val loading: Boolean = true
 ) {
@@ -76,20 +78,23 @@ data class TodayUiState(
 
     /**
      * Уровень огонька активности:
-     * Высокая активность -> BLAZING.
-     * Умеренная -> BURNING.
-     * Затухает -> EMBER / DIM.
-     * Заброшено -> ASH (пепел).
-     * При возвращении огонёк возрождается в обратном порядке.
+     * Огонёк угасает за 1 день бездействия (DIM), затем гаснет (ASH).
+     * Восстанавливается за 3 дня непрерывной активности (EMBER -> BURNING -> BLAZING).
      */
     val flameLevel: FlameLevel
         get() {
-            val maxStreak = habits.maxOfOrNull { it.currentStreak } ?: 0
+            val hasActivityToday = doneCount > 0
+            val maxHabitStreak = habits.maxOfOrNull { it.currentStreak } ?: 0
+            val effectiveYesterday = activeYesterday || maxHabitStreak >= 1
+            val effectiveTwoDaysAgo = activeTwoDaysAgo || maxHabitStreak >= 2
+
             return when {
-                doneCount >= 3 || (doneCount >= 1 && maxStreak >= 3) -> FlameLevel.BLAZING
-                doneCount in 1..2 || maxStreak in 1..2 -> FlameLevel.BURNING
-                maxStreak > 0 || tasks.any { it.isDone } -> FlameLevel.EMBER
-                habits.any { it.score > 0.2f } -> FlameLevel.DIM
+                hasActivityToday -> when {
+                    effectiveYesterday && effectiveTwoDaysAgo -> FlameLevel.BLAZING
+                    effectiveYesterday -> FlameLevel.BURNING
+                    else -> FlameLevel.EMBER
+                }
+                effectiveYesterday -> FlameLevel.DIM
                 else -> FlameLevel.ASH
             }
         }
@@ -119,18 +124,27 @@ class TodayViewModel @Inject constructor(
     private val _selectedDate = MutableStateFlow(clock.today())
 
     val state: StateFlow<TodayUiState> = _selectedDate.flatMapLatest { selDate ->
+        val today = clock.today()
+        val yesterday = today.minusDays(1)
+        val twoDaysAgo = today.minusDays(2)
         combine(
             habits.observeHabitsWithProgress(selDate),
             tasks.observeTasksForDay(selDate),
+            tasks.observeTasksInRange(twoDaysAgo, today, includeDone = true),
             minuteTicker.flatMapLatest { now -> abstinences.observeAll(now) }
-        ) { habitList, taskList, abstinenceList ->
+        ) { habitList, taskList, recentTasks, abstinenceList ->
+            val activeYesterday = recentTasks.any { it.isDone && it.dueDate == yesterday }
+            val activeTwoDaysAgo = recentTasks.any { it.isDone && it.dueDate == twoDaysAgo }
+
             TodayUiState(
                 loading = false,
-                today = clock.today(),
+                today = today,
                 selectedDate = selDate,
                 tasks = taskList,
                 habits = habitList.filter { it.dueToday && !it.paused },
-                abstinences = abstinenceList.filterNot { it.abstinence.archived }
+                abstinences = abstinenceList.filterNot { it.abstinence.archived },
+                activeYesterday = activeYesterday,
+                activeTwoDaysAgo = activeTwoDaysAgo
             )
         }
     }.stateIn(
@@ -213,6 +227,18 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             if (task.isDone) reopenTask(task.id) else completeTask(task.id)
         }
+    }
+
+    fun deleteTask(id: Long) {
+        viewModelScope.launch { tasks.delete(id) }
+    }
+
+    fun deleteHabit(id: Long) {
+        viewModelScope.launch { habits.archiveHabit(id) }
+    }
+
+    fun deleteAbstinence(id: Long) {
+        viewModelScope.launch { abstinences.archive(id) }
     }
 
     fun reorderHabits(fromIndex: Int, toIndex: Int) {

@@ -26,10 +26,26 @@ fun currentAtmosphere(time: LocalTime = LocalTime.now()): DayAtmosphere = when (
 @Composable
 fun rememberAtmosphereGradient(colors: AshColors, atmosphere: DayAtmosphere): Brush {
     val (c1, c2) = when (atmosphere) {
-        DayAtmosphere.DAWN -> Color(0xFF28233C) to Color(0xFF1E2838)
-        DayAtmosphere.DAY -> colors.accent.copy(alpha = 0.18f) to colors.surface2
-        DayAtmosphere.SUNSET -> Color(0xFF381F28) to Color(0xFF281C32)
-        DayAtmosphere.NIGHT -> Color(0xFF131728) to Color(0xFF111422)
+        DayAtmosphere.DAWN -> if (colors.isDark) {
+            Color(0xFF28233C) to Color(0xFF1E2838)
+        } else {
+            Color(0xFFF1EAFF) to Color(0xFFE0F2FE)
+        }
+        DayAtmosphere.DAY -> if (colors.isDark) {
+            colors.accent.copy(alpha = 0.18f) to colors.surface2
+        } else {
+            colors.accent.copy(alpha = 0.10f) to Color(0xFFF3F4F9)
+        }
+        DayAtmosphere.SUNSET -> if (colors.isDark) {
+            Color(0xFF381F28) to Color(0xFF281C32)
+        } else {
+            Color(0xFFFFEDD5) to Color(0xFFFCE7F3)
+        }
+        DayAtmosphere.NIGHT -> if (colors.isDark) {
+            Color(0xFF131728) to Color(0xFF111422)
+        } else {
+            Color(0xFFEDE9FE) to Color(0xFFE2E8F0)
+        }
     }
 
     val animC1 by animateColorAsState(targetValue = c1, animationSpec = tween(1000), label = "c1")

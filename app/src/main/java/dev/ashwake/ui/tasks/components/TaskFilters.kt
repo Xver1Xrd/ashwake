@@ -30,43 +30,36 @@ import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.Tag
+import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.repository.tasks.TaskFilter
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 
 /**
- * Строка фильтров над списком: выполненные, проекты, теги.
- * Проекты и теги в одной ленте намеренно — это один и тот же жест
- * «сузить список», разделять их на два ряда незачем.
+ * Строка фильтров над списком: только выполненные и теги, указанные в задачах.
  */
 @Composable
 fun TaskFilterRow(
     filter: TaskFilter,
-    smartFilter: dev.ashwake.ui.tasks.SmartFilter,
-    projects: List<Project>,
+    tasks: List<Task>,
     tags: List<Tag>,
     onToggleDone: () -> Unit,
-    onSmartFilterSelected: (dev.ashwake.ui.tasks.SmartFilter) -> Unit,
-    onProjectSelected: (Long?) -> Unit,
     onTagSelected: (Long?) -> Unit,
-    onManageProjects: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val usedTagIds = remember(tasks) {
+        tasks.flatMap { it.tags }.map { it.id }.toSet()
+    }
+    val relevantTags = remember(tags, usedTagIds) {
+        tags.filter { it.id in usedTagIds }
+    }
+
     LazyRow(
         modifier = modifier.fillMaxWidth(),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Смарт-фильтры
-        items(dev.ashwake.ui.tasks.SmartFilter.entries.toTypedArray(), key = { "smart-${it.name}" }) { sf ->
-            ChipButton(
-                text = sf.title,
-                selected = smartFilter == sf,
-                onClick = { onSmartFilterSelected(sf) }
-            )
-        }
-
         item {
             ChipButton(
                 text = stringResource(R.string.components_vypolnennye),
@@ -74,27 +67,11 @@ fun TaskFilterRow(
                 onClick = onToggleDone
             )
         }
-        items(projects, key = { "p${it.id}" }) { project ->
-            ChipButton(
-                text = project.name,
-                selected = filter.projectId == project.id,
-                onClick = {
-                    onProjectSelected(if (filter.projectId == project.id) null else project.id)
-                }
-            )
-        }
-        items(tags, key = { "t${it.id}" }) { tag ->
+        items(relevantTags, key = { "t${it.id}" }) { tag ->
             ChipButton(
                 text = "#${tag.name}",
                 selected = filter.tagId == tag.id,
                 onClick = { onTagSelected(if (filter.tagId == tag.id) null else tag.id) }
-            )
-        }
-        item {
-            AssistChip(
-                onClick = onManageProjects,
-                label = { Text(stringResource(R.string.components_proekty)) },
-                leadingIcon = { Icon(Icons.Filled.Add, contentDescription = null) }
             )
         }
     }

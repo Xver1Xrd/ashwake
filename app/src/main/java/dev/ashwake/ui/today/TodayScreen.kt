@@ -3,6 +3,7 @@ package dev.ashwake.ui.today
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -235,7 +236,8 @@ fun TodayScreen(
                                         viewModel.undoPostpone(task.id)
                                     }
                                 },
-                                onOpen = { onOpenTask(task.id) }
+                                onOpen = { onOpenTask(task.id) },
+                                onDelete = { viewModel.deleteTask(task.id) }
                             )
                         }
                     }
@@ -258,7 +260,8 @@ fun TodayScreen(
                                     onOpen = { onOpenHabit(progress.habit.id) },
                                     onCounterClick = { counterDialogTarget = progress },
                                     onMoveUp = if (index > 0) { { viewModel.reorderHabits(index, index - 1) } } else null,
-                                    onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null
+                                    onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null,
+                                    onDelete = { viewModel.deleteHabit(progress.habit.id) }
                                 )
                                 if (index != state.habits.lastIndex) {
                                     ListDivider(56.dp)
@@ -280,7 +283,8 @@ fun TodayScreen(
                         ) { item ->
                             AbstinenceTodayRow(
                                 item = item,
-                                onOpen = { onOpenAbstinence(item.abstinence.id) }
+                                onOpen = { onOpenAbstinence(item.abstinence.id) },
+                                onDelete = { viewModel.deleteAbstinence(item.abstinence.id) }
                             )
                         }
                     }
@@ -333,7 +337,13 @@ private fun TodaySummaryCard(
     Box(
         modifier
             .fillMaxWidth()
-            .background(gradient, AshShapes.sheet)
+            .clip(AshShapes.sheet)
+            .background(gradient)
+            .border(
+                width = if (colors.isDark) 0.dp else 0.75.dp,
+                color = if (colors.isDark) androidx.compose.ui.graphics.Color.Transparent else colors.surface3,
+                shape = AshShapes.sheet
+            )
             .padding(18.dp)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -400,6 +410,15 @@ private fun TodaySummaryCard(
             ) {
                 if (progress > 0f) {
                     val baseColor = if (isCompleted) colors.success else colors.accent
+                    val shimmerColors = remember(baseColor) {
+                        listOf(
+                            baseColor,
+                            baseColor,
+                            Color.White.copy(alpha = 0.75f),
+                            baseColor,
+                            baseColor
+                        )
+                    }
                     Box(
                         Modifier
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
@@ -409,13 +428,7 @@ private fun TodaySummaryCard(
                                 val phase = shimmerPhase.value
                                 val width = size.width
                                 val shimmerBrush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        baseColor,
-                                        baseColor,
-                                        Color.White.copy(alpha = 0.75f),
-                                        baseColor,
-                                        baseColor
-                                    ),
+                                    colors = shimmerColors,
                                     startX = phase * (width + 400f) - 200f,
                                     endX = phase * (width + 400f) + 200f
                                 )
@@ -425,8 +438,6 @@ private fun TodaySummaryCard(
                 }
             }
         }
-
-        CelebrationParticles(trigger = isCompleted)
     }
 }
 

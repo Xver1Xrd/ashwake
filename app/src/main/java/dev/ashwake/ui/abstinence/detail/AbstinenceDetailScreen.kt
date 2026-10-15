@@ -194,14 +194,6 @@ fun AbstinenceDetailScreen(
                     viewModel.finishCraving(resisted, duration, note)
                     showCraving = false
                 },
-                onRelapse = { duration, note ->
-                    // Тяга закрывается как непреодолённая, а сам срыв
-                    // отмечается отдельно и с подтверждением: одно нажатие
-                    // не должно обнулять три месяца
-                    viewModel.finishCraving(false, duration, note)
-                    showCraving = false
-                    showRelapse = true
-                },
                 onDismiss = {
                     viewModel.cancelCraving()
                     showCraving = false

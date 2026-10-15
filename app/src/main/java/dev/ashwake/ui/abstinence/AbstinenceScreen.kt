@@ -38,6 +38,8 @@ import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.EmptyState
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ScreenPadding
+import dev.ashwake.ui.components.TextAction
+import androidx.compose.material3.AlertDialog
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
@@ -60,6 +62,7 @@ fun AbstinenceScreen(
     val items by viewModel.items.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
     var showCreate by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<dev.ashwake.domain.model.abstinence.Abstinence?>(null) }
 
     Box(
         Modifier
@@ -180,12 +183,36 @@ fun AbstinenceScreen(
                                 title = stringResource(R.string.blocking_udalit),
                                 icon = AshIcons.Trash,
                                 isDestructive = true,
-                                onClick = { viewModel.archive(item.abstinence.id) }
+                                onClick = { itemToDelete = item.abstinence }
                             )
                         )
                     )
                 }
             }
+        }
+
+        itemToDelete?.let { target ->
+            AlertDialog(
+                onDismissRequest = { itemToDelete = null },
+                title = { Text("Удалить отказ?") },
+                text = { Text("Счётчик отказа «${target.name}» будет удалён.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            viewModel.archive(target.id)
+                            itemToDelete = null
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { itemToDelete = null }
+                    )
+                }
+            )
         }
 
         if (showCreate) {

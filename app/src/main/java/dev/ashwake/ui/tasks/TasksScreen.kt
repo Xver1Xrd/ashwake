@@ -54,6 +54,13 @@ import dev.ashwake.ui.tasks.components.SubtaskList
 import dev.ashwake.ui.tasks.components.TaskDayHeader
 import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
+import androidx.compose.foundation.layout.navigationBarsPadding
+import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.SecondaryButton
+import dev.ashwake.ui.components.TextAction
+import androidx.compose.material3.AlertDialog
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 
@@ -74,6 +81,14 @@ fun TasksScreen(
     val toast = rememberToastState()
     val postponedText = stringResource(R.string.toast_postponed)
     val undoText = stringResource(R.string.toast_undo)
+    var isSelectionMode by remember { mutableStateOf(false) }
+    var selectedTaskIds by remember { mutableStateOf(setOf<Long>()) }
+    var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
+
+    androidx.activity.compose.BackHandler(enabled = isSelectionMode) {
+        isSelectionMode = false
+        selectedTaskIds = emptySet()
+    }
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
     // а не при запуске приложения
@@ -86,57 +101,123 @@ fun TasksScreen(
         containerColor = AshTheme.colors.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         topBar = {
-            AshLargeTitle(
-                title = stringResource(R.string.tasks_zadachi),
-                actions = {
-                    IconAction(
-                        icon = AshIcons.Moon,
-                        contentDescription = stringResource(R.string.ritual_vecherniy_ritual),
-                        tint = AshTheme.colors.text2,
-                        onClick = onOpenRitual
-                    )
-                    IconAction(
-                        icon = AshIcons.BarChart,
-                        contentDescription = stringResource(R.string.stats_statistika),
-                        tint = AshTheme.colors.text2,
-                        onClick = onOpenStats
-                    )
-                    IconAction(
-                        icon = AshIcons.Hourglass,
-                        contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
-                        tint = if (state.filter.onlyStale) AshTheme.colors.accent
-                        else AshTheme.colors.text2,
-                        onClick = viewModel::toggleStaleFilter
-                    )
-                    IconAction(
-                        icon = when (state.viewMode) {
-                            TasksViewMode.LIST -> AshIcons.GridView
-                            TasksViewMode.MATRIX -> AshIcons.CalendarMonth
-                            TasksViewMode.CALENDAR -> AshIcons.ViewTimeline
-                            TasksViewMode.TIMEBOX -> AshIcons.ListIcon
-                        },
-                        contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya),
-                        tint = AshTheme.colors.text2,
-                        onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }
-                    )
-                }
-            )
+            if (isSelectionMode) {
+                AshLargeTitle(
+                    title = "Выбрано: ${selectedTaskIds.size}",
+                    actions = {
+                        TextAction(
+                            text = if (selectedTaskIds.size == state.tasks.size && state.tasks.isNotEmpty()) "Снять" else "Все",
+                            onClick = {
+                                selectedTaskIds = if (selectedTaskIds.size == state.tasks.size) {
+                                    emptySet()
+                                } else {
+                                    state.tasks.map { it.id }.toSet()
+                                }
+                            }
+                        )
+                        TextAction(
+                            text = "Готово",
+                            onClick = {
+                                isSelectionMode = false
+                                selectedTaskIds = emptySet()
+                            }
+                        )
+                    }
+                )
+            } else {
+                AshLargeTitle(
+                    title = stringResource(R.string.tasks_zadachi),
+                    actions = {
+                        IconAction(
+                            icon = AshIcons.Export,
+                            contentDescription = "Выбрать и поделиться",
+                            tint = AshTheme.colors.text2,
+                            onClick = { isSelectionMode = true }
+                        )
+                        IconAction(
+                            icon = AshIcons.Moon,
+                            contentDescription = stringResource(R.string.ritual_vecherniy_ritual),
+                            tint = AshTheme.colors.text2,
+                            onClick = onOpenRitual
+                        )
+                        IconAction(
+                            icon = AshIcons.BarChart,
+                            contentDescription = stringResource(R.string.stats_statistika),
+                            tint = AshTheme.colors.text2,
+                            onClick = onOpenStats
+                        )
+                        IconAction(
+                            icon = AshIcons.Hourglass,
+                            contentDescription = stringResource(R.string.tasks_zalezhavshiesya),
+                            tint = if (state.filter.onlyStale) AshTheme.colors.accent
+                            else AshTheme.colors.text2,
+                            onClick = viewModel::toggleStaleFilter
+                        )
+                        IconAction(
+                            icon = when (state.viewMode) {
+                                TasksViewMode.LIST -> AshIcons.GridView
+                                TasksViewMode.MATRIX -> AshIcons.CalendarMonth
+                                TasksViewMode.CALENDAR -> AshIcons.ViewTimeline
+                                TasksViewMode.TIMEBOX -> AshIcons.ListIcon
+                            },
+                            contentDescription = stringResource(R.string.tasks_rezhim_otobrazheniya),
+                            tint = AshTheme.colors.text2,
+                            onClick = { viewModel.setViewMode(nextMode(state.viewMode)) }
+                        )
+                    }
+                )
+            }
         },
         bottomBar = {
-            QuickAddBar(
-                value = state.quickInput,
-                parsed = state.parsed,
-                onValueChange = viewModel::onQuickInputChange,
-                onSubmit = viewModel::submitQuickInput,
-                listening = voice is VoiceResult.Listening || voice is VoiceResult.Partial,
-                onVoiceClick = {
-                    val granted = ContextCompat.checkSelfPermission(
-                        context, Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                    if (granted) viewModel.startVoiceInput()
-                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+            if (isSelectionMode) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AshTheme.colors.surface1)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .navigationBarsPadding(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SecondaryButton(
+                        text = "Удалить (${selectedTaskIds.size})",
+                        enabled = selectedTaskIds.isNotEmpty(),
+                        onClick = { showDeleteSelectedConfirm = true },
+                        modifier = Modifier.weight(1f)
+                    )
+                    PrimaryButton(
+                        text = "Поделиться (${selectedTaskIds.size})",
+                        enabled = selectedTaskIds.isNotEmpty(),
+                        onClick = {
+                            val selectedTasks = state.tasks.filter { it.id in selectedTaskIds }
+                            val dateText = state.today.format(DateTimeFormatter.ofPattern("d MMMM", Locale("ru")))
+                            viewModel.shareTasksAsImage(selectedTasks, "Задачи · $dateText") { shareIntent ->
+                                context.startActivity(
+                                    android.content.Intent.createChooser(shareIntent, "Поделиться задачами")
+                                )
+                                isSelectionMode = false
+                                selectedTaskIds = emptySet()
+                            }
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-            )
+            } else {
+                QuickAddBar(
+                    value = state.quickInput,
+                    parsed = state.parsed,
+                    onValueChange = viewModel::onQuickInputChange,
+                    onSubmit = viewModel::submitQuickInput,
+                    listening = voice is VoiceResult.Listening || voice is VoiceResult.Partial,
+                    onVoiceClick = {
+                        val granted = ContextCompat.checkSelfPermission(
+                            context, Manifest.permission.RECORD_AUDIO
+                        ) == PackageManager.PERMISSION_GRANTED
+                        if (granted) viewModel.startVoiceInput()
+                        else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                )
+            }
         }
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -144,14 +225,10 @@ fun TasksScreen(
             if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
-                    smartFilter = state.smartFilter,
-                    projects = state.projects,
+                    tasks = state.tasks,
                     tags = state.tags,
                     onToggleDone = viewModel::toggleShowDone,
-                    onSmartFilterSelected = viewModel::setSmartFilter,
-                    onProjectSelected = viewModel::setProjectFilter,
                     onTagSelected = viewModel::setTagFilter,
-                    onManageProjects = { showProjects = true },
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
@@ -202,7 +279,23 @@ fun TasksScreen(
                                         },
                                         onClick = { onOpenTask(task.id) },
                                         expanded = task.id in state.expandedTaskIds,
-                                        onExpandToggle = { viewModel.toggleExpanded(task.id) }
+                                        onExpandToggle = { viewModel.toggleExpanded(task.id) },
+                                        selectionMode = isSelectionMode,
+                                        selected = task.id in selectedTaskIds,
+                                        onSelectToggle = {
+                                            selectedTaskIds = if (task.id in selectedTaskIds) {
+                                                selectedTaskIds - task.id
+                                            } else {
+                                                selectedTaskIds + task.id
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!isSelectionMode) {
+                                                isSelectionMode = true
+                                                selectedTaskIds = setOf(task.id)
+                                            }
+                                        },
+                                        onDelete = { viewModel.delete(task) }
                                     )
                                     if (task.id in state.expandedTaskIds) {
                                         SubtaskList(
@@ -240,6 +333,34 @@ fun TasksScreen(
                         onCreate = viewModel::createProject,
                         onArchive = viewModel::archiveProject,
                         onDismiss = { showProjects = false }
+                    )
+                }
+
+                if (showDeleteSelectedConfirm) {
+                    AlertDialog(
+                        onDismissRequest = { showDeleteSelectedConfirm = false },
+                        title = { Text("Удалить выбранные задачи?") },
+                        text = { Text("Будет удалено задач: ${selectedTaskIds.size}. Вы уверены?") },
+                        confirmButton = {
+                            TextAction(
+                                text = stringResource(R.string.blocking_udalit),
+                                color = AshTheme.colors.danger,
+                                onClick = {
+                                    val count = selectedTaskIds.size
+                                    viewModel.deleteTasks(selectedTaskIds)
+                                    isSelectionMode = false
+                                    selectedTaskIds = emptySet()
+                                    showDeleteSelectedConfirm = false
+                                    toast.show("Удалено задач: $count")
+                                }
+                            )
+                        },
+                        dismissButton = {
+                            TextAction(
+                                text = stringResource(R.string.detail_otmena),
+                                onClick = { showDeleteSelectedConfirm = false }
+                            )
+                        }
                     )
                 }
             }

@@ -166,6 +166,7 @@ fun HabitsScreen(
                 onEdit = { sheetTarget = null; onOpenHabit(target.habit.id) },
                 onArchive = { viewModel.archive(target); sheetTarget = null },
                 onClear = { viewModel.clearMark(target); sheetTarget = null },
+                onDelete = { viewModel.archive(target); sheetTarget = null },
                 onDismiss = { sheetTarget = null }
             )
         }

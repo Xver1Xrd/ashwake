@@ -2,6 +2,7 @@ package dev.ashwake.ui.habits.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -66,6 +67,11 @@ fun HabitCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(AshTheme.colors.surface1)
+            .border(
+                width = if (AshTheme.colors.isDark) 0.dp else 0.75.dp,
+                color = if (AshTheme.colors.isDark) Color.Transparent else AshTheme.colors.surface3,
+                shape = RoundedCornerShape(12.dp)
+            )
             .combinedClickable(onClick = onOpenDetail, onLongClick = onLongClick)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

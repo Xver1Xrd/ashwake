@@ -1,9 +1,19 @@
 package dev.ashwake.ui.today
 
+import androidx.compose.material3.AlertDialog
+import dev.ashwake.ui.components.TextAction
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import dev.ashwake.ui.theme.HapticKind
+import dev.ashwake.ui.theme.rememberHaptics
 import androidx.compose.ui.res.stringResource
+import dev.ashwake.ui.tasks.components.DifficultyDots
+import dev.ashwake.ui.tasks.components.formatEstimateRu
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -19,8 +29,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,10 +96,12 @@ fun HabitTodayRow(
     onCounterClick: (() -> Unit)? = null,
     onMoveUp: (() -> Unit)? = null,
     onMoveDown: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var markCenter by remember { mutableStateOf(Offset.Zero) }
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val habit = progress.habit
 
@@ -211,9 +225,41 @@ fun HabitTodayRow(
                         icon = AshIcons.ExpandMore,
                         onClick = it
                     )
+                },
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
                 }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить привычку?") },
+                text = { Text("Привычка «${habit.name}» будет удалена из списка.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -320,6 +366,7 @@ fun TaskTodayRow(
     onToggle: (from: Offset) -> Unit,
     onPostpone: () -> Unit,
     onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // Точка, из которой вылетает монета. Свайп тоже закрывает задачу,
@@ -328,21 +375,40 @@ fun TaskTodayRow(
     val complete by rememberUpdatedState { onToggle(markCenter) }
     val postpone by rememberUpdatedState(onPostpone)
 
+    val dismissStateHolder = remember { arrayOf<SwipeToDismissBoxState?>(null) }
     val dismissState = rememberSwipeToDismissBoxState(
+        positionalThreshold = { distance -> distance * 0.50f },
         confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> complete()
-                SwipeToDismissBoxValue.EndToStart -> postpone()
-                SwipeToDismissBoxValue.Settled -> Unit
+            val progress = dismissStateHolder[0]?.progress ?: 0f
+            if (progress >= 0.50f) {
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> complete()
+                    SwipeToDismissBoxValue.EndToStart -> postpone()
+                    SwipeToDismissBoxValue.Settled -> Unit
+                }
             }
             false
         }
     )
+    dismissStateHolder[0] = dismissState
+
+    val haptics = rememberHaptics()
+    val reachedThreshold = dismissState.progress >= 0.50f
+    LaunchedEffect(reachedThreshold) {
+        if (reachedThreshold && dismissState.currentValue == SwipeToDismissBoxValue.Settled) {
+            haptics.play(HapticKind.LIGHT)
+        }
+    }
 
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
-        backgroundContent = { SwipeHint(dismissState.dismissDirection) },
+        backgroundContent = {
+            SwipeHint(
+                direction = dismissState.dismissDirection,
+                reachedThreshold = reachedThreshold
+            )
+        },
         content = {
             TaskTodayRowContent(
                 task = task,
@@ -350,7 +416,8 @@ fun TaskTodayRow(
                 onToggle = { onToggle(markCenter) },
                 onPostpone = onPostpone,
                 onMarkPositioned = { markCenter = it },
-                onOpen = onOpen
+                onOpen = onOpen,
+                onDelete = onDelete
             )
         }
     )
@@ -358,7 +425,10 @@ fun TaskTodayRow(
 
 /** Подложка под уезжающей строкой: цвет и значок того, что произойдёт. */
 @Composable
-private fun SwipeHint(direction: SwipeToDismissBoxValue) {
+private fun SwipeHint(
+    direction: SwipeToDismissBoxValue,
+    reachedThreshold: Boolean = false
+) {
     val colors = AshTheme.colors
     val (color, icon, alignment) = when (direction) {
         SwipeToDismissBoxValue.StartToEnd ->
@@ -375,7 +445,7 @@ private fun SwipeHint(direction: SwipeToDismissBoxValue) {
         Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .background(color)
+            .background(if (reachedThreshold) color else color.copy(alpha = 0.55f))
             .padding(horizontal = 24.dp),
         contentAlignment = alignment
     ) {
@@ -384,7 +454,13 @@ private fun SwipeHint(direction: SwipeToDismissBoxValue) {
                 icon,
                 contentDescription = null,
                 tint = if (colors.isDark) Color.Black else Color.White,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier
+                    .size(20.dp)
+                    .graphicsLayer {
+                        scaleX = if (reachedThreshold) 1.2f else 0.85f
+                        scaleY = if (reachedThreshold) 1.2f else 0.85f
+                        alpha = if (reachedThreshold) 1f else 0.65f
+                    }
             )
         }
     }
@@ -397,10 +473,12 @@ private fun TaskTodayRowContent(
     onToggle: () -> Unit,
     onPostpone: () -> Unit,
     onMarkPositioned: (Offset) -> Unit,
-    onOpen: () -> Unit
+    onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
-    var isCompleting by remember(task.id) { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var isCompleting by remember(task.id, task.isDone) { mutableStateOf(false) }
     val isTaskDone = task.isDone || isCompleting
     val scope = rememberCoroutineScope()
     val colors = AshTheme.colors
@@ -431,7 +509,13 @@ private fun TaskTodayRowContent(
                     scaleY = cardScale
                     alpha = cardAlpha
                 }
+                .clip(AshShapes.card)
                 .background(colors.surface1)
+                .border(
+                    width = if (colors.isDark) 0.dp else 0.75.dp,
+                    color = if (colors.isDark) Color.Transparent else colors.surface3,
+                    shape = AshShapes.card
+                )
                 .tappable(
                     onClick = onOpen,
                     onLongClick = { showMenu = true }
@@ -451,6 +535,7 @@ private fun TaskTodayRowContent(
                         onToggle()
                     }
                 } else {
+                    isCompleting = false
                     onToggle()
                 }
             },
@@ -509,35 +594,94 @@ private fun TaskTodayRowContent(
                         }
                 )
             }
-            val meta = taskMeta(task, today)
-            if (meta.isNotEmpty()) {
-                Text(
-                    text = meta,
-                    style = AshTheme.type.subhead,
-                    color = if (overdue) colors.danger else colors.text2,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                DifficultyDots(difficulty = task.difficulty)
+                val meta = taskMeta(task, today)
+                if (meta.isNotEmpty()) {
+                    Text(
+                        text = meta,
+                        style = AshTheme.type.subhead,
+                        color = if (overdue) colors.danger else colors.text2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
         }
 
+        val clipboard = LocalClipboardManager.current
+        val haptics = rememberHaptics()
+
         AshContextMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            items = listOf(
+            items = listOfNotNull(
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_edit),
                     icon = AshIcons.Edit,
                     onClick = onOpen
                 ),
                 ContextMenuItem(
+                    title = "Скопировать",
+                    icon = AshIcons.Copy,
+                    onClick = {
+                        val text = buildString {
+                            append(task.title)
+                            if (task.subtasks.isNotEmpty()) {
+                                task.subtasks.forEach { sub ->
+                                    append("\n- ")
+                                    append(if (sub.isDone) "[x] " else "[ ] ")
+                                    append(sub.title)
+                                }
+                            }
+                        }
+                        clipboard.setText(AnnotatedString(text))
+                        haptics.play(HapticKind.LIGHT)
+                    }
+                ),
+                ContextMenuItem(
                     title = stringResource(R.string.context_menu_postpone_tomorrow),
                     icon = AshIcons.Calendar,
                     onClick = onPostpone
-                )
+                ),
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить задачу?") },
+                text = { Text("Задача «${task.title}» будет перемещена в корзину.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 
@@ -549,7 +693,7 @@ private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList
     if (task.priority.hasMark) add(task.priority.meaning)
     val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
     task.dueTime?.let { add(dev.ashwake.ui.theme.formatTime(it, is24Hour)) }
-    task.estimateMinutes?.let { add(stringResource(R.string.settings_1_s_min, it)) }
+    task.estimateMinutes?.let { add(formatEstimateRu(it)) }
     task.tags.take(2).forEach { add("#${it.name}") }
 }.joinToString(" · ")
 
@@ -564,9 +708,11 @@ private fun taskMeta(task: Task, today: java.time.LocalDate): String = buildList
 fun AbstinenceTodayRow(
     item: AbstinenceWithStats,
     onOpen: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
     val colors = AshTheme.colors
     val days = item.stats.currentDays
 
@@ -574,6 +720,13 @@ fun AbstinenceTodayRow(
         Row(
             Modifier
                 .fillMaxWidth()
+                .clip(AshShapes.card)
+                .background(colors.surface1)
+                .border(
+                    width = if (colors.isDark) 0.dp else 0.75.dp,
+                    color = if (colors.isDark) Color.Transparent else colors.surface3,
+                    shape = AshShapes.card
+                )
                 .tappable(
                     onClick = onOpen,
                     onLongClick = { showMenu = true }
@@ -632,14 +785,46 @@ fun AbstinenceTodayRow(
         AshContextMenu(
             expanded = showMenu,
             onDismissRequest = { showMenu = false },
-            items = listOf(
+            items = listOfNotNull(
                 ContextMenuItem(
                     title = stringResource(R.string.context_menu_open),
                     icon = AshIcons.ArrowRight,
                     onClick = onOpen
-                )
+                ),
+                onDelete?.let {
+                    ContextMenuItem(
+                        title = stringResource(R.string.blocking_udalit),
+                        icon = AshIcons.Delete,
+                        isDestructive = true,
+                        onClick = { showDeleteConfirm = true }
+                    )
+                }
             )
         )
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Удалить отказ?") },
+                text = { Text("Счётчик отказа «${item.abstinence.name}» будет удалён.") },
+                confirmButton = {
+                    TextAction(
+                        text = stringResource(R.string.blocking_udalit),
+                        color = AshTheme.colors.danger,
+                        onClick = {
+                            showDeleteConfirm = false
+                            onDelete?.invoke()
+                        }
+                    )
+                },
+                dismissButton = {
+                    TextAction(
+                        text = stringResource(R.string.detail_otmena),
+                        onClick = { showDeleteConfirm = false }
+                    )
+                }
+            )
+        }
     }
 }
 

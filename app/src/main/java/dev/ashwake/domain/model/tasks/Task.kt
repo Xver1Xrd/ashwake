@@ -65,6 +65,7 @@ data class Task(
     val projectId: Long? = null,
     val parentTaskId: Long? = null,
     val priority: Priority = Priority.P4,
+    val difficulty: Int = 1,
     val dueDate: LocalDate? = null,
     val dueTime: LocalTime? = null,
     /** Оценка в минутах. Без неё задача не попадает в автораскладку дня (п. 2). */
