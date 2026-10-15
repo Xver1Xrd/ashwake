@@ -49,8 +49,9 @@ class CloudBackupManager @Inject constructor(
                 backupId = latest.id,
                 createdAt = latest.createdAt,
                 contents = result.contents,
-                json = result.json
+                json = result.json ?: error("Архив не содержит данных для восстановления")
             )
+            is RestoreResult.Restored -> error("Архив был восстановлен вместо предпросмотра")
             RestoreResult.WrongPassword -> error("Код восстановления не подходит к копии")
             RestoreResult.NeedsPassword -> error("Копия требует код восстановления")
             is RestoreResult.Failed -> error(result.reason)
@@ -59,8 +60,9 @@ class CloudBackupManager @Inject constructor(
 
     suspend fun restore(preview: CloudRestorePreview): String {
         return when (val result = backups.restore(preview.json)) {
-            is RestoreResult.Preview ->
+            is RestoreResult.Restored ->
                 "Восстановлено: ${result.contents.tasks} задач, ${result.contents.habits} привычек"
+            is RestoreResult.Preview -> error("Архив не был восстановлен")
             RestoreResult.WrongPassword -> error("Код восстановления не подходит")
             RestoreResult.NeedsPassword -> error("Нужен код восстановления")
             is RestoreResult.Failed -> error(result.reason)

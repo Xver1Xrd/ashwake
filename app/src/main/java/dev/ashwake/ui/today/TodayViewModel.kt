@@ -176,7 +176,10 @@ class TodayViewModel @Inject constructor(
                     markHabit(progress, statusForValue(progress, next), date = date, value = next)
                 }
 
-                progress.doneToday -> clearHabitMark(habit.id, date)
+                progress.doneToday -> clearHabitMark(
+                    habit.id,
+                    progress.periodCompletionDate ?: date
+                )
 
                 else -> markHabit(progress, EntryStatus.DONE, date = date)
             }

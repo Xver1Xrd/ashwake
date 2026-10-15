@@ -46,6 +46,7 @@ import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.more.MoreScreen
+import dev.ashwake.ui.online.OnlineScreen
 import dev.ashwake.ui.onboarding.OnboardingScreen
 import dev.ashwake.ui.ritual.RitualScreen
 import dev.ashwake.ui.routines.RoutineEditorScreen
@@ -288,8 +289,13 @@ fun AshwakeRoot(
                         onBack = { navController.popBackStack() },
                         onOpenBlocking = { navController.navigate("blocking") },
                         onOpenBackup = { navController.navigate("backup") },
+                        onOpenOnline = { navController.navigate("online") },
                         onOpenThemeEditor = { navController.navigate("theme") }
                     )
+                }
+
+                composable("online") {
+                    OnlineScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable("theme") {
@@ -345,6 +351,7 @@ private fun TabPage(
         )
 
         Destination.More -> MoreScreen(
+            onOpenCharacter = { navController.navigate(Destination.Character.route) },
             onOpenAbstinence = { navController.navigate(Destination.Abstinence.route) },
             onOpenTimers = { navController.navigate(Destination.Timers.route) },
             onOpenStats = { navController.navigate(Destination.Stats.route) },

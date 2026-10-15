@@ -21,6 +21,8 @@ import dev.ashwake.data.db.dao.backup.BackupDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
+import dev.ashwake.data.db.dao.online.SyncDao
 import javax.inject.Singleton
 
 @Module
@@ -41,6 +43,9 @@ object DatabaseModule {
             .build()
 
     @Provides fun provideTaskDao(db: AshwakeDatabase): TaskDao = db.taskDao()
+    @Provides fun provideTaskAttachmentDao(db: AshwakeDatabase): TaskAttachmentDao =
+        db.taskAttachmentDao()
+    @Provides fun provideSyncDao(db: AshwakeDatabase): SyncDao = db.syncDao()
     @Provides fun provideProjectDao(db: AshwakeDatabase): ProjectDao = db.projectDao()
     @Provides fun provideTagDao(db: AshwakeDatabase): TagDao = db.tagDao()
     @Provides fun provideHabitDao(db: AshwakeDatabase): HabitDao = db.habitDao()

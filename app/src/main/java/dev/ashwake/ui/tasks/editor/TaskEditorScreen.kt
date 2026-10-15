@@ -1,5 +1,10 @@
 package dev.ashwake.ui.tasks.editor
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.res.stringArrayResource
 import dev.ashwake.R
 import androidx.compose.ui.res.stringResource
@@ -46,6 +51,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,6 +59,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.components.TextAction
 import dev.ashwake.domain.model.tasks.RecurrenceType
+import dev.ashwake.domain.model.tasks.AttachmentKind
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.components.AshTextField
@@ -101,7 +109,20 @@ fun TaskEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
     val presets by viewModel.presets.collectAsStateWithLifecycle()
+    val attachments by viewModel.attachments.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
+    val context = LocalContext.current
+
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.PHOTO)
+    }
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.FILE)
+    }
 
     // Закрываем экран только после того, как сохранение реально дошло до базы
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
@@ -259,6 +280,70 @@ fun TaskEditorScreen(
                 placeholder = stringResource(R.string.editor_dom_srochnoe)
             )
 
+            Section(
+                title = "Вложения",
+                footer = if (state.canSave) {
+                    "Фото и файлы хранятся в закрытой памяти приложения"
+                } else {
+                    "Сначала укажите название задачи"
+                },
+                footerDanger = !state.canSave
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ChipButton(
+                            text = "Фото",
+                            selected = false,
+                            enabled = state.canSave,
+                            onClick = {
+                                photoPicker.launch(
+                                    PickVisualMediaRequest(
+                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                    )
+                                )
+                            }
+                        )
+                        ChipButton(
+                            text = "Файл",
+                            selected = false,
+                            enabled = state.canSave,
+                            onClick = { filePicker.launch(arrayOf("*/*")) }
+                        )
+                    }
+                    state.attachmentError?.let { message ->
+                        Text(
+                            text = message,
+                            style = AshTheme.type.footnote,
+                            color = colors.danger
+                        )
+                    }
+                    attachments.forEach { attachment ->
+                        AttachmentRow(
+                            attachment = attachment,
+                            onOpen = {
+                                runCatching {
+                                    val intent = Intent(Intent.ACTION_VIEW).apply {
+                                        setDataAndType(
+                                            Uri.parse(attachment.contentUri),
+                                            attachment.mimeType
+                                        )
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(
+                                        Intent.createChooser(intent, "Открыть вложение")
+                                    )
+                                }.onFailure {
+                                    viewModel.reportAttachmentError(
+                                        "Нет приложения для открытия этого файла"
+                                    )
+                                }
+                            },
+                            onDelete = { viewModel.deleteAttachment(attachment.id) }
+                        )
+                    }
+                }
+            }
+
             // --- подзадачи ------------------------------------------------------
             Section(stringResource(R.string.editor_podzadachi)) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -368,6 +453,54 @@ fun TaskEditorScreen(
             onDismiss = { showTemplates = false }
         )
     }
+}
+
+@Composable
+private fun AttachmentRow(
+    attachment: TaskAttachment,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val colors = AshTheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface1, AshShapes.group)
+            .tappable(onClick = onOpen)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text(
+            text = if (attachment.kind == AttachmentKind.PHOTO) "🖼️" else "📎",
+            fontSize = 20.sp
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = attachment.displayName,
+                style = AshTheme.type.body,
+                color = colors.text,
+                maxLines = 1
+            )
+            Text(
+                text = formatFileSize(attachment.sizeBytes),
+                style = AshTheme.type.footnote,
+                color = colors.text2
+            )
+        }
+        IconAction(
+            icon = AshIcons.Close,
+            contentDescription = "Удалить вложение",
+            tint = colors.text2,
+            onClick = onDelete
+        )
+    }
+}
+
+private fun formatFileSize(bytes: Long): String = when {
+    bytes >= 1024 * 1024 -> "%.1f МБ".format(bytes / (1024.0 * 1024.0))
+    bytes >= 1024 -> "%.1f КБ".format(bytes / 1024.0)
+    else -> "$bytes Б"
 }
 
 // ---------------------------------------------------------------------------

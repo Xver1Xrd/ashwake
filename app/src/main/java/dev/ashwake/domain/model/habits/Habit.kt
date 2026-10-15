@@ -159,4 +159,6 @@ data class HabitWithProgress(
     val paused: Boolean = false
 ) {
     val todayValue: Float get() = todayEntry?.value ?: 0f
+    /** Для периодической привычки «сегодня выполнено» означает, что закрыт весь текущий срок. */
+    val doneToday: Boolean get() = completedForPeriod
 }

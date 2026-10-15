@@ -103,7 +103,10 @@ class HabitsViewModel @Inject constructor(
                     )
                 }
 
-                progress.doneToday -> clearHabitMark(habit.id, clock.today())
+                progress.doneToday -> clearHabitMark(
+                    habit.id,
+                    progress.periodCompletionDate ?: clock.today()
+                )
 
                 else -> markHabit(progress, EntryStatus.DONE)
             }
@@ -159,7 +162,12 @@ class HabitsViewModel @Inject constructor(
     }
 
     fun clearMark(progress: HabitWithProgress) {
-        viewModelScope.launch { clearHabitMark(progress.habit.id, clock.today()) }
+        viewModelScope.launch {
+            clearHabitMark(
+                progress.habit.id,
+                progress.periodCompletionDate ?: clock.today()
+            )
+        }
     }
 
     /** @return false, если месячная квота заморозок исчерпана. */

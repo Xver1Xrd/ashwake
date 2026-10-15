@@ -17,6 +17,7 @@ import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 
 /**
  * Операции восстановления из архива.
@@ -60,6 +61,7 @@ interface BackupDao {
 
     @Query("DELETE FROM task_tag_cross_ref") suspend fun clearTaskTags()
     @Query("DELETE FROM task_postponements") suspend fun clearPostponements()
+    @Query("DELETE FROM task_attachments") suspend fun clearTaskAttachments()
     @Query("DELETE FROM tasks") suspend fun clearTasks()
 
     @Query("DELETE FROM abstinence_attempts") suspend fun clearAttempts()
@@ -85,6 +87,9 @@ interface BackupDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTasks(items: List<TaskEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTaskAttachments(items: List<TaskAttachmentEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHabits(items: List<HabitEntity>)

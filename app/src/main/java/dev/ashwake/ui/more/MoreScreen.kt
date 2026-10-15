@@ -49,6 +49,7 @@ import dev.ashwake.ui.theme.AshTheme
  */
 @Composable
 fun MoreScreen(
+    onOpenCharacter: () -> Unit,
     onOpenAbstinence: () -> Unit,
     onOpenTimers: () -> Unit,
     onOpenStats: () -> Unit,
@@ -142,6 +143,8 @@ fun MoreScreen(
         } else {
             // Обычные разделы «Ещё»
             ListGroup(header = stringResource(R.string.more_razdely)) {
+                MoreRow(stringResource(R.string.nav_character), AshIcons.Person, onOpenCharacter)
+                ListDivider(52.dp)
                 MoreRow(stringResource(R.string.abstinence_otkazy), AshIcons.Prohibit, onOpenAbstinence)
                 ListDivider(52.dp)
                 MoreRow(stringResource(R.string.more_taymery_i_rutiny), AshIcons.Timer, onOpenTimers)

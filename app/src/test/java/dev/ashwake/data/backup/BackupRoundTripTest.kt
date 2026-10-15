@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import dev.ashwake.core.result.getOrNull
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.icons.IconStore
+import dev.ashwake.data.repository.tasks.TaskAttachmentStore
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
 import dev.ashwake.data.db.entity.character.CharacterStatEntity
@@ -16,6 +17,8 @@ import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
+import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -25,6 +28,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 import org.robolectric.RobolectricTestRunner
 
 /**
@@ -43,6 +47,7 @@ class BackupRoundTripTest {
 
     private lateinit var db: AshwakeDatabase
     private lateinit var serializer: JsonBackupSerializer
+    private lateinit var attachmentStore: TaskAttachmentStore
 
     @Before
     fun setUp() {
@@ -50,10 +55,13 @@ class BackupRoundTripTest {
         db = Room.inMemoryDatabaseBuilder(context, AshwakeDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+        attachmentStore = TaskAttachmentStore(context).also { it.directory.deleteRecursively() }
         serializer = JsonBackupSerializer(
             db = db,
             icons = IconStore(context),
             taskDao = db.taskDao(),
+            attachmentDao = db.taskAttachmentDao(),
+            attachmentStore = attachmentStore,
             habitDao = db.habitDao(),
             abstinenceDao = db.abstinenceDao(),
             ritualDao = db.ritualDao(),
@@ -63,7 +71,10 @@ class BackupRoundTripTest {
     }
 
     @After
-    fun tearDown() = db.close()
+    fun tearDown() {
+        db.close()
+        attachmentStore.directory.deleteRecursively()
+    }
 
     @Test
     fun `данные возвращаются после полного удаления`() = runTest {
@@ -125,6 +136,65 @@ class BackupRoundTripTest {
         val tasks = db.taskDao().observeTasks(1, null, null, null, null, 0, null).first()
         assertEquals(1, tasks.size)
         assertEquals("Дописать отчёт", tasks.first().task.title)
+    }
+
+    @Test
+    fun `файл вложения возвращается вместе с задачей`() = runTest {
+        val storedName = UUID.randomUUID().toString()
+        val content = "фото из задачи".toByteArray()
+        db.backupDao().insertTasks(listOf(task(id = 1, title = "Задача с фото")))
+        db.backupDao().insertTaskAttachments(
+            listOf(
+                TaskAttachmentEntity(
+                    id = 1,
+                    taskId = 1,
+                    storedName = storedName,
+                    displayName = "photo.jpg",
+                    mimeType = "image/jpeg",
+                    sizeBytes = content.size.toLong(),
+                    kind = "PHOTO",
+                    createdAt = 100
+                )
+            )
+        )
+        attachmentStore.file(storedName).writeBytes(content)
+
+        val (json, _) = serializer.export()
+        db.backupDao().clearTaskAttachments()
+        db.backupDao().clearTasks()
+        attachmentStore.directory.deleteRecursively()
+
+        serializer.import(json)
+
+        val restored = db.taskAttachmentDao().allAttachments().single()
+        assertEquals("photo.jpg", restored.displayName)
+        assertTrue(content.contentEquals(attachmentStore.file(storedName).readBytes()))
+    }
+
+    @Test
+    fun `полный снимок возвращает проект задачи`() = runTest {
+        db.projectDao().upsert(
+            ProjectEntity(
+                id = 7,
+                name = "Работа",
+                color = 0x123456,
+                createdAt = 100
+            )
+        )
+        db.backupDao().insertTasks(
+            listOf(task(id = 1, title = "Отчёт").copy(projectId = 7))
+        )
+
+        val (json, _) = serializer.export()
+        db.backupDao().clearTasks()
+        db.projectDao().deleteById(7)
+
+        serializer.import(json)
+
+        val project = db.projectDao().observeProjects(1).first().single()
+        val restoredTask = db.taskDao().getTask(1)?.task
+        assertEquals("Работа", project.name)
+        assertEquals(7L, restoredTask?.projectId)
     }
 
     @Test
