@@ -397,6 +397,25 @@ class TaskEditorViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Редактор не должен терять уже введённую задачу при «назад». Если есть
+     * название, сохраняем всё текущее состояние перед уходом с экрана;
+     * пустую форму намеренно не создаём в списке задач.
+     */
+    fun saveBeforeExit(onFinished: () -> Unit) {
+        val current = _state.value
+        if (current.title.isBlank()) {
+            onFinished()
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                saveMutex.withLock { saveMainTask(_state.value) }
+            }
+            onFinished()
+        }
+    }
+
     private suspend fun saveMainTask(current: TaskEditorState): Long {
         val existing = if (current.taskId != 0L) tasks.getTask(current.taskId) else null
         val task = (existing ?: Task(title = "")).copy(

@@ -3,6 +3,7 @@ package dev.ashwake.ui.tasks.editor
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.res.stringArrayResource
@@ -141,6 +142,9 @@ fun TaskEditorScreen(
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
+    val exitEditor = { viewModel.saveBeforeExit(onDone) }
+
+    BackHandler(onBack = exitEditor)
 
     Column(
         Modifier
@@ -149,7 +153,7 @@ fun TaskEditorScreen(
     ) {
         AshNavBar(
             title = if (state.isNew) stringResource(R.string.shortcut_new_task) else stringResource(R.string.tile_add_task),
-            onBack = onDone,
+            onBack = exitEditor,
             actions = {
                 if (state.isNew && (presets.isNotEmpty() || userTemplates.isNotEmpty())) {
                     TextAction(
