@@ -26,15 +26,16 @@ val AshMuted = Color(0xFF9A93A8)
 val Gold = Color(0xFFC9A227)
 val Ember = Color(0xFFD97A45)
 val Steel = Color(0xFF6E7BA6)
-val Moss = Color(0xFF5E8C7A)
+/** Зелёный акцент из выбранного пользователем референса. */
+val Moss = Color(0xFF59DC42)
 val Blood = Color(0xFF9E4A4A)
 
 private val DarkScheme = darkColorScheme(
-    primary = Steel,
+    primary = Moss,
     onPrimary = Ash0D,
     primaryContainer = Ash3A,
     onPrimaryContainer = AshE8,
-    secondary = Gold,
+    secondary = Moss,
     onSecondary = Ash0D,
     tertiary = Ember,
     background = Ash0D,
@@ -48,8 +49,8 @@ private val DarkScheme = darkColorScheme(
 )
 
 private val LightScheme = lightColorScheme(
-    primary = Steel,
-    secondary = Gold,
+    primary = Moss,
+    secondary = Moss,
     tertiary = Ember,
     error = Blood
 )
@@ -60,7 +61,7 @@ val PriorityColors = listOf(Blood, Ember, Gold, Moss)
 @Composable
 fun AshwakeTheme(
     darkTheme: Boolean = true,           // тёмная тема по умолчанию, а не по системной
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current

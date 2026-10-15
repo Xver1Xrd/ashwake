@@ -12,6 +12,7 @@ import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.tasks.TaskWithRelations
@@ -159,6 +160,41 @@ interface TaskDao {
 
     @Query("SELECT COALESCE(MAX(position), 0) FROM tasks WHERE parentTaskId = :parentId")
     suspend fun maxSubtaskPosition(parentId: Long): Int
+}
+
+@Dao
+interface TaskAttachmentDao {
+    @Query("SELECT * FROM task_attachments WHERE taskId = :taskId ORDER BY createdAt, id")
+    fun observeAttachments(taskId: Long): Flow<List<TaskAttachmentEntity>>
+
+    @Query("SELECT * FROM task_attachments WHERE taskId = :taskId ORDER BY createdAt, id")
+    suspend fun attachmentsOf(taskId: Long): List<TaskAttachmentEntity>
+
+    @Query("SELECT * FROM task_attachments ORDER BY id")
+    suspend fun allAttachments(): List<TaskAttachmentEntity>
+
+    @Query("SELECT * FROM task_attachments WHERE id = :id")
+    suspend fun attachment(id: Long): TaskAttachmentEntity?
+
+    @Query("SELECT COUNT(*) FROM task_attachments WHERE taskId = :taskId")
+    suspend fun countForTask(taskId: Long): Int
+
+    @Query("SELECT COALESCE(SUM(sizeBytes), 0) FROM task_attachments")
+    suspend fun totalSizeBytes(): Long
+
+    @Insert
+    suspend fun insertAttachment(attachment: TaskAttachmentEntity): Long
+
+    @Query("DELETE FROM task_attachments WHERE id = :id")
+    suspend fun deleteAttachment(id: Long)
+
+    @Query(
+        """
+        SELECT storedName FROM task_attachments
+        WHERE taskId = :taskId OR taskId IN (SELECT id FROM tasks WHERE parentTaskId = :taskId)
+        """
+    )
+    suspend fun storedNamesForTaskTree(taskId: Long): List<String>
 }
 
 @Dao

@@ -70,11 +70,13 @@ class StreakCalculator @Inject constructor(
             return CheckpointOutcome.NEUTRAL
         }
 
-        if (habit.schedule.type == dev.ashwake.domain.model.habits.HabitScheduleType.TIMES_PER_WEEK) {
-            val target = habit.schedule.timesPerWeek.coerceAtLeast(1)
+        if (days.size > 1) {
+            val target = scheduleResolver.targetAt(habit, checkpoint)
             val done = days.count { entries[it]?.countsForStreak == true }
-            // Незакрытая текущая неделя ещё не провал
-            if (checkpoint >= today && done < target) return CheckpointOutcome.NEUTRAL
+            // Незакрытый текущий срок ещё не провал; закрытый засчитывается сразу.
+            if (scheduleResolver.checkpointEnd(habit, checkpoint) >= today && done < target) {
+                return CheckpointOutcome.NEUTRAL
+            }
             return if (done >= target) CheckpointOutcome.SUCCESS else CheckpointOutcome.FAILURE
         }
 

@@ -86,6 +86,7 @@ class HabitRepositoryImpl @Inject constructor(
                 )
                 val spentFreezes = freezesByHabit[habit.id].orEmpty()
                     .count { monthKeyOf(it.date) == monthKey }
+                val period = scheduleResolver.currentPeriodState(habit, today, byDate)
 
                 HabitWithProgress(
                     habit = habit,
@@ -93,7 +94,11 @@ class HabitRepositoryImpl @Inject constructor(
                     currentStreak = streak.current,
                     recordStreak = streak.record,
                     todayEntry = byDate[today],
-                    dueToday = scheduleResolver.isDue(habit, today),
+                    dueToday = scheduleResolver.isActionableInCurrentPeriod(habit, today),
+                    completedForPeriod = period.completed,
+                    periodCompletedCount = period.completedCount,
+                    periodTarget = period.target,
+                    periodCompletionDate = period.lastCompletionDate,
                     freezesLeftThisMonth =
                         (habit.freezeQuotaPerMonth - spentFreezes).coerceAtLeast(0),
                     paused = pauseList.any {
@@ -139,6 +144,7 @@ class HabitRepositoryImpl @Inject constructor(
                 val monthKey = monthKeyOf(today)
                 val spentFreezes = freezes.map { it.toDomain() }
                     .count { it.habitId == habitId && monthKeyOf(it.date) == monthKey }
+                val period = scheduleResolver.currentPeriodState(habit, today, byDate)
 
                 HabitDetail(
                     progress = HabitWithProgress(
@@ -147,7 +153,11 @@ class HabitRepositoryImpl @Inject constructor(
                         currentStreak = streak.current,
                         recordStreak = streak.record,
                         todayEntry = byDate[today],
-                        dueToday = scheduleResolver.isDue(habit, today),
+                        dueToday = scheduleResolver.isActionableInCurrentPeriod(habit, today),
+                        completedForPeriod = period.completed,
+                        periodCompletedCount = period.completedCount,
+                        periodTarget = period.target,
+                        periodCompletionDate = period.lastCompletionDate,
                         freezesLeftThisMonth =
                             (habit.freezeQuotaPerMonth - spentFreezes).coerceAtLeast(0),
                         paused = pauses.map { it.toDomain() }.any {

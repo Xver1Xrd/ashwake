@@ -57,6 +57,10 @@ class AppSettings @Inject constructor(
     val dayStartHour: Flow<Int> =
         context.dataStore.data.map { it[DAY_START_HOUR] ?: DEFAULT_DAY_START_HOUR }
 
+    /** Вариант значка на рабочем столе. Пустое значение означает исходную иконку. */
+    val appIcon: Flow<String> =
+        context.dataStore.data.map { it[APP_ICON] ?: DEFAULT_APP_ICON }
+
     suspend fun setWorkHours(startMinute: Int, endMinute: Int) {
         context.dataStore.edit { prefs ->
             prefs[WORK_START] = startMinute.coerceIn(0, 24 * 60)
@@ -95,6 +99,10 @@ class AppSettings @Inject constructor(
         context.dataStore.edit { it[DAY_START_HOUR] = hour.coerceIn(0, 12) }
     }
 
+    suspend fun setAppIcon(icon: String) {
+        context.dataStore.edit { it[APP_ICON] = icon }
+    }
+
     private companion object {
         val WORK_START = intPreferencesKey("work_start_minute")
         val WORK_END = intPreferencesKey("work_end_minute")
@@ -106,11 +114,13 @@ class AppSettings @Inject constructor(
         val DAY_START_HOUR = intPreferencesKey("day_start_hour")
         val BACKUP_FOLDER = stringPreferencesKey("backup_folder_uri")
         val BACKUP_ENCRYPTED = booleanPreferencesKey("backup_encrypted")
+        val APP_ICON = stringPreferencesKey("app_icon")
 
         const val DEFAULT_WORK_START = 9 * 60
         const val DEFAULT_WORK_END = 19 * 60
         const val DEFAULT_BUFFER = 10
         const val DEFAULT_LUNCH_START = 13 * 60
         const val DEFAULT_LUNCH_DURATION = 60
+        const val DEFAULT_APP_ICON = "default"
     }
 }

@@ -15,6 +15,7 @@ import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
 import dev.ashwake.data.db.dao.online.SyncDao
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
@@ -57,6 +58,7 @@ import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.online.SyncConflictEntity
@@ -79,6 +81,7 @@ import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
         TaskTagCrossRef::class,
         RecurrenceRuleEntity::class,
         TaskPostponementEntity::class,
+        TaskAttachmentEntity::class,
         // привычки
         HabitEntity::class,
         HabitEntryEntity::class,
@@ -127,11 +130,12 @@ import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
         SyncStateEntity::class,
         SyncConflictEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
+    abstract fun taskAttachmentDao(): TaskAttachmentDao
     abstract fun projectDao(): ProjectDao
     abstract fun tagDao(): TagDao
     abstract fun habitDao(): HabitDao
@@ -160,6 +164,34 @@ abstract class AshwakeDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE IF NOT EXISTS sync_state (accountId TEXT NOT NULL PRIMARY KEY, cursor INTEGER NOT NULL, lastSuccessAt INTEGER)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS sync_conflicts (globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, localRevision INTEGER NOT NULL, remoteRevision INTEGER NOT NULL, remoteCiphertext TEXT NOT NULL, createdAt INTEGER NOT NULL)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflicts_spaceId ON sync_conflicts(spaceId)")
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS task_attachments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        taskId INTEGER NOT NULL,
+                        storedName TEXT NOT NULL,
+                        displayName TEXT NOT NULL,
+                        mimeType TEXT NOT NULL,
+                        sizeBytes INTEGER NOT NULL,
+                        kind TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_task_attachments_taskId " +
+                        "ON task_attachments(taskId)"
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_task_attachments_storedName " +
+                        "ON task_attachments(storedName)"
+                )
             }
         }
     }

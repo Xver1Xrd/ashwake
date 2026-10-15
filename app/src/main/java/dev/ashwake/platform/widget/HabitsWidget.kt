@@ -58,7 +58,7 @@ class HabitsWidget : GlanceAppWidget() {
             .filter { it.dueToday && !it.paused }
             .take(MAX_ITEMS)
 
-        val doneToday = habits.count { it.doneToday }
+        val doneToday = habits.count { it.completedForPeriod }
 
         provideContent {
             GlanceTheme { Content(habits, doneToday) }
@@ -113,9 +113,9 @@ class HabitsWidget : GlanceAppWidget() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            if (progress.doneToday) "●  " else "○  ",
+                            if (progress.completedForPeriod) "●  " else "○  ",
                             style = TextStyle(
-                                color = if (progress.doneToday) ColorProvider(Moss)
+                                color = if (progress.completedForPeriod) ColorProvider(Moss)
                                 else GlanceTheme.colors.onSurfaceVariant
                             )
                         )
@@ -157,7 +157,7 @@ class MarkHabitAction : ActionCallback {
             .firstOrNull { it.habit.id == habitId } ?: return
 
         // Повторный тап снимает отметку: виджет ведёт себя как карточка в списке
-        if (progress.doneToday) {
+        if (progress.completedForPeriod) {
             deps.habitRepository().clearMark(habitId, today)
         } else {
             deps.markHabit().invoke(

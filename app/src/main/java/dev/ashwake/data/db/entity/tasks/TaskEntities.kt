@@ -150,6 +150,29 @@ data class TaskPostponementEntity(
     val source: String
 )
 
+@Entity(
+    tableName = "task_attachments",
+    foreignKeys = [
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"], childColumns = ["taskId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("taskId"), Index(value = ["storedName"], unique = true)]
+)
+data class TaskAttachmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val taskId: Long,
+    /** Случайное имя в закрытой папке приложения; исходный путь никогда не хранится. */
+    val storedName: String,
+    val displayName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val kind: String,
+    val createdAt: Long
+)
+
 /** Задача со всем, что нужно списку: теги, правило повтора, подзадачи. */
 data class TaskWithRelations(
     @Embedded val task: TaskEntity,

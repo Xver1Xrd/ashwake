@@ -34,7 +34,7 @@ class MarkHabitUseCase @Inject constructor(
         skipReasonId: Long? = null,
         source: EntrySource = EntrySource.MANUAL
     ) {
-        val wasCounted = progress.todayEntry?.countsForStreak == true
+        val wasCounted = progress.completedForPeriod
         habits.mark(progress.habit.id, date, status, value, note, skipReasonId, source)
 
         val nowCounted = status == EntryStatus.DONE || status == EntryStatus.MINIMUM

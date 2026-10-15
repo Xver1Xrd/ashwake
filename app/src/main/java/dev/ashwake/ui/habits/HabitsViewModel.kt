@@ -101,7 +101,10 @@ class HabitsViewModel @Inject constructor(
                     )
                 }
 
-                progress.doneToday -> habits.clearMark(habit.id, clock.today())
+                progress.completedForPeriod -> habits.clearMark(
+                    habit.id,
+                    progress.periodCompletionDate ?: clock.today()
+                )
 
                 else -> markHabit(progress, EntryStatus.DONE)
             }

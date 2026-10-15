@@ -1,6 +1,8 @@
 package dev.ashwake.ui.settings
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,8 +11,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -21,15 +25,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.ashwake.platform.launcher.AppIcon
+import dev.ashwake.ui.theme.Ash1A
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -43,6 +54,7 @@ fun SettingsScreen(
     val timebox by viewModel.timebox.collectAsStateWithLifecycle()
     val dayStart by viewModel.dayStartHour.collectAsStateWithLifecycle()
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
+    val appIcon by viewModel.appIcon.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -64,6 +76,18 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text("Иконка приложения", style = MaterialTheme.typography.titleSmall)
+            AppIconPicker(
+                selected = appIcon,
+                onSelect = viewModel::setAppIcon
+            )
+            Text(
+                "Рабочий стол может обновить значок через несколько секунд",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            HorizontalDivider()
             Text("Начало суток", style = MaterialTheme.typography.titleSmall)
             Text(
                 "Отметка в час ночи попадёт в предыдущий день. Влияет на стрики, " +
@@ -164,6 +188,48 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppIconPicker(selected: AppIcon, onSelect: (AppIcon) -> Unit) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AppIcon.entries.forEach { icon ->
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable { onSelect(icon) }
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = if (selected == icon) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = if (selected == icon) 6.dp else 0.dp
+                ) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.padding(4.dp).clip(RoundedCornerShape(14.dp))
+                            .background(Ash1A),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(icon.previewRes),
+                            contentDescription = "Иконка ${icon.title}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(58.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = icon.title,
+                    style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

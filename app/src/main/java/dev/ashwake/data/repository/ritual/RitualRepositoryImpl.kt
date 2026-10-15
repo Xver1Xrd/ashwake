@@ -66,7 +66,9 @@ class RitualRepositoryImpl @Inject constructor(
             review = review?.toDomain(),
             // Незакрытыми считаются и просроченные: их тоже нужно разобрать
             openTasks = openTasks.filterNot { it.isDone },
-            unmarkedHabits = habitList.filter { it.dueToday && !it.paused && it.todayEntry == null },
+            unmarkedHabits = habitList.filter {
+                it.dueToday && !it.paused && !it.completedForPeriod
+            },
             tomorrowCandidates = openTasks.filterNot { it.isDone },
             isCatchUp = date < clock.today()
         )

@@ -68,6 +68,15 @@ class HabitScoreCalculator @Inject constructor(
                 return@forEach
             }
             val value = valueOf(habit, days, entries, excludedDays)
+            val completedCount = days.count { entries[it]?.countsForStreak == true }
+            val currentPeriodIsOpen = scheduleResolver.checkpointEnd(habit, checkpoint) >= to
+            if (days.size > 1 && currentPeriodIsOpen &&
+                completedCount < scheduleResolver.targetAt(habit, checkpoint)
+            ) {
+                // Текущий срок не штрафует до окончания: цель ещё можно успеть выполнить.
+                result += ScorePoint(checkpoint, score.toFloat())
+                return@forEach
+            }
             score = score * (1 - alpha) + value * alpha
             result += ScorePoint(checkpoint, score.toFloat())
         }
@@ -97,8 +106,10 @@ class HabitScoreCalculator @Inject constructor(
         entries: Map<LocalDate, HabitEntry>,
         excludedDays: Set<LocalDate>
     ): Double {
-        if (habit.schedule.type == HabitScheduleType.TIMES_PER_WEEK) {
-            val target = habit.schedule.timesPerWeek.coerceAtLeast(1)
+        if (days.size > 1) {
+            val target = if (habit.schedule.type == HabitScheduleType.TIMES_PER_WEEK) {
+                habit.schedule.timesPerWeek.coerceIn(1, 7)
+            } else 1
             val done = days.sumOf { day ->
                 entries[day]?.takeIf { !it.isExcluded }?.contribution?.toDouble() ?: 0.0
             }

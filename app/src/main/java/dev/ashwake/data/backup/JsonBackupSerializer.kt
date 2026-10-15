@@ -8,6 +8,8 @@ import dev.ashwake.data.db.dao.character.CharacterDao
 import dev.ashwake.data.db.dao.habits.HabitDao
 import dev.ashwake.data.db.dao.ritual.RitualDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
+import dev.ashwake.data.repository.tasks.TaskAttachmentStore
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
@@ -26,6 +28,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import java.io.File
+import java.util.UUID
 
 /** Сколько записей каждого вида попало в архив — показывается в отчёте. */
 data class BackupContents(
@@ -49,6 +53,8 @@ data class BackupContents(
 class JsonBackupSerializer @Inject constructor(
     private val db: AshwakeDatabase,
     private val taskDao: TaskDao,
+    private val attachmentDao: TaskAttachmentDao,
+    private val attachmentStore: TaskAttachmentStore,
     private val habitDao: HabitDao,
     private val abstinenceDao: AbstinenceDao,
     private val ritualDao: RitualDao,
@@ -67,6 +73,22 @@ class JsonBackupSerializer @Inject constructor(
         val owned = characterDao.observeOwned().first()
         val equipped = characterDao.equipped()
         val stats = characterDao.observeStats().first()
+        var totalAttachmentBytes = 0L
+        val attachmentFiles = attachmentDao.allAttachments().map { attachment ->
+            val file = attachmentStore.file(attachment.storedName)
+            require(file.isFile) { "Не найдено вложение ${attachment.displayName}" }
+            require(file.length() == attachment.sizeBytes) {
+                "Размер вложения ${attachment.displayName} не совпадает с базой"
+            }
+            totalAttachmentBytes += file.length()
+            require(totalAttachmentBytes <= TaskAttachmentStore.MAX_TOTAL_BYTES) {
+                "Общий объём вложений превышает 64 МБ"
+            }
+            JSONObject().apply {
+                put("storedName", attachment.storedName)
+                put("data", Base64.encodeToString(file.readBytes(), Base64.NO_WRAP))
+            }
+        }
 
         val root = JSONObject().apply {
             put("version", FORMAT_VERSION)
@@ -134,6 +156,7 @@ class JsonBackupSerializer @Inject constructor(
             // Полный снимок всех прикладных таблиц. Именованные массивы выше
             // оставлены для читаемости и совместимости со старыми архивами.
             put("database", exportDatabase())
+            put("attachmentFiles", JSONArray(attachmentFiles))
         }
 
         return root.toString(2) to BackupContents(
@@ -171,8 +194,15 @@ class JsonBackupSerializer @Inject constructor(
         val root = JSONObject(json)
         require(root.getInt("version") == FORMAT_VERSION) { "Неподдерживаемая версия архива" }
         val contents = peek(json) ?: error("Файл не похож на архив Ashwake")
+        val stagedAttachments = stageAttachmentFiles(root)
         root.optJSONObject("database")?.let { snapshot ->
-            restoreDatabase(snapshot)
+            try {
+                validateAttachmentSnapshot(snapshot, stagedAttachments)
+                restoreDatabase(snapshot)
+                replaceAttachmentFiles(stagedAttachments)
+            } finally {
+                stagedAttachments.deleteRecursively()
+            }
             return contents
         }
 
@@ -270,7 +300,7 @@ class JsonBackupSerializer @Inject constructor(
         db.withTransaction {
             val sql = db.openHelper.writableDatabase
             listOf(
-                "daily_review_top_tasks", "daily_reviews", "task_tag_cross_ref",
+                "daily_review_top_tasks", "daily_reviews", "task_attachments", "task_tag_cross_ref",
                 "task_postponements", "tasks", "habit_entries", "habit_freezes",
                 "habit_pauses", "habit_anchors", "habits", "abstinence_attempts",
                 "abstinence_milestones", "craving_events", "abstinence_substitutes",
@@ -289,7 +319,75 @@ class JsonBackupSerializer @Inject constructor(
             stats.forEach { characterDao.upsertStat(it) }
         }
 
+        replaceAttachmentFiles(stagedAttachments)
+
         return BackupContents(tasks.size, habits.size, entries.size, abstinences.size, reviews.size)
+    }
+
+    private fun stageAttachmentFiles(root: JSONObject): File {
+        val current = attachmentStore.directory
+        val staging = File(current.parentFile, ".attachments-restore-${UUID.randomUUID()}")
+        check(staging.mkdirs()) { "Не удалось подготовить восстановление вложений" }
+        var totalBytes = 0L
+        val seen = mutableSetOf<String>()
+        try {
+            root.array("attachmentFiles").objects().forEach { item ->
+                val storedName = item.getString("storedName")
+                require(TaskAttachmentStore.STORED_NAME.matches(storedName)) {
+                    "Архив содержит некорректное имя вложения"
+                }
+                require(seen.add(storedName)) { "Архив содержит дубликат вложения" }
+                val bytes = Base64.decode(item.getString("data"), Base64.DEFAULT)
+                require(bytes.size <= TaskAttachmentStore.MAX_ATTACHMENT_BYTES) {
+                    "Вложение в архиве больше 25 МБ"
+                }
+                totalBytes += bytes.size
+                require(totalBytes <= TaskAttachmentStore.MAX_TOTAL_BYTES) {
+                    "Вложения в архиве занимают больше 64 МБ"
+                }
+                File(staging, storedName).writeBytes(bytes)
+            }
+            return staging
+        } catch (error: Throwable) {
+            staging.deleteRecursively()
+            throw error
+        }
+    }
+
+    private fun replaceAttachmentFiles(staging: File) {
+        val current = attachmentStore.directory
+        val previous = File(current.parentFile, ".attachments-previous-${UUID.randomUUID()}")
+        check(current.renameTo(previous)) { "Не удалось заменить папку вложений" }
+        if (!staging.renameTo(current)) {
+            previous.renameTo(current)
+            error("Не удалось восстановить вложения")
+        }
+        previous.deleteRecursively()
+    }
+
+    private fun validateAttachmentSnapshot(snapshot: JSONObject, staging: File) {
+        val attachmentTable = snapshot.array("tables").objects()
+            .firstOrNull { it.getString("name") == "task_attachments" }
+        val stagedSizes = staging.listFiles().orEmpty().associate { it.name to it.length() }
+        if (attachmentTable == null) {
+            require(stagedSizes.isEmpty()) { "Архив содержит вложения без метаданных" }
+            return
+        }
+
+        val columns = attachmentTable.getJSONArray("columns").strings()
+        val nameIndex = columns.indexOf("storedName")
+        val sizeIndex = columns.indexOf("sizeBytes")
+        require(nameIndex >= 0 && sizeIndex >= 0) { "Повреждена таблица вложений" }
+        val archivedSizes = buildMap {
+            val rows = attachmentTable.getJSONArray("rows")
+            repeat(rows.length()) { index ->
+                val row = rows.getJSONArray(index)
+                put(row.getString(nameIndex), row.getLong(sizeIndex))
+            }
+        }
+        require(archivedSizes == stagedSizes) {
+            "Файлы вложений не совпадают с метаданными архива"
+        }
     }
 
     private fun exportDatabase(): JSONObject {

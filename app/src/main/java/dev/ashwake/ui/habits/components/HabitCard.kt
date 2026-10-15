@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.habits.HabitType
+import dev.ashwake.domain.model.habits.HabitScheduleType
 import dev.ashwake.domain.model.habits.HabitWithProgress
 import dev.ashwake.ui.theme.Ember
 import dev.ashwake.ui.theme.Gold
@@ -70,7 +71,7 @@ fun HabitCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             ScoreRing(
                 score = progress.score,
-                done = progress.doneToday,
+                done = progress.completedForPeriod,
                 modifier = Modifier.size(44.dp)
             )
 
@@ -103,7 +104,7 @@ fun HabitCard(
             }
         }
 
-        if (habit.hasMinimum && !progress.doneToday && !progress.paused) {
+        if (habit.hasMinimum && !progress.completedForPeriod && !progress.paused) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onMinimum) {
                     Text("Минимум · ${formatValue(habit.minimumValue ?: 0f)}")
@@ -126,7 +127,7 @@ private fun PrimaryButton(progress: HabitWithProgress, onClick: () -> Unit) {
                 )
             }
 
-            progress.doneToday -> {
+            progress.completedForPeriod -> {
                 Icon(Icons.Filled.Check, contentDescription = "Снять отметку",
                     modifier = Modifier.size(18.dp))
             }
@@ -180,7 +181,15 @@ private fun ScoreRing(score: Float, done: Boolean, modifier: Modifier = Modifier
 
 private fun subtitle(progress: HabitWithProgress): String {
     val parts = mutableListOf<String>()
-    parts += "серия ${progress.currentStreak}"
+    val streakUnit = when (progress.habit.schedule.type) {
+        HabitScheduleType.TIMES_PER_WEEK -> "нед."
+        HabitScheduleType.BIWEEKLY -> "периода"
+        else -> "дн."
+    }
+    parts += "серия ${progress.currentStreak} $streakUnit"
+    if (progress.periodTarget > 1) {
+        parts += "${progress.periodCompletedCount}/${progress.periodTarget} за неделю"
+    }
     if (progress.recordStreak > progress.currentStreak) {
         parts += "рекорд ${progress.recordStreak}"
     }

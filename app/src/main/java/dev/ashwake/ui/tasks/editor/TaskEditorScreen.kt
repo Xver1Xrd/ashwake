@@ -1,5 +1,10 @@
 package dev.ashwake.ui.tasks.editor
 
+import android.content.Intent
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,8 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
@@ -28,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -44,11 +52,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.core.model.Priority
+import dev.ashwake.domain.model.tasks.AttachmentKind
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import java.time.DayOfWeek
 import java.time.Instant
@@ -73,6 +84,19 @@ fun TaskEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
     val spaces by viewModel.spaceList.collectAsStateWithLifecycle()
+    val attachments by viewModel.attachments.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.PHOTO)
+    }
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.FILE)
+    }
 
     // Закрываем экран только после того, как сохранение реально дошло до базы
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
@@ -231,6 +255,62 @@ fun TaskEditorScreen(
 
             HorizontalDivider()
 
+            SectionTitle("Вложения")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = {
+                        photoPicker.launch(
+                            androidx.activity.result.PickVisualMediaRequest(
+                                ActivityResultContracts.PickVisualMedia.ImageOnly
+                            )
+                        )
+                    },
+                    enabled = state.canSave
+                ) {
+                    Icon(Icons.Filled.Photo, contentDescription = null)
+                    Text("  Фото")
+                }
+                OutlinedButton(
+                    onClick = { filePicker.launch(arrayOf("*/*")) },
+                    enabled = state.canSave
+                ) {
+                    Icon(Icons.Filled.AttachFile, contentDescription = null)
+                    Text("  Файл")
+                }
+            }
+            Text(
+                if (state.canSave) {
+                    "Файлы хранятся в закрытой памяти приложения и входят в резервную копию"
+                } else {
+                    "Укажите название задачи, чтобы прикрепить файл"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            state.attachmentError?.let { message ->
+                Text(message, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error)
+            }
+            attachments.forEach { attachment ->
+                AttachmentRow(
+                    attachment = attachment,
+                    onOpen = {
+                        runCatching {
+                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                setDataAndType(Uri.parse(attachment.contentUri), attachment.mimeType)
+                                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(Intent.createChooser(intent, "Открыть вложение"))
+                        }.onFailure {
+                            viewModel.reportAttachmentError("Нет приложения для открытия этого файла")
+                        }
+                    },
+                    onDelete = { viewModel.deleteAttachment(attachment.id) }
+                )
+            }
+
+            HorizontalDivider()
+
             SectionTitle("Подзадачи")
             state.subtasks.forEachIndexed { index, subtask ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -360,6 +440,43 @@ fun TaskEditorScreen(
             ) { TimePicker(state = pickerState) }
         }
     }
+}
+
+@Composable
+private fun AttachmentRow(
+    attachment: TaskAttachment,
+    onOpen: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpen).padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            if (attachment.kind == AttachmentKind.PHOTO) Icons.Filled.Photo
+            else Icons.Filled.AttachFile,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary
+        )
+        Column(Modifier.weight(1f)) {
+            Text(attachment.displayName, maxLines = 1)
+            Text(
+                formatFileSize(attachment.sizeBytes),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Filled.Close, contentDescription = "Удалить вложение")
+        }
+    }
+}
+
+private fun formatFileSize(bytes: Long): String = when {
+    bytes >= 1024 * 1024 -> "%.1f МБ".format(bytes / (1024.0 * 1024.0))
+    bytes >= 1024 -> "%.1f КБ".format(bytes / 1024.0)
+    else -> "$bytes Б"
 }
 
 @Composable

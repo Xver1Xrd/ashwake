@@ -5,6 +5,7 @@ import dev.ashwake.core.model.Priority
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
@@ -36,7 +37,9 @@ class TaskRepositoryImpl @Inject constructor(
     private val dao: TaskDao,
     private val tags: TagRepository,
     private val clock: AppClock,
-    private val recurrenceCalculator: RecurrenceCalculator
+    private val recurrenceCalculator: RecurrenceCalculator,
+    private val attachmentDao: TaskAttachmentDao,
+    private val attachmentStore: TaskAttachmentStore
 ) : TaskRepository {
 
     override fun observeTasks(filter: TaskFilter): Flow<List<Task>> =
@@ -185,6 +188,7 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(id: Long) {
+        val storedAttachments = attachmentDao.storedNamesForTaskTree(id)
         db.withTransaction {
             val row = dao.getTask(id) ?: return@withTransaction
             val task = row.task
@@ -214,6 +218,7 @@ class TaskRepositoryImpl @Inject constructor(
             }
             dao.deleteById(id)
         }
+        storedAttachments.forEach(attachmentStore::delete)
     }
 
     override suspend fun setDelegate(id: Long, delegateTo: String?) {

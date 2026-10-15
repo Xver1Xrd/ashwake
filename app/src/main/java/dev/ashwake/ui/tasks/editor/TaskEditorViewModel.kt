@@ -8,13 +8,16 @@ import dev.ashwake.core.model.Priority
 import dev.ashwake.core.model.WeekdayMask
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.domain.model.tasks.Project
+import dev.ashwake.domain.model.tasks.AttachmentKind
 import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.model.tasks.TaskSyncState
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.domain.repository.tasks.TaskAttachmentRepository
 import dev.ashwake.online.repository.OnlineRepository
 import dev.ashwake.online.model.OnlineSpace
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
@@ -22,12 +25,19 @@ import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
@@ -67,12 +77,14 @@ data class TaskEditorState(
     val isDone: Boolean = false,
     val hasSyncConflict: Boolean = false,
     val loading: Boolean = true,
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val attachmentError: String? = null
 ) {
     val canSave: Boolean get() = title.isNotBlank()
 }
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class TaskEditorViewModel @Inject constructor(
     private val tasks: TaskRepository,
     private val projects: ProjectRepository,
@@ -80,6 +92,7 @@ class TaskEditorViewModel @Inject constructor(
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
+    private val taskAttachments: TaskAttachmentRepository,
     private val clock: AppClock,
     online: OnlineRepository,
     savedStateHandle: SavedStateHandle
@@ -90,6 +103,12 @@ class TaskEditorViewModel @Inject constructor(
     private val _state = MutableStateFlow(TaskEditorState(taskId = taskId, isNew = taskId == 0L))
     val state: StateFlow<TaskEditorState> = _state.asStateFlow()
 
+    val attachments: StateFlow<List<TaskAttachment>> = state
+        .map { it.taskId }
+        .distinctUntilChanged()
+        .flatMapLatest { id -> if (id == 0L) flowOf(emptyList()) else taskAttachments.observe(id) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -97,6 +116,7 @@ class TaskEditorViewModel @Inject constructor(
 
     /** Подзадачи, удалённые в редакторе: применяются одной пачкой при сохранении. */
     private val removedSubtaskIds = mutableSetOf<Long>()
+    private val saveMutex = Mutex()
 
     init {
         if (taskId == 0L) {
@@ -213,28 +233,85 @@ class TaskEditorViewModel @Inject constructor(
         if (!current.canSave) return
 
         viewModelScope.launch {
-            val existing = if (current.taskId != 0L) tasks.getTask(current.taskId) else null
-
-            val task = (existing ?: Task(title = "")).copy(
-                id = current.taskId,
-                title = current.title.trim(),
-                note = current.note.takeIf { it.isNotBlank() },
-                spaceId = current.spaceId,
-                projectId = current.projectId,
-                priority = current.priority,
-                dueDate = current.dueDate,
-                dueTime = current.dueTime,
-                estimateMinutes = current.estimateMinutes,
-                persistentReminderMinutes = current.persistentReminderMinutes,
-                sourceLink = current.sourceLink,
-                tags = parseTags(current.tagsInput),
-                recurrence = buildRecurrence(current)
-            )
-
-            val savedId = saveTask(task)
-            applySubtasks(savedId, current.subtasks)
-            _state.update { it.copy(saved = true, taskId = savedId, isNew = false) }
+            saveMutex.withLock {
+                val savedId = saveMainTask(current)
+                applySubtasks(savedId, current.subtasks)
+                _state.update { it.copy(saved = true, taskId = savedId, isNew = false) }
+            }
         }
+    }
+
+    private suspend fun saveMainTask(current: TaskEditorState): Long {
+        val existing = if (current.taskId != 0L) tasks.getTask(current.taskId) else null
+        val task = (existing ?: Task(title = "")).copy(
+            id = current.taskId,
+            title = current.title.trim(),
+            note = current.note.takeIf { it.isNotBlank() },
+            spaceId = current.spaceId,
+            projectId = current.projectId,
+            priority = current.priority,
+            dueDate = current.dueDate,
+            dueTime = current.dueTime,
+            estimateMinutes = current.estimateMinutes,
+            persistentReminderMinutes = current.persistentReminderMinutes,
+            sourceLink = current.sourceLink,
+            tags = parseTags(current.tagsInput),
+            recurrence = buildRecurrence(current)
+        )
+        val savedId = saveTask(task)
+        val recurrenceId = tasks.getTask(savedId)?.recurrence?.id ?: current.existingRecurrenceId
+        _state.update {
+            it.copy(
+                taskId = savedId,
+                isNew = false,
+                existingRecurrenceId = recurrenceId,
+                attachmentError = null
+            )
+        }
+        return savedId
+    }
+
+    fun addAttachments(sourceUris: List<String>, kind: AttachmentKind) {
+        if (sourceUris.isEmpty()) return
+        viewModelScope.launch {
+            runCatching {
+                saveMutex.withLock {
+                    val current = _state.value
+                    require(current.canSave) { "Сначала укажите название задачи" }
+                    val id = saveMainTask(current)
+                    applySubtasks(id, current.subtasks)
+                    refreshSubtasks(id)
+                    sourceUris.forEach { uri -> taskAttachments.add(id, uri, kind) }
+                }
+            }.onFailure { error ->
+                _state.update {
+                    it.copy(attachmentError = error.message ?: "Не удалось прикрепить файл")
+                }
+            }
+        }
+    }
+
+    private suspend fun refreshSubtasks(parentId: Long) {
+        val refreshed = tasks.getTask(parentId)?.subtasks.orEmpty()
+            .map { EditableSubtask(it.id, it.title, it.isDone) }
+        _state.update { current ->
+            if (current.taskId == parentId) current.copy(subtasks = refreshed) else current
+        }
+    }
+
+    fun deleteAttachment(id: Long) {
+        viewModelScope.launch {
+            runCatching { taskAttachments.delete(id) }
+                .onFailure { error ->
+                    _state.update {
+                        it.copy(attachmentError = error.message ?: "Не удалось удалить вложение")
+                    }
+                }
+        }
+    }
+
+    fun reportAttachmentError(message: String) {
+        _state.update { it.copy(attachmentError = message) }
     }
 
     private suspend fun applySubtasks(parentId: Long, subtasks: List<EditableSubtask>) {

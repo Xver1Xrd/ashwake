@@ -17,6 +17,7 @@ import dev.ashwake.data.repository.tasks.ProjectRepositoryImpl
 import dev.ashwake.data.repository.timebox.TimeboxRepositoryImpl
 import dev.ashwake.data.repository.tasks.TagRepositoryImpl
 import dev.ashwake.data.repository.tasks.TaskRepositoryImpl
+import dev.ashwake.data.repository.tasks.TaskAttachmentRepositoryImpl
 import dev.ashwake.domain.repository.abstinence.AbstinenceRepository
 import dev.ashwake.domain.repository.blocking.BlockingRepository
 import dev.ashwake.domain.repository.character.CharacterRepository
@@ -28,6 +29,7 @@ import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.timebox.TimeboxRepository
 import dev.ashwake.domain.repository.tasks.TagRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.domain.repository.tasks.TaskAttachmentRepository
 import javax.inject.Singleton
 
 @Module
@@ -39,6 +41,11 @@ abstract class RepositoryModule {
 
     @Binds @Singleton
     abstract fun bindTaskRepository(impl: TaskRepositoryImpl): TaskRepository
+
+    @Binds @Singleton
+    abstract fun bindTaskAttachmentRepository(
+        impl: TaskAttachmentRepositoryImpl
+    ): TaskAttachmentRepository
 
     @Binds @Singleton
     abstract fun bindProjectRepository(impl: ProjectRepositoryImpl): ProjectRepository
