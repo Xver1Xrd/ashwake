@@ -4,6 +4,7 @@ import android.app.Application
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
 import dev.ashwake.platform.notification.AshwakeNotifications
 import dev.ashwake.platform.work.BackupWorker
@@ -27,6 +28,13 @@ class AshwakeApp : Application(), Configuration.Provider {
     override fun onCreate() {
         enableStrictModeInDebug()
         super.onCreate()
+        // WorkManagerInitializer выключен в манифесте, чтобы использовать
+        // HiltWorkerFactory. Инициализируем его до постановки любых задач:
+        // на части устройств ленивый путь ещё не успевает получить
+        // Configuration.Provider и приложение падает на первом getInstance().
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(this, workManagerConfiguration)
+        }
         AshwakeNotifications.createChannels(this)
         MilestoneWorker.schedule(this)
         RitualReminderWorker.schedule(this)
