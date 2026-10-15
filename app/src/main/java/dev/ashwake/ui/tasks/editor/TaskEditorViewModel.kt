@@ -58,6 +58,8 @@ data class TaskEditorState(
     val difficulty: Int = 1,
     val dueDate: LocalDate? = null,
     val dueTime: LocalTime? = null,
+    /** Конец интервала хранится через длительность задачи: это переживает синхронизацию. */
+    val endTime: LocalTime? = null,
     val estimateMinutes: Int? = null,
     val estimateHours: String = "",
     val estimateMinutesText: String = "",
@@ -67,6 +69,7 @@ data class TaskEditorState(
     val subtasks: List<EditableSubtask> = emptyList(),
     // повтор
     val recurrenceEnabled: Boolean = false,
+    val isTemplate: Boolean = false,
     val recurrenceType: RecurrenceType = RecurrenceType.DAILY,
     val recurrenceInterval: Int = 2,
     val recurrenceWeekdays: WeekdayMask = WeekdayMask.NONE,
@@ -106,6 +109,9 @@ class TaskEditorViewModel @Inject constructor(
 
     private val _presets = MutableStateFlow<List<TaskPreset>>(emptyList())
     val presets: StateFlow<List<TaskPreset>> = _presets.asStateFlow()
+
+    val userTemplates: StateFlow<List<Task>> = tasks.observeTemplates()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
@@ -159,6 +165,7 @@ class TaskEditorViewModel @Inject constructor(
             difficulty = task.difficulty,
             dueDate = task.dueDate,
             dueTime = task.dueTime,
+            endTime = task.dueTime?.plusMinutes(task.estimateMinutes?.toLong() ?: 0L),
             estimateMinutes = task.estimateMinutes,
             estimateHours = hours,
             estimateMinutesText = mins,
@@ -167,6 +174,7 @@ class TaskEditorViewModel @Inject constructor(
             sourceLink = task.sourceLink,
             subtasks = task.subtasks.map { EditableSubtask(it.id, it.title, it.isDone) },
             recurrenceEnabled = rule != null,
+            isTemplate = task.isTemplate,
             recurrenceType = rule?.type ?: RecurrenceType.DAILY,
             recurrenceInterval = rule?.intervalDays ?: 2,
             recurrenceWeekdays = rule?.weekdays ?: WeekdayMask.NONE,
@@ -199,6 +207,28 @@ class TaskEditorViewModel @Inject constructor(
                 subtasks = preset.subtasks.map { EditableSubtask(title = it) }
             )
         }
+    }
+
+    fun applyUserTemplate(template: Task) = _state.update { current ->
+        current.copy(
+            title = template.title,
+            emoji = template.emoji,
+            iconPath = template.iconPath,
+            note = template.note.orEmpty(),
+            projectId = template.projectId,
+            priority = template.priority,
+            difficulty = template.difficulty,
+            dueTime = template.dueTime,
+            endTime = template.dueTime?.plusMinutes(template.estimateMinutes?.toLong() ?: 0L),
+            estimateMinutes = template.estimateMinutes,
+            tagsInput = template.tags.joinToString(" ") { "#${it.name}" },
+            recurrenceEnabled = template.recurrence != null,
+            recurrenceType = template.recurrence?.type ?: current.recurrenceType,
+            recurrenceInterval = template.recurrence?.intervalDays ?: current.recurrenceInterval,
+            recurrenceWeekdays = template.recurrence?.weekdays ?: current.recurrenceWeekdays,
+            recurrenceDayOfMonth = template.recurrence?.dayOfMonth ?: current.recurrenceDayOfMonth,
+            isTemplate = false
+        )
     }
 
     /** Повторный выбор той же эмодзи снимает её: отдельная кнопка «убрать» не нужна. */
@@ -235,6 +265,20 @@ class TaskEditorViewModel @Inject constructor(
     fun setTime(value: LocalTime?) = _state.update {
         it.copy(dueTime = value, dueDate = it.dueDate ?: value?.let { _ -> clock.today() })
     }
+
+    fun setEndTime(value: LocalTime?) = _state.update { current ->
+        val start = current.dueTime
+        val duration = if (start != null && value != null) {
+            java.time.Duration.between(start, value).toMinutes().let { if (it <= 0) it + 24 * 60 else it }.toInt()
+        } else current.estimateMinutes
+        current.copy(endTime = value, estimateMinutes = duration).let { updated ->
+            val hours = duration?.div(60)?.takeIf { it > 0 }?.toString().orEmpty()
+            val minutes = duration?.rem(60)?.takeIf { it > 0 }?.toString().orEmpty()
+            updated.copy(estimateHours = hours, estimateMinutesText = minutes)
+        }
+    }
+
+    fun setIsTemplate(value: Boolean) = _state.update { it.copy(isTemplate = value) }
 
     fun setEstimate(minutes: Int?) = _state.update {
         val h = if (minutes != null && minutes >= 60) (minutes / 60).toString() else ""
@@ -370,7 +414,8 @@ class TaskEditorViewModel @Inject constructor(
                 persistentReminderMinutes = current.persistentReminderMinutes,
                 sourceLink = current.sourceLink,
                 tags = parseTags(current.tagsInput),
-                recurrence = buildRecurrence(current)
+                recurrence = buildRecurrence(current),
+                isTemplate = current.isTemplate
         )
         val savedId = saveTask(task)
         applySubtasks(savedId, current.subtasks)

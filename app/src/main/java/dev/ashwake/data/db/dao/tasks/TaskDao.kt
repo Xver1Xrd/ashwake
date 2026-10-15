@@ -21,6 +21,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface TaskDao {
 
+    @Transaction
+    @Query("SELECT * FROM tasks WHERE isTemplate = 1 AND parentTaskId IS NULL AND status != 'DROPPED' ORDER BY updatedAt DESC")
+    fun observeTemplates(): Flow<List<TaskWithRelations>>
+
     /**
      * Единственный запрос списка на все фильтры сразу.
      * Каждое условие — «параметр не задан ИЛИ совпал», поэтому RawQuery не нужен,

@@ -38,6 +38,8 @@ import dev.ashwake.ui.components.ListDivider
 import dev.ashwake.ui.components.ListGroup
 import dev.ashwake.ui.components.ListRow
 import dev.ashwake.ui.components.PrimaryButton
+import dev.ashwake.ui.components.tappable
+import dev.ashwake.domain.model.tasks.AttachmentKind
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import kotlinx.coroutines.flow.SharingStarted
@@ -160,6 +162,24 @@ fun TaskDetailScreen(
                 }
             }
 
+            ListGroup(header = "Детали") {
+                ListRow(title = "Приоритет", subtitle = current.priority.name)
+                ListDivider()
+                ListRow(title = "Сложность", subtitle = "${current.difficulty} из 5")
+                current.recurrence?.let { rule ->
+                    ListDivider()
+                    ListRow(title = "Расписание", subtitle = recurrenceText(rule.type.name, rule.intervalDays))
+                }
+                current.persistentReminderMinutes?.let { minutes ->
+                    ListDivider()
+                    ListRow(title = "Напоминание", subtitle = "Каждые $minutes мин до выполнения")
+                }
+                current.sourceLink?.let { link ->
+                    ListDivider()
+                    ListRow(title = "Ссылка", subtitle = link)
+                }
+            }
+
             if (current.subtasks.isNotEmpty()) {
                 ListGroup(header = "Подзадачи") {
                     current.subtasks.forEachIndexed { index, subtask ->
@@ -180,23 +200,36 @@ fun TaskDetailScreen(
             }
 
             if (attachments.isNotEmpty()) {
-                ListGroup(header = "Вложения") {
-                    attachments.forEachIndexed { index, attachment ->
-                        ListRow(
-                            title = attachment.displayName,
-                            subtitle = attachment.mimeType,
-                            trailing = { Text("Открыть", color = colors.accent, style = AshTheme.type.footnote) },
-                            onClick = {
-                                runCatching {
-                                    context.startActivity(
-                                        Intent(Intent.ACTION_VIEW)
-                                            .setDataAndType(Uri.parse(attachment.contentUri), attachment.mimeType)
-                                            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    )
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Вложения", style = AshTheme.type.headline, color = colors.text)
+                    attachments.forEach { attachment ->
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .background(colors.surface1, AshShapes.card)
+                                .tappable {
+                                    runCatching {
+                                        context.startActivity(
+                                            Intent(Intent.ACTION_VIEW)
+                                                .setDataAndType(Uri.parse(attachment.contentUri), attachment.mimeType)
+                                                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        )
+                                    }
                                 }
-                            }
-                        )
-                        if (index != attachments.lastIndex) ListDivider()
+                                .padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                if (attachment.kind == AttachmentKind.PHOTO) "Фото" else "Файл",
+                                style = AshTheme.type.footnote,
+                                color = colors.accent
+                            )
+                            Text(attachment.displayName, style = AshTheme.type.body, color = colors.text)
+                            Text(
+                                "${attachment.mimeType} · ${formatAttachmentSize(attachment.sizeBytes)} · Нажмите, чтобы открыть",
+                                style = AshTheme.type.footnote,
+                                color = colors.text2
+                            )
+                        }
                     }
                 }
             }
@@ -208,6 +241,20 @@ fun TaskDetailScreen(
             )
         }
     }
+}
+
+private fun formatAttachmentSize(bytes: Long): String = when {
+    bytes >= 1024 * 1024 -> "%.1f МБ".format(bytes / (1024.0 * 1024.0))
+    bytes >= 1024 -> "%.1f КБ".format(bytes / 1024.0)
+    else -> "$bytes Б"
+}
+
+private fun recurrenceText(type: String, interval: Int?): String = when (type) {
+    "DAILY" -> "Каждый день"
+    "EVERY_N_DAYS" -> "Каждые ${interval ?: 1} дн."
+    "WEEKDAYS" -> "По дням недели"
+    "DAY_OF_MONTH" -> "По числам месяца"
+    else -> type
 }
 
 private fun taskMeta(task: Task, today: java.time.LocalDate): String? {

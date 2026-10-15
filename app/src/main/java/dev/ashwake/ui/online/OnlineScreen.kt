@@ -17,6 +17,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -57,7 +60,7 @@ fun OnlineScreen(
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             when {
-                !state.snapshot.configured -> ServerNotConfigured()
+                !state.snapshot.configured -> AccountPreview()
                 !state.snapshot.signedIn -> SignInContent(state, viewModel)
                 else -> SignedInContent(state, viewModel)
             }
@@ -84,15 +87,24 @@ fun OnlineScreen(
 }
 
 @Composable
-private fun ServerNotConfigured() {
+private fun AccountPreview() {
+    var username by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
+    var visible by remember { mutableStateOf(true) }
+    var message by remember { mutableStateOf<String?>(null) }
     ListGroup(
-        header = "Онлайн-функции",
-        footer = "Локальные задачи, привычки и вложения продолжают работать без сети."
+        header = "Аккаунт — предпросмотр",
+        footer = "Это интерактивная заглушка: профиль сохраняется только на этом экране до подключения сервера."
     ) {
-        ListRow(
-            title = "Сервер ещё не подключён",
-            subtitle = "После развёртывания API укажите адрес сервера при сборке приложения."
-        )
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            AshTextField(value = username, onValueChange = { username = it }, label = "@username")
+            AshTextField(value = displayName, onValueChange = { displayName = it }, label = "Имя в профиле")
+            SettingSwitch(label = "Показывать профиль в поиске", checked = visible, onCheckedChange = { visible = it })
+            PrimaryButton(text = "Проверить профиль", enabled = username.isNotBlank() && displayName.isNotBlank()) {
+                message = "Профиль @$username готов к подключению"
+            }
+            message?.let { Text(it, style = AshTheme.type.footnote, color = AshTheme.colors.success) }
+        }
     }
 }
 

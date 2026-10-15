@@ -42,6 +42,9 @@ class TaskRepositoryImpl @Inject constructor(
     private val attachmentStore: TaskAttachmentStore
 ) : TaskRepository {
 
+    override fun observeTemplates(): Flow<List<Task>> =
+        dao.observeTemplates().map { rows -> rows.map { it.toDomain() } }
+
     override fun observeTasks(filter: TaskFilter): Flow<List<Task>> =
         dao.observeTasks(
             includeDone = if (filter.includeDone) 1 else 0,

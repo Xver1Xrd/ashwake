@@ -116,6 +116,7 @@ fun TaskEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
     val presets by viewModel.presets.collectAsStateWithLifecycle()
+    val userTemplates by viewModel.userTemplates.collectAsStateWithLifecycle()
     val attachments by viewModel.attachments.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
     val context = LocalContext.current
@@ -136,6 +137,7 @@ fun TaskEditorScreen(
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
@@ -149,7 +151,7 @@ fun TaskEditorScreen(
             title = if (state.isNew) stringResource(R.string.shortcut_new_task) else stringResource(R.string.tile_add_task),
             onBack = onDone,
             actions = {
-                if (state.isNew && presets.isNotEmpty()) {
+                if (state.isNew && (presets.isNotEmpty() || userTemplates.isNotEmpty())) {
                     TextAction(
                         text = "Шаблоны",
                         onClick = { showTemplates = true }
@@ -270,6 +272,7 @@ fun TaskEditorScreen(
                     state = state,
                     onPickDate = { showDatePicker = true },
                     onPickTime = { showTimePicker = true },
+                    onPickEndTime = { showEndTimePicker = true },
                     onSetDate = viewModel::setDate,
                     onClear = {
                         viewModel.setDate(null)
@@ -317,6 +320,16 @@ fun TaskEditorScreen(
                             onClick = viewModel::clearEstimate
                         )
                     }
+                }
+            }
+
+            Section(
+                title = "Шаблон задачи",
+                footer = "Шаблон не попадает в список задач. Его можно использовать для работы по расписанию и повторов."
+            ) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Сохранить как шаблон", style = AshTheme.type.body, color = colors.text, modifier = Modifier.weight(1f))
+                    Switch(checked = state.isTemplate, onCheckedChange = viewModel::setIsTemplate)
                 }
             }
 
@@ -552,11 +565,24 @@ fun TaskEditorScreen(
         )
     }
 
+    if (showEndTimePicker) {
+        TimePickerSheet(
+            initial = state.endTime,
+            onPick = viewModel::setEndTime,
+            onDismiss = { showEndTimePicker = false }
+        )
+    }
+
     if (showTemplates) {
         TaskTemplatesDialog(
             presets = presets,
+            userTemplates = userTemplates,
             onPick = {
                 viewModel.applyPreset(it)
+                showTemplates = false
+            },
+            onPickUser = {
+                viewModel.applyUserTemplate(it)
                 showTemplates = false
             },
             onDismiss = { showTemplates = false }
@@ -662,6 +688,7 @@ private fun DueDateRow(
     state: TaskEditorState,
     onPickDate: () -> Unit,
     onPickTime: () -> Unit,
+    onPickEndTime: () -> Unit,
     onSetDate: (LocalDate?) -> Unit,
     onClear: () -> Unit
 ) {
@@ -696,6 +723,14 @@ private fun DueDateRow(
                 selected = state.dueTime != null,
                 onClick = onPickTime
             )
+            if (state.dueTime != null) {
+                ChipButton(
+                    text = state.endTime?.let { "до " + dev.ashwake.ui.theme.formatTime(it, is24Hour) } ?: "До",
+                    icon = AshIcons.Timer,
+                    selected = state.endTime != null,
+                    onClick = onPickEndTime
+                )
+            }
             if (state.dueDate != null || state.dueTime != null) {
                 ChipButton(text = stringResource(R.string.editor_bez_sroka), icon = AshIcons.Close, onClick = onClear)
             }
@@ -1022,7 +1057,9 @@ private fun formatMinutes(minutes: Int): String = formatEstimateRu(minutes)
 @Composable
 private fun TaskTemplatesDialog(
     presets: List<dev.ashwake.data.assets.TaskPreset>,
+    userTemplates: List<dev.ashwake.domain.model.tasks.Task>,
     onPick: (dev.ashwake.data.assets.TaskPreset) -> Unit,
+    onPickUser: (dev.ashwake.domain.model.tasks.Task) -> Unit,
     onDismiss: () -> Unit
 ) {
     val colors = AshTheme.colors
@@ -1034,6 +1071,19 @@ private fun TaskTemplatesDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (userTemplates.isNotEmpty()) {
+                    Text("Мои шаблоны", style = AshTheme.type.headline, color = colors.text)
+                    userTemplates.forEach { template ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth().clip(AshShapes.card)
+                                .background(colors.surface2).tappable { onPickUser(template) }.padding(14.dp)
+                        ) {
+                            Text(template.title, style = AshTheme.type.headline, color = colors.text)
+                            Text("${template.dueTime ?: "без времени"} · ${template.estimateMinutes ?: 0} мин", style = AshTheme.type.footnote, color = colors.text2)
+                        }
+                    }
+                }
+                if (presets.isNotEmpty()) Text("Готовые шаблоны", style = AshTheme.type.headline, color = colors.text)
                 presets.forEach { preset ->
                     Column(
                         modifier = Modifier
