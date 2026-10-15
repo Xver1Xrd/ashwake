@@ -132,7 +132,7 @@
     <string name="more_razdely">Разделы</string>
     <string name="more_vecher">Вечер</string>
     <string name="more_prilozhenie">Приложение</string>
-    <string name="more_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo">Приложение работает офлайн: ни одного сетевого вызова, ни аналитики, ни сторонних SDK.</string>
+    <string name="more_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo">Основные функции работают офлайн. Аккаунт, синхронизация и облачные копии включаются только после подключения вашего сервера; аналитики и сторонних SDK нет.</string>
     <string name="ritual_vecherniy_ritual">Вечерний ритуал</string>
     <string name="ritual_kak_proshel_den">Как прошёл день</string>
     <string name="ritual_nezakrytye_zadachi">Незакрытые задачи</string>
