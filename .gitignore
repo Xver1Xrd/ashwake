@@ -13,3 +13,8 @@ local.properties
 *.apk
 *.keystore
 .kotlin/
+server/.venv/
+server/**/*.pyc
+server/**/__pycache__/
+server/*.egg-info/
+server/test-ashwake.db

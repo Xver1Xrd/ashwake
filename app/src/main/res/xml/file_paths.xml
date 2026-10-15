@@ -2,4 +2,5 @@
 <paths>
     <!-- Только подпапка кэша: наружу отдаётся ровно то, что мы туда положили -->
     <cache-path name="shared" path="shared/" />
+    <files-path name="task_attachments" path="task_attachments/" />
 </paths>

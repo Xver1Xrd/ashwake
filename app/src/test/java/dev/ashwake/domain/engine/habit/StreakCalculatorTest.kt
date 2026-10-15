@@ -95,4 +95,47 @@ class StreakCalculatorTest {
         assertEquals(0, result.current)
         assertEquals(0, result.record)
     }
+
+    @Test
+    fun `недельная привычка строит серию из недель а не из дней`() {
+        val weekly = Habit(
+            id = 1,
+            name = "раз в неделю",
+            schedule = HabitSchedule(HabitScheduleType.TIMES_PER_WEEK, timesPerWeek = 1)
+        )
+        val firstMonday = LocalDate.of(2026, 1, 5)
+        val marks = entries(
+            firstMonday.plusDays(2) to EntryStatus.DONE,
+            firstMonday.plusWeeks(1).plusDays(4) to EntryStatus.DONE,
+            firstMonday.plusWeeks(2) to EntryStatus.DONE
+        )
+
+        val result = calculator.compute(
+            weekly,
+            marks,
+            from = firstMonday,
+            today = firstMonday.plusWeeks(2).plusDays(1)
+        )
+
+        assertEquals(3, result.current)
+        assertEquals(3, result.record)
+    }
+
+    @Test
+    fun `незавершенная текущая неделя не обрывает недельную серию`() {
+        val weekly = Habit(
+            id = 1,
+            name = "раз в неделю",
+            schedule = HabitSchedule(HabitScheduleType.TIMES_PER_WEEK, timesPerWeek = 1)
+        )
+        val monday = LocalDate.of(2026, 1, 5)
+        val result = calculator.compute(
+            weekly,
+            entries(monday to EntryStatus.DONE),
+            from = monday,
+            today = monday.plusWeeks(1).plusDays(2)
+        )
+
+        assertEquals(1, result.current)
+    }
 }

@@ -16,6 +16,7 @@ import dev.ashwake.platform.widget.appIntent
  */
 abstract class RouteTileService(private val route: String) : TileService() {
 
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
         val intent = appIntent(this, route)

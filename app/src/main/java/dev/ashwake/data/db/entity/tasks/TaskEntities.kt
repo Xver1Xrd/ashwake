@@ -68,11 +68,18 @@ data class RecurrenceRuleEntity(
     ],
     indices = [
         Index("projectId"), Index("parentTaskId"), Index("recurrenceId"),
-        Index("dueDate"), Index("status"), Index("seriesId")
+        Index("dueDate"), Index("status"), Index("seriesId"), Index("spaceId"),
+        Index(value = ["globalId"], unique = true)
     ]
 )
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Стабильный UUID для синхронизации; локальные id между устройствами различаются. */
+    val globalId: String? = null,
+    /** null — локальная задача до подключения профиля, иначе id личного/общего пространства. */
+    val spaceId: String? = null,
+    val syncRevision: Long = 0,
+    val syncState: String = "LOCAL",
     val title: String,
     /** Значок задачи: одна эмодзи или null. */
     val emoji: String? = null,
@@ -145,6 +152,29 @@ data class TaskPostponementEntity(
     val toDate: Int? = null,
     val at: Long,
     val source: String
+)
+
+@Entity(
+    tableName = "task_attachments",
+    foreignKeys = [
+        ForeignKey(
+            entity = TaskEntity::class,
+            parentColumns = ["id"], childColumns = ["taskId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index("taskId"), Index(value = ["storedName"], unique = true)]
+)
+data class TaskAttachmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val taskId: Long,
+    /** Случайное имя в закрытой папке приложения; исходный путь никогда не хранится. */
+    val storedName: String,
+    val displayName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val kind: String,
+    val createdAt: Long
 )
 
 /** Задача со всем, что нужно списку: теги, правило повтора, подзадачи. */
