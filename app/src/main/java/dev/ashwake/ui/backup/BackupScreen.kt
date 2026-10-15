@@ -222,15 +222,18 @@ fun BackupScreen(
                     Text("Записей ритуала: ${contents.reviews}")
                     HorizontalDivider(Modifier.padding(vertical = 4.dp))
                     Text(
-                        "Архив прочитан. Запись в базу появится вместе с полной " +
-                            "заменой данных — она необратима, и делать её вслепую нельзя",
+                        "Восстановление заменит задачи, привычки, отказы, ритуалы и " +
+                            "состояние персонажа данными из архива. Операция необратима.",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Закрыть") }
+                Button(onClick = viewModel::applyRestore) { Text("Восстановить") }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::dismissRestorePreview) { Text("Отмена") }
             }
         )
     }

@@ -37,6 +37,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenBlocking: () -> Unit,
     onOpenBackup: () -> Unit = {},
+    onOpenOnline: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val timebox by viewModel.timebox.collectAsStateWithLifecycle()
@@ -141,6 +142,11 @@ fun SettingsScreen(
                 onClick = { viewModel.setUseCalendar(!useCalendar) }
             )
             SettingsRow(
+                title = "Профиль и совместная работа",
+                subtitle = "@username, друзья, пара, общие задачи и защищённая синхронизация",
+                onClick = onOpenOnline
+            )
+            SettingsRow(
                 title = "Данные и бэкапы",
                 subtitle = "Резервные копии, шифрование, импорт из других приложений",
                 onClick = onOpenBackup
@@ -153,8 +159,8 @@ fun SettingsScreen(
 
             HorizontalDivider()
             Text(
-                "Приложение работает офлайн: ни одного сетевого вызова, " +
-                    "ни аналитики, ни сторонних SDK",
+                "Основные функции работают офлайн. Сеть используется только после " +
+                    "явного подключения профиля; содержимое задач шифруется на устройстве.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -7,6 +7,7 @@ import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.tasks.TaskDao
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
+import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
 import dev.ashwake.data.db.mapper.tasks.toDomain
 import dev.ashwake.data.db.mapper.tasks.toEntity
 import dev.ashwake.data.db.mapper.tasks.toEpochDayInt
@@ -70,6 +71,11 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun upsert(task: Task): Long = db.withTransaction {
         val now = clock.now()
+        val conflictRevision = if (
+            task.syncState == dev.ashwake.domain.model.tasks.TaskSyncState.CONFLICT && task.globalId != null
+        ) {
+            db.syncDao().conflict(task.globalId)?.remoteRevision
+        } else null
 
         // Правило повтора сохраняем первым: задача должна лечь уже со ссылкой на него.
         val recurrenceId = task.recurrence?.let { rule ->
@@ -77,7 +83,12 @@ class TaskRepositoryImpl @Inject constructor(
             else rule.id.also { dao.updateRecurrence(rule.toEntity()) }
         }
 
-        val entity = task.copy(updatedAt = now).toEntity(recurrenceId = recurrenceId)
+        val entity = task.copy(
+            globalId = task.globalId ?: UUID.randomUUID().toString(),
+            syncRevision = conflictRevision ?: task.syncRevision,
+            syncState = if (task.spaceId == null) task.syncState else dev.ashwake.domain.model.tasks.TaskSyncState.PENDING,
+            updatedAt = now
+        ).toEntity(recurrenceId = recurrenceId)
         val id = if (task.id == 0L) {
             dao.insert(entity.copy(createdAt = now.toEpochMilli()))
         } else {
@@ -92,6 +103,9 @@ class TaskRepositoryImpl @Inject constructor(
         }
         if (tagIds.isNotEmpty()) {
             dao.insertCrossRefs(tagIds.distinct().map { TaskTagCrossRef(taskId = id, tagId = it) })
+        }
+        if (conflictRevision != null && task.globalId != null) {
+            db.syncDao().removeConflict(task.globalId)
         }
         id
     }
@@ -114,6 +128,9 @@ class TaskRepositoryImpl @Inject constructor(
         val series = row.task.seriesId ?: UUID.randomUUID().toString()
         val nextEntity = row.task.copy(
             id = 0,
+            globalId = UUID.randomUUID().toString(),
+            syncRevision = 0,
+            syncState = if (row.task.spaceId == null) "LOCAL" else "PENDING",
             status = TaskStatus.ACTIVE.name,
             completedAt = null,
             dueDate = nextDate.toEpochDayInt(),
@@ -167,7 +184,37 @@ class TaskRepositoryImpl @Inject constructor(
         dao.setQuadrant(id, quadrant.name, priority?.name, clock.now().toEpochMilli())
     }
 
-    override suspend fun delete(id: Long) = dao.deleteById(id)
+    override suspend fun delete(id: Long) {
+        db.withTransaction {
+            val row = dao.getTask(id) ?: return@withTransaction
+            val task = row.task
+            if (task.globalId != null && task.spaceId != null) {
+                db.syncDao().addTombstone(
+                    SyncTombstoneEntity(
+                        globalId = task.globalId,
+                        spaceId = task.spaceId,
+                        recordType = "task",
+                        baseRevision = task.syncRevision,
+                        createdAt = clock.now().toEpochMilli()
+                    )
+                )
+            }
+            row.subtasks.forEach { child ->
+                if (child.globalId != null && child.spaceId != null) {
+                    db.syncDao().addTombstone(
+                        SyncTombstoneEntity(
+                            globalId = child.globalId,
+                            spaceId = child.spaceId,
+                            recordType = "task",
+                            baseRevision = child.syncRevision,
+                            createdAt = clock.now().toEpochMilli()
+                        )
+                    )
+                }
+            }
+            dao.deleteById(id)
+        }
+    }
 
     override suspend fun setDelegate(id: Long, delegateTo: String?) {
         dao.setDelegate(id, delegateTo, clock.now().toEpochMilli())
@@ -183,6 +230,9 @@ class TaskRepositoryImpl @Inject constructor(
                 dao.insert(
                     parent.task.copy(
                         id = 0,
+                        globalId = UUID.randomUUID().toString(),
+                        syncRevision = 0,
+                        syncState = if (parent.task.spaceId == null) "LOCAL" else "PENDING",
                         title = title.trim(),
                         note = null,
                         parentTaskId = parentId,

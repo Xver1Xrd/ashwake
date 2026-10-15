@@ -14,6 +14,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -71,6 +72,7 @@ fun TaskEditorScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
+    val spaces by viewModel.spaceList.collectAsStateWithLifecycle()
 
     // Закрываем экран только после того, как сохранение реально дошло до базы
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
@@ -106,6 +108,16 @@ fun TaskEditorScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (state.hasSyncConflict) {
+                Card(Modifier.fillMaxWidth()) {
+                    Text(
+                        "Эту задачу изменили на другом устройстве. Если сохранить её здесь, " +
+                            "серверная версия будет заменена текущей после синхронизации.",
+                        modifier = Modifier.padding(12.dp),
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             OutlinedTextField(
                 value = state.title,
                 onValueChange = viewModel::setTitle,
@@ -121,6 +133,32 @@ fun TaskEditorScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2
             )
+
+            if (spaces.isNotEmpty()) {
+                SectionTitle("Пространство")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    spaces.forEach { space ->
+                        FilterChip(
+                            selected = state.spaceId == space.id,
+                            onClick = { viewModel.setSpace(space.id) },
+                            label = {
+                                Text(
+                                    when (space.type) {
+                                        "personal" -> "Личное"
+                                        "couple" -> "Мы"
+                                        else -> "Общее"
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+                Text(
+                    "Личные задачи видите только вы; задачи «Мы» доступны участникам пары.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             SectionTitle("Приоритет")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

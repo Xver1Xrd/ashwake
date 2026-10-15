@@ -29,7 +29,7 @@ data class HabitsUiState(
     val habits: List<HabitWithProgress> = emptyList(),
     val skipReasons: List<SkipReason> = emptyList(),
     val pauses: List<HabitPause> = emptyList(),
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = LocalDate.ofEpochDay(0),
     val showOnlyDueToday: Boolean = true
 ) {
     /** На сегодня ожидаются: остальные показываются отдельным свёрнутым блоком. */

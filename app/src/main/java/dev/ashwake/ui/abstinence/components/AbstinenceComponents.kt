@@ -43,9 +43,10 @@ import kotlin.math.roundToInt
 @Composable
 fun LiveCounter(duration: Duration, modifier: Modifier = Modifier) {
     val days = duration.toDays()
-    val hours = duration.toHoursPart()
-    val minutes = duration.toMinutesPart()
-    val seconds = duration.toSecondsPart()
+    val totalSeconds = duration.seconds.coerceAtLeast(0)
+    val hours = (totalSeconds / 3_600 % 24).toInt()
+    val minutes = (totalSeconds / 60 % 60).toInt()
+    val seconds = (totalSeconds % 60).toInt()
 
     Column(
         modifier = modifier,

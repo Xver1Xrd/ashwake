@@ -9,11 +9,14 @@ import dev.ashwake.platform.work.BackupWorker
 import dev.ashwake.platform.work.MilestoneWorker
 import dev.ashwake.platform.work.RitualReminderWorker
 import dev.ashwake.platform.work.WeeklyReportWorker
+import dev.ashwake.platform.work.OnlineSyncWorker
+import dev.ashwake.platform.work.CloudBackupWorker
 import javax.inject.Inject
 
 /**
- * Приложение офлайн-first: ни одного сетевого вызова, ни одного стороннего SDK.
- * WorkManager поднимается вручную через Hilt — штатный инициализатор выключен в манифесте.
+ * Приложение local-first: сеть используется только после настройки собственного API
+ * и входа пользователя. WorkManager поднимается вручную через Hilt — штатный
+ * инициализатор выключен в манифесте.
  */
 @HiltAndroidApp
 class AshwakeApp : Application(), Configuration.Provider {
@@ -27,6 +30,8 @@ class AshwakeApp : Application(), Configuration.Provider {
         RitualReminderWorker.schedule(this)
         WeeklyReportWorker.schedule(this)
         BackupWorker.schedule(this)
+        OnlineSyncWorker.schedule(this)
+        CloudBackupWorker.schedule(this)
     }
 
     override val workManagerConfiguration: Configuration

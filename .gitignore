@@ -12,3 +12,9 @@ build/
 local.properties
 *.apk
 *.keystore
+server/.env
+server/.venv/
+server/*.egg-info/
+server/*.db
+server/.pytest_cache/
+server/**/__pycache__/

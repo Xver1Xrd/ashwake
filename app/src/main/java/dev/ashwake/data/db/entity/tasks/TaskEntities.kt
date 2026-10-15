@@ -68,11 +68,18 @@ data class RecurrenceRuleEntity(
     ],
     indices = [
         Index("projectId"), Index("parentTaskId"), Index("recurrenceId"),
-        Index("dueDate"), Index("status"), Index("seriesId")
+        Index("dueDate"), Index("status"), Index("seriesId"), Index("spaceId"),
+        Index(value = ["globalId"], unique = true)
     ]
 )
 data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Стабильный UUID для синхронизации; локальные id между устройствами различаются. */
+    val globalId: String? = null,
+    /** null — локальная задача до подключения профиля, иначе id личного/общего пространства. */
+    val spaceId: String? = null,
+    val syncRevision: Long = 0,
+    val syncState: String = "LOCAL",
     val title: String,
     val note: String? = null,
     val projectId: Long? = null,

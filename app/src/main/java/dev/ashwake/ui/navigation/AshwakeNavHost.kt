@@ -42,6 +42,7 @@ import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
+import dev.ashwake.ui.online.OnlineScreen
 
 @Composable
 fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)) {
@@ -168,8 +169,13 @@ fun AshwakeRoot(pendingRoute: MutableStateFlow<String?> = MutableStateFlow(null)
                 SettingsScreen(
                     onBack = { navController.popBackStack() },
                     onOpenBlocking = { navController.navigate("blocking") },
-                    onOpenBackup = { navController.navigate("backup") }
+                    onOpenBackup = { navController.navigate("backup") },
+                    onOpenOnline = { navController.navigate("online") }
                 )
+            }
+
+            composable("online") {
+                OnlineScreen(onBack = { navController.popBackStack() })
             }
 
             composable("blocking") {
@@ -195,7 +201,7 @@ private fun destinationFor(route: String): String = when (route) {
 
 /** Экраны, на которых нижняя навигация только мешает. */
 private val FULLSCREEN_ROUTE_PREFIXES =
-    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup")
+    listOf("task?", "habit/", "habit-editor?", "abstinence/", "routine-run", "ritual", "blocking", "settings", "backup", "online")
 
 /** Честная заглушка: показывает, на каком этапе плана появится экран. */
 @Composable

@@ -14,6 +14,7 @@ import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.domain.model.tasks.TaskStatus
+import dev.ashwake.domain.model.tasks.TaskSyncState
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -31,6 +32,10 @@ internal fun Long.toInstant(): Instant = Instant.ofEpochMilli(this)
 
 fun TaskWithRelations.toDomain(): Task = Task(
     id = task.id,
+    globalId = task.globalId,
+    spaceId = task.spaceId,
+    syncRevision = task.syncRevision,
+    syncState = TaskSyncState.valueOf(task.syncState),
     title = task.title,
     note = task.note,
     projectId = task.projectId,
@@ -60,6 +65,10 @@ fun TaskWithRelations.toDomain(): Task = Task(
 /** Подзадача без своих тегов и вложенности: список второго уровня нам не нужен. */
 fun TaskEntity.toDomainShallow(): Task = Task(
     id = id,
+    globalId = globalId,
+    spaceId = spaceId,
+    syncRevision = syncRevision,
+    syncState = TaskSyncState.valueOf(syncState),
     title = title,
     note = note,
     projectId = projectId,
@@ -79,6 +88,10 @@ fun TaskEntity.toDomainShallow(): Task = Task(
 /** [recurrenceId] задаётся снаружи: правило сохраняется до задачи и знает свой id. */
 fun Task.toEntity(recurrenceId: Long? = recurrence?.id?.takeIf { it != 0L }): TaskEntity = TaskEntity(
     id = id,
+    globalId = globalId,
+    spaceId = spaceId,
+    syncRevision = syncRevision,
+    syncState = syncState.name,
     title = title,
     note = note,
     projectId = projectId,

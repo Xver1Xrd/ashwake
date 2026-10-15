@@ -21,7 +21,7 @@ sealed interface BackupResult {
 }
 
 sealed interface RestoreResult {
-    data class Preview(val contents: BackupContents) : RestoreResult
+    data class Preview(val contents: BackupContents, val json: String) : RestoreResult
     data object NeedsPassword : RestoreResult
     data object WrongPassword : RestoreResult
     data class Failed(val reason: String) : RestoreResult
@@ -44,6 +44,13 @@ class BackupManager @Inject constructor(
     private val settings: AppSettings,
     private val clock: AppClock
 ) {
+
+    /** Формирует зашифрованный архив без файловой системы — для прямой загрузки в облако. */
+    suspend fun createEncryptedPayload(password: CharArray): Pair<ByteArray, BackupContents> =
+        withContext(Dispatchers.IO) {
+            val (json, contents) = serializer.export()
+            crypto.encrypt(json.toByteArray(), password) to contents
+        }
 
     suspend fun createBackup(password: CharArray? = null): BackupResult =
         withContext(Dispatchers.IO) {
@@ -90,27 +97,44 @@ class BackupManager @Inject constructor(
             runCatching {
                 val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
                     ?: return@runCatching RestoreResult.Failed("Файл не читается")
-
-                val json = when {
-                    !crypto.isEncrypted(bytes) -> String(bytes)
-                    password == null -> return@runCatching RestoreResult.NeedsPassword
-                    else -> when (val result = crypto.decrypt(bytes, password)) {
-                        is DecryptResult.Success -> String(result.content)
-                        DecryptResult.WrongPassword ->
-                            return@runCatching RestoreResult.WrongPassword
-                        is DecryptResult.Corrupted ->
-                            return@runCatching RestoreResult.Failed(result.reason)
-                        DecryptResult.NotEncrypted -> String(bytes)
-                    }
-                }
-
-                val contents = serializer.peek(json)
-                    ?: return@runCatching RestoreResult.Failed("Файл не похож на архив Ashwake")
-                RestoreResult.Preview(contents)
+                readPayloadNow(bytes, password)
             }.getOrElse { error ->
                 RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
             }
         }
+
+    /** Проверяет и расшифровывает уже загруженный архив, не изменяя базу. */
+    suspend fun readPayload(bytes: ByteArray, password: CharArray? = null): RestoreResult =
+        withContext(Dispatchers.IO) {
+            runCatching { readPayloadNow(bytes, password) }.getOrElse { error ->
+                RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
+            }
+        }
+
+    suspend fun restore(json: String): RestoreResult = withContext(Dispatchers.IO) {
+        runCatching {
+            val contents = serializer.restore(json)
+            RestoreResult.Preview(contents, json)
+        }.getOrElse { error ->
+            RestoreResult.Failed(error.message ?: "Не удалось восстановить архив")
+        }
+    }
+
+    private fun readPayloadNow(bytes: ByteArray, password: CharArray?): RestoreResult {
+        val json = when {
+            !crypto.isEncrypted(bytes) -> String(bytes)
+            password == null -> return RestoreResult.NeedsPassword
+            else -> when (val result = crypto.decrypt(bytes, password)) {
+                is DecryptResult.Success -> String(result.content)
+                DecryptResult.WrongPassword -> return RestoreResult.WrongPassword
+                is DecryptResult.Corrupted -> return RestoreResult.Failed(result.reason)
+                DecryptResult.NotEncrypted -> String(bytes)
+            }
+        }
+        val contents = serializer.peek(json)
+            ?: return RestoreResult.Failed("Файл не похож на архив Ashwake")
+        return RestoreResult.Preview(contents, json)
+    }
 
     /** Ротация: держим последние [KEEP_COPIES] копий, остальное удаляем. */
     private fun rotate(folder: DocumentFile) {

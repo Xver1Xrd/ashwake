@@ -25,6 +25,8 @@ import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
 import dev.ashwake.domain.usecase.tasks.SaveTaskUseCase
 import dev.ashwake.platform.speech.VoiceInput
 import dev.ashwake.platform.speech.VoiceResult
+import dev.ashwake.online.model.OnlineSpace
+import dev.ashwake.online.repository.OnlineRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -53,15 +55,17 @@ data class TasksUiState(
     val viewMode: TasksViewMode = TasksViewMode.LIST,
     val quickInput: String = "",
     val parsed: ParsedQuickInput? = null,
-    val today: LocalDate = LocalDate.EPOCH,
+    val today: LocalDate = LocalDate.ofEpochDay(0),
     val staleDialogTask: Task? = null,
-    val expandedTaskIds: Set<Long> = emptySet()
+    val expandedTaskIds: Set<Long> = emptySet(),
+    val spaces: List<OnlineSpace> = emptyList(),
+    val selectedSpaceId: String? = null
 )
 
 data class CalendarUiState(
     val scale: CalendarScale = CalendarScale.MONTH,
-    val anchor: LocalDate = LocalDate.EPOCH,
-    val selected: LocalDate = LocalDate.EPOCH,
+    val anchor: LocalDate = LocalDate.ofEpochDay(0),
+    val selected: LocalDate = LocalDate.ofEpochDay(0),
     val tasksByDate: Map<LocalDate, List<Task>> = emptyMap()
 )
 
@@ -79,7 +83,8 @@ class TasksViewModel @Inject constructor(
     private val reopenTask: ReopenTaskUseCase,
     private val postponeTask: PostponeTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
-    private val voiceInput: VoiceInput
+    private val voiceInput: VoiceInput,
+    private val online: OnlineRepository
 ) : ViewModel() {
 
     private data class UiBits(
@@ -87,7 +92,9 @@ class TasksViewModel @Inject constructor(
         val mode: TasksViewMode,
         val input: String,
         val staleTaskId: Long?,
-        val expanded: Set<Long>
+        val expanded: Set<Long>,
+        val spaces: List<OnlineSpace>,
+        val selectedSpaceId: String?
     )
 
     private val filter = MutableStateFlow(TaskFilter())
@@ -95,10 +102,18 @@ class TasksViewModel @Inject constructor(
     private val quickInput = MutableStateFlow("")
     private val staleTaskId = MutableStateFlow<Long?>(null)
     private val expandedTaskIds = MutableStateFlow<Set<Long>>(emptySet())
+    private val selectedSpaceId = MutableStateFlow<String?>(null)
 
     private val uiBits = combine(
-        filter, viewMode, quickInput, staleTaskId, expandedTaskIds, ::UiBits
-    )
+        combine(filter, viewMode, quickInput) { filterValue, mode, input ->
+            Triple(filterValue, mode, input)
+        },
+        combine(staleTaskId, expandedTaskIds) { stale, expanded -> stale to expanded },
+        online.spaces,
+        selectedSpaceId
+    ) { base, dialogs, spaces, selected ->
+        UiBits(base.first, base.second, base.third, dialogs.first, dialogs.second, spaces, selected)
+    }
 
     val state: StateFlow<TasksUiState> = combine(
         filter.flatMapLatest { tasks.observeTasks(it) },
@@ -107,8 +122,10 @@ class TasksViewModel @Inject constructor(
         uiBits
     ) { taskList, projectList, tagList, bits ->
         val today = clock.today()
+        val visibleTasks = if (bits.selectedSpaceId == null) taskList
+        else taskList.filter { it.spaceId == bits.selectedSpaceId }
         TasksUiState(
-            tasks = taskList,
+            tasks = visibleTasks,
             projects = projectList,
             tags = tagList,
             filter = bits.filter,
@@ -118,8 +135,10 @@ class TasksViewModel @Inject constructor(
             // зато пользователь сразу видит, что распозналось.
             parsed = bits.input.takeIf { it.isNotBlank() }?.let { parser.parse(it, today) },
             today = today,
-            staleDialogTask = taskList.firstOrNull { it.id == bits.staleTaskId },
-            expandedTaskIds = bits.expanded
+            staleDialogTask = visibleTasks.firstOrNull { it.id == bits.staleTaskId },
+            expandedTaskIds = bits.expanded,
+            spaces = bits.spaces,
+            selectedSpaceId = bits.selectedSpaceId
         )
     }.stateIn(
         viewModelScope,
@@ -235,6 +254,7 @@ class TasksViewModel @Inject constructor(
             saveTask(
                 Task(
                     title = parsed.title,
+                    spaceId = selectedSpaceId.value,
                     priority = parsed.priority ?: Priority.P4,
                     dueDate = parsed.date,
                     dueTime = parsed.time,
@@ -254,6 +274,7 @@ class TasksViewModel @Inject constructor(
             saveTask(
                 Task(
                     title = parsed.title.ifBlank { text.take(120) },
+                    spaceId = selectedSpaceId.value,
                     dueDate = parsed.date,
                     dueTime = parsed.time,
                     estimateMinutes = parsed.estimateMinutes,
@@ -265,6 +286,8 @@ class TasksViewModel @Inject constructor(
     }
 
     // --- действия над задачами ---------------------------------------------
+
+    fun selectSpace(spaceId: String?) { selectedSpaceId.value = spaceId }
 
     fun complete(task: Task) {
         viewModelScope.launch {

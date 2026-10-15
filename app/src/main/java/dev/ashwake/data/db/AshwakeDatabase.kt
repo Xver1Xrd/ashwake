@@ -2,6 +2,8 @@ package dev.ashwake.data.db
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.blocking.BlockingDao
 import dev.ashwake.data.db.dao.character.CharacterDao
@@ -13,6 +15,7 @@ import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.online.SyncDao
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceMilestoneEntity
@@ -56,14 +59,16 @@ import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
+import dev.ashwake.data.db.entity.online.SyncConflictEntity
+import dev.ashwake.data.db.entity.online.SyncStateEntity
+import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
 
 /**
  * Единая база приложения.
  *
- * Схема спроектирована сразу под всё ТЗ (docs/02-database.md), но сущности
- * подключаются по мере реализации фич. До версии 1.0 версия базы остаётся 1,
- * а изменения схемы разработчику достаются пересозданием базы —
- * миграции пишутся начиная с первого релиза.
+ * Схема спроектирована под всё ТЗ (docs/02-database.md). Начиная с добавления
+ * онлайн-синхронизации каждое изменение версии сопровождается явной миграцией,
+ * чтобы локальные данные не пересоздавались при обновлении приложения.
  */
 @Database(
     entities = [
@@ -117,9 +122,12 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         // блокировка приложений
         BlockingRuleEntity::class,
         BlockedAppEntity::class,
-        BypassLogEntity::class
+        BypassLogEntity::class,
+        SyncTombstoneEntity::class,
+        SyncStateEntity::class,
+        SyncConflictEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
@@ -134,8 +142,25 @@ abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun timeboxDao(): TimeboxDao
     abstract fun ritualDao(): RitualDao
     abstract fun blockingDao(): BlockingDao
+    abstract fun syncDao(): SyncDao
 
     companion object {
         const val NAME = "ashwake.db"
+
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN globalId TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN spaceId TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN syncRevision INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN syncState TEXT NOT NULL DEFAULT 'LOCAL'")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS sync_tombstones (globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, recordType TEXT NOT NULL, baseRevision INTEGER NOT NULL, createdAt INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_tombstones_spaceId ON sync_tombstones(spaceId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS sync_state (accountId TEXT NOT NULL PRIMARY KEY, cursor INTEGER NOT NULL, lastSuccessAt INTEGER)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS sync_conflicts (globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, localRevision INTEGER NOT NULL, remoteRevision INTEGER NOT NULL, remoteCiphertext TEXT NOT NULL, createdAt INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflicts_spaceId ON sync_conflicts(spaceId)")
+            }
+        }
     }
 }

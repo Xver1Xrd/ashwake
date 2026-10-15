@@ -88,6 +88,10 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :id")
     suspend fun getTask(id: Long): TaskWithRelations?
 
+    @Transaction
+    @Query("SELECT * FROM tasks WHERE globalId = :globalId LIMIT 1")
+    suspend fun getTaskByGlobalId(globalId: String): TaskWithRelations?
+
     @Insert
     suspend fun insert(task: TaskEntity): Long
 
@@ -100,7 +104,7 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id = :id")
     suspend fun deleteById(id: Long)
 
-    @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now WHERE id = :id")
+    @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun setStatus(id: Long, status: String, completedAt: Long?, now: Long)
 
     @Query(
@@ -109,7 +113,8 @@ interface TaskDao {
         SET dueDate = :toDate,
             postponeCount = postponeCount + 1,
             lastPostponedAt = :now,
-            updatedAt = :now
+            updatedAt = :now,
+            syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END
         WHERE id = :id
         """
     )
@@ -120,13 +125,14 @@ interface TaskDao {
         UPDATE tasks
         SET quadrantOverride = :quadrant,
             priority = COALESCE(:priority, priority),
-            updatedAt = :now
+            updatedAt = :now,
+            syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END
         WHERE id = :id
         """
     )
     suspend fun setQuadrant(id: Long, quadrant: String, priority: String?, now: Long)
 
-    @Query("UPDATE tasks SET delegatedTo = :delegateTo, updatedAt = :now WHERE id = :id")
+    @Query("UPDATE tasks SET delegatedTo = :delegateTo, updatedAt = :now, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun setDelegate(id: Long, delegateTo: String?, now: Long)
 
     // --- теги задачи ---

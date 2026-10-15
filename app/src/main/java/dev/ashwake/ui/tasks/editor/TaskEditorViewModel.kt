@@ -12,8 +12,11 @@ import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskSyncState
 import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
+import dev.ashwake.online.repository.OnlineRepository
+import dev.ashwake.online.model.OnlineSpace
 import dev.ashwake.domain.usecase.tasks.CompleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.DeleteTaskUseCase
 import dev.ashwake.domain.usecase.tasks.ReopenTaskUseCase
@@ -41,6 +44,7 @@ data class TaskEditorState(
     val taskId: Long = 0,
     val title: String = "",
     val note: String = "",
+    val spaceId: String? = null,
     val projectId: Long? = null,
     val priority: Priority = Priority.P4,
     val dueDate: LocalDate? = null,
@@ -61,6 +65,7 @@ data class TaskEditorState(
     // служебное
     val isNew: Boolean = true,
     val isDone: Boolean = false,
+    val hasSyncConflict: Boolean = false,
     val loading: Boolean = true,
     val saved: Boolean = false
 ) {
@@ -76,6 +81,7 @@ class TaskEditorViewModel @Inject constructor(
     private val reopenTask: ReopenTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val clock: AppClock,
+    online: OnlineRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -86,6 +92,8 @@ class TaskEditorViewModel @Inject constructor(
 
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val spaceList: StateFlow<List<OnlineSpace>> = online.spaces
 
     /** Подзадачи, удалённые в редакторе: применяются одной пачкой при сохранении. */
     private val removedSubtaskIds = mutableSetOf<Long>()
@@ -109,6 +117,7 @@ class TaskEditorViewModel @Inject constructor(
             taskId = task.id,
             title = task.title,
             note = task.note.orEmpty(),
+            spaceId = task.spaceId,
             projectId = task.projectId,
             priority = task.priority,
             dueDate = task.dueDate,
@@ -127,6 +136,7 @@ class TaskEditorViewModel @Inject constructor(
             existingRecurrenceId = rule?.id ?: 0,
             isNew = false,
             isDone = task.isDone,
+            hasSyncConflict = task.syncState == TaskSyncState.CONFLICT,
             loading = false
         )
     }
@@ -135,6 +145,7 @@ class TaskEditorViewModel @Inject constructor(
 
     fun setTitle(value: String) = _state.update { it.copy(title = value) }
     fun setNote(value: String) = _state.update { it.copy(note = value) }
+    fun setSpace(value: String?) = _state.update { it.copy(spaceId = value) }
     fun setProject(id: Long?) = _state.update { it.copy(projectId = id) }
     fun setPriority(value: Priority) = _state.update { it.copy(priority = value) }
     fun setDate(value: LocalDate?) = _state.update { it.copy(dueDate = value) }
@@ -208,6 +219,7 @@ class TaskEditorViewModel @Inject constructor(
                 id = current.taskId,
                 title = current.title.trim(),
                 note = current.note.takeIf { it.isNotBlank() },
+                spaceId = current.spaceId,
                 projectId = current.projectId,
                 priority = current.priority,
                 dueDate = current.dueDate,

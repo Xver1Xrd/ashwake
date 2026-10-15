@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.ashwake.domain.model.tasks.StaleLevel
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskSyncState
 import dev.ashwake.ui.theme.Blood
 import dev.ashwake.ui.theme.Gold
 import dev.ashwake.ui.theme.Moss
@@ -186,6 +187,13 @@ private fun TaskRowContent(
                 contentDescription = "Есть ссылка",
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (task.syncState == TaskSyncState.CONFLICT) {
+            Text(
+                "Конфликт",
+                style = MaterialTheme.typography.labelSmall,
+                color = Blood
             )
         }
         StaleBadge(task)

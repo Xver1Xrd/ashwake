@@ -57,6 +57,7 @@ class BackupViewModel @Inject constructor(
 
     private val _restorePreview = MutableStateFlow<BackupContents?>(null)
     val restorePreview: StateFlow<BackupContents?> = _restorePreview.asStateFlow()
+    private var pendingRestoreJson: String? = null
 
     private val _import = MutableStateFlow(ImportState())
     val import: StateFlow<ImportState> = _import.asStateFlow()
@@ -101,7 +102,10 @@ class BackupViewModel @Inject constructor(
             when (
                 val result = backups.readBackup(uri, password?.takeIf { it.isNotBlank() }?.toCharArray())
             ) {
-                is RestoreResult.Preview -> _restorePreview.value = result.contents
+                is RestoreResult.Preview -> {
+                    pendingRestoreJson = result.json
+                    _restorePreview.value = result.contents
+                }
                 RestoreResult.NeedsPassword ->
                     _message.value = "Архив зашифрован — нужен пароль"
                 RestoreResult.WrongPassword -> _message.value = "Пароль не подошёл"
@@ -110,7 +114,24 @@ class BackupViewModel @Inject constructor(
         }
     }
 
-    fun dismissRestorePreview() { _restorePreview.value = null }
+    fun dismissRestorePreview() {
+        pendingRestoreJson = null
+        _restorePreview.value = null
+    }
+
+    fun applyRestore() {
+        val json = pendingRestoreJson ?: return
+        viewModelScope.launch {
+            when (val result = backups.restore(json)) {
+                is RestoreResult.Preview -> {
+                    _message.value = "Восстановлено: ${result.contents.total} записей"
+                    dismissRestorePreview()
+                }
+                is RestoreResult.Failed -> _message.value = result.reason
+                else -> _message.value = "Не удалось восстановить архив"
+            }
+        }
+    }
 
     // --- импорт ------------------------------------------------------------
 

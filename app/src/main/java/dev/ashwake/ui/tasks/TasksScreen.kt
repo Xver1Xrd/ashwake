@@ -7,9 +7,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -23,6 +27,7 @@ import androidx.compose.material.icons.filled.ViewTimeline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -121,6 +126,33 @@ fun TasksScreen(
         }
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (state.spaces.isNotEmpty()) {
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = state.selectedSpaceId == null,
+                        onClick = { viewModel.selectSpace(null) },
+                        label = { Text("Все") }
+                    )
+                    state.spaces.forEach { space ->
+                        FilterChip(
+                            selected = state.selectedSpaceId == space.id,
+                            onClick = { viewModel.selectSpace(space.id) },
+                            label = {
+                                Text(
+                                    when (space.type) {
+                                        "personal" -> "Личные"
+                                        "couple" -> "Мы"
+                                        else -> "Общие"
+                                    }
+                                )
+                            }
+                        )
+                    }
+                }
+            }
             if (state.viewMode == TasksViewMode.LIST || state.viewMode == TasksViewMode.MATRIX) {
                 TaskFilterRow(
                     filter = state.filter,
