@@ -57,6 +57,7 @@ import dev.ashwake.ui.settings.theme.ThemeEditorScreen
 import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.tasks.TasksScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
+import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.trash.TrashScreen
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.timers.TimersScreen
@@ -207,8 +208,21 @@ fun AshwakeRoot(
                         navArgument("taskId") { type = NavType.StringType; defaultValue = "0" }
                     )
                 ) {
-                    TaskEditorScreen(onDone = { navController.popBackStack() })
+                    val taskId = it.arguments?.getString("taskId")?.toLongOrNull() ?: 0L
+                    if (taskId == 0L) {
+                        TaskEditorScreen(onDone = { navController.popBackStack() })
+                    } else {
+                        TaskDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onEdit = { navController.navigate("task-editor?taskId=$taskId") }
+                        )
+                    }
                 }
+
+                composable(
+                    route = "task-editor?taskId={taskId}",
+                    arguments = listOf(navArgument("taskId") { type = NavType.StringType; defaultValue = "0" })
+                ) { TaskEditorScreen(onDone = { navController.popBackStack() }) }
 
                 composable(
                     route = "habit/{habitId}",
