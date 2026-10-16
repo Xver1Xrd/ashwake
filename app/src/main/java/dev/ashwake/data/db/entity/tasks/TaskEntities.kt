@@ -124,6 +124,25 @@ data class TaskTagCrossRef(
     val tagId: Long
 )
 
+@Entity(
+    tableName = "task_attachments",
+    foreignKeys = [ForeignKey(
+        entity = TaskEntity::class,
+        parentColumns = ["id"], childColumns = ["taskId"],
+        onDelete = ForeignKey.CASCADE
+    )],
+    indices = [Index("taskId")]
+)
+data class TaskAttachmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val taskId: Long,
+    val fileName: String,
+    val displayName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val createdAt: Long
+)
+
 /**
  * Полная история переносов. `tasks.postponeCount` — её денормализованный кэш:
  * фильтр «залежавшиеся» и цветные метки не должны делать COUNT(*) на каждую строку списка.
@@ -167,5 +186,7 @@ data class TaskWithRelations(
     val recurrence: RecurrenceRuleEntity? = null,
 
     @Relation(parentColumn = "id", entityColumn = "parentTaskId")
-    val subtasks: List<TaskEntity> = emptyList()
+    val subtasks: List<TaskEntity> = emptyList(),
+    @Relation(parentColumn = "id", entityColumn = "taskId")
+    val attachments: List<TaskAttachmentEntity> = emptyList()
 )

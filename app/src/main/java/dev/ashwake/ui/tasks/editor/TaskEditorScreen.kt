@@ -49,6 +49,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.components.TextAction
@@ -73,6 +75,7 @@ import dev.ashwake.ui.components.ScreenPadding
 import dev.ashwake.ui.components.SecondaryButton
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.tasks.components.PriorityPicker
+import dev.ashwake.ui.tasks.components.AttachmentGrid
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import java.time.DayOfWeek
@@ -118,6 +121,9 @@ fun TaskEditorScreen(
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
+    val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::addAttachment)
+    }
 
     Column(
         Modifier
@@ -188,6 +194,16 @@ fun TaskEditorScreen(
                     onEmoji = { viewModel.setEmoji(it) },
                     onIcon = { viewModel.setIconPath(it) }
                 )
+            }
+
+            if (!state.isNew) {
+                Section(title = "Вложения") {
+                    AttachmentGrid(
+                        attachments = state.attachments,
+                        onAdd = { attachmentPicker.launch(arrayOf("image/*")) },
+                        onRemove = viewModel::removeAttachment
+                    )
+                }
             }
 
             AshTextField(

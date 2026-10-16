@@ -60,6 +60,7 @@ import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 
@@ -77,6 +78,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         ProjectEntity::class,
         TagEntity::class,
         TaskEntity::class,
+        TaskAttachmentEntity::class,
         TaskTagCrossRef::class,
         RecurrenceRuleEntity::class,
         TaskPostponementEntity::class,
@@ -153,7 +155,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
          * миграций с последней выгруженной схемой, и без имени сверять было
          * бы нечего.
          */
-        const val VERSION = 6
+        const val VERSION = 7
 
         /**
          * 1 → 2: у якоря появился день последнего срабатывания.
@@ -189,6 +191,21 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
+        /** 6 → 7: к задаче можно прикрепить несколько изображений. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS task_attachments (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "taskId INTEGER NOT NULL, fileName TEXT NOT NULL, " +
+                        "displayName TEXT NOT NULL, mimeType TEXT NOT NULL, " +
+                        "sizeBytes INTEGER NOT NULL, createdAt INTEGER NOT NULL, " +
+                        "FOREIGN KEY(taskId) REFERENCES tasks(id) ON DELETE CASCADE)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)")
+            }
+        }
+
         /**
          * 4 → 5: экономика персонажа — материалы улучшений, достижения
          * и ежедневный сундук (п. 4).
@@ -221,6 +238,6 @@ abstract class AshwakeDatabase : RoomDatabase() {
         }
 
         val MIGRATIONS: Array<Migration> =
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
     }
 }

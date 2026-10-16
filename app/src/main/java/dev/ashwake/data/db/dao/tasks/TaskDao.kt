@@ -12,6 +12,7 @@ import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.tasks.TaskWithRelations
@@ -116,6 +117,12 @@ interface TaskDao {
 
     @Insert
     suspend fun insert(task: TaskEntity): Long
+
+    @Insert
+    suspend fun insertAttachment(attachment: TaskAttachmentEntity): Long
+
+    @Query("DELETE FROM task_attachments WHERE id = :id")
+    suspend fun deleteAttachment(id: Long)
 
     @Insert
     suspend fun insertAll(tasks: List<TaskEntity>)

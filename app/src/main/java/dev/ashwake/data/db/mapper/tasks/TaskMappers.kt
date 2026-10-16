@@ -6,6 +6,7 @@ import dev.ashwake.data.db.entity.tasks.ProjectEntity
 import dev.ashwake.data.db.entity.tasks.RecurrenceRuleEntity
 import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskWithRelations
 import dev.ashwake.domain.model.tasks.EisenhowerQuadrant
 import dev.ashwake.domain.model.tasks.Project
@@ -13,6 +14,7 @@ import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.model.tasks.TaskStatus
 import java.time.Instant
 import java.time.LocalDate
@@ -54,10 +56,16 @@ fun TaskWithRelations.toDomain(): Task = Task(
     lastPostponedAt = task.lastPostponedAt?.toInstant(),
     sourceLink = task.sourceLink,
     delegatedTo = task.delegatedTo,
+    attachments = attachments.map { it.toDomain() },
     tags = tags.map { it.toDomain() },
     subtasks = subtasks.map { it.toDomainShallow() },
     createdAt = task.createdAt.toInstant(),
     updatedAt = task.updatedAt.toInstant()
+)
+
+fun TaskAttachmentEntity.toDomain() = TaskAttachment(
+    id = id, taskId = taskId, fileName = fileName, displayName = displayName,
+    mimeType = mimeType, sizeBytes = sizeBytes, createdAt = createdAt.toInstant()
 )
 
 /** Подзадача без своих тегов и вложенности: список второго уровня нам не нужен. */

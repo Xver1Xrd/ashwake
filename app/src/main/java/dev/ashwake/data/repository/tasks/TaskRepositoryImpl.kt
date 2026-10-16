@@ -7,6 +7,7 @@ import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.tasks.TaskDao
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.mapper.tasks.toDomain
 import dev.ashwake.data.db.mapper.tasks.toEntity
 import dev.ashwake.data.db.mapper.tasks.toEpochDayInt
@@ -15,6 +16,7 @@ import dev.ashwake.domain.engine.tasks.RecurrenceCalculator
 import dev.ashwake.domain.model.tasks.EisenhowerQuadrant
 import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.model.tasks.TaskStatus
 import dev.ashwake.domain.repository.tasks.TagRepository
 import dev.ashwake.domain.repository.tasks.TaskFilter
@@ -252,6 +254,17 @@ class TaskRepositoryImpl @Inject constructor(
             }
         }
     }
+
+    override suspend fun addAttachment(attachment: TaskAttachment): Long =
+        dao.insertAttachment(
+            TaskAttachmentEntity(
+                taskId = attachment.taskId, fileName = attachment.fileName,
+                displayName = attachment.displayName, mimeType = attachment.mimeType,
+                sizeBytes = attachment.sizeBytes, createdAt = attachment.createdAt.toEpochMilli()
+            )
+        )
+
+    override suspend fun removeAttachment(id: Long) = dao.deleteAttachment(id)
 
     private companion object {
         /**

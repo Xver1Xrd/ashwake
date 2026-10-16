@@ -158,11 +158,46 @@ fun IconPicker(
                     )
                 }
             )
-            if (iconPath != null) {
-                ImageIcon(iconPath, size = 34.dp)
-                ChipButton(
-                    text = stringResource(R.string.editor_ubrat),
+        }
+
+        // Фото — это визуальный выбор, а не «файл с именем». Показываем
+        // содержимое сразу: по миниатюре легко убедиться, что выбрана именно
+        // нужная картинка, и не приходится открывать системный проводник.
+        if (iconPath != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(AshShapes.group)
+                    .background(colors.surface1)
+                    .border(
+                        width = if (colors.isDark) 0.dp else 0.75.dp,
+                        color = if (colors.isDark) Color.Transparent else colors.surface3,
+                        shape = AshShapes.group
+                    )
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ImageIcon(iconPath, size = 76.dp)
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = "Фото добавлено",
+                        style = AshTheme.type.subhead,
+                        color = colors.text
+                    )
+                    Text(
+                        text = "Будет показано на карточке задачи",
+                        style = AshTheme.type.footnote,
+                        color = colors.text2
+                    )
+                }
+                IconAction(
                     icon = AshIcons.Close,
+                    contentDescription = stringResource(R.string.editor_ubrat),
+                    tint = colors.text2,
                     onClick = {
                         store?.delete(iconPath)
                         onIcon(null)

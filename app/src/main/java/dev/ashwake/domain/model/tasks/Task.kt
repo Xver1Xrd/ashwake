@@ -80,6 +80,8 @@ data class Task(
     val lastPostponedAt: Instant? = null,
     val sourceLink: String? = null,
     val delegatedTo: String? = null,
+    /** Изображения, приложенные к самой задаче (не путать со значком). */
+    val attachments: List<TaskAttachment> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val subtasks: List<Task> = emptyList(),
     val createdAt: Instant = Instant.EPOCH,
@@ -97,6 +99,19 @@ data class Task(
 
     fun isOverdue(today: LocalDate): Boolean =
         status == TaskStatus.ACTIVE && dueDate != null && dueDate < today
+}
+
+data class TaskAttachment(
+    val id: Long = 0,
+    val taskId: Long = 0,
+    /** Имя файла в приватном хранилище приложения. */
+    val fileName: String,
+    val displayName: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val createdAt: Instant = Instant.EPOCH
+) {
+    val isImage: Boolean get() = mimeType.startsWith("image/")
 }
 
 enum class StaleLevel { NONE, WARNING, CRITICAL }

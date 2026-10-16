@@ -9,11 +9,13 @@ import dev.ashwake.core.model.WeekdayMask
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.data.assets.TaskPreset
 import dev.ashwake.data.assets.TaskPresetLoader
+import dev.ashwake.data.attachments.TaskAttachmentStore
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.RecurrenceRule
 import dev.ashwake.domain.model.tasks.RecurrenceType
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.domain.repository.tasks.ProjectRepository
 import dev.ashwake.domain.repository.tasks.TagRepository
 import dev.ashwake.domain.repository.tasks.TaskRepository
@@ -31,6 +33,7 @@ import kotlinx.coroutines.launch
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalTime
+import android.net.Uri
 import javax.inject.Inject
 
 /** Подзадача в редакторе. `id == 0` — ещё не сохранённая. */
@@ -57,6 +60,7 @@ data class TaskEditorState(
     val tagsInput: String = "",
     val persistentReminderMinutes: Int? = null,
     val sourceLink: String? = null,
+    val attachments: List<TaskAttachment> = emptyList(),
     val subtasks: List<EditableSubtask> = emptyList(),
     // повтор
     val recurrenceEnabled: Boolean = false,
@@ -86,6 +90,7 @@ class TaskEditorViewModel @Inject constructor(
     private val reopenTask: ReopenTaskUseCase,
     private val deleteTask: DeleteTaskUseCase,
     private val presetLoader: TaskPresetLoader,
+    private val attachmentStore: TaskAttachmentStore,
     private val clock: AppClock,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
@@ -149,6 +154,7 @@ class TaskEditorViewModel @Inject constructor(
             tagsInput = task.tags.joinToString(" ") { it.name },
             persistentReminderMinutes = task.persistentReminderMinutes,
             sourceLink = task.sourceLink,
+            attachments = task.attachments,
             subtasks = task.subtasks.map { EditableSubtask(it.id, it.title, it.isDone) },
             recurrenceEnabled = rule != null,
             recurrenceType = rule?.type ?: RecurrenceType.DAILY,
@@ -191,6 +197,26 @@ class TaskEditorViewModel @Inject constructor(
     }
 
     fun setIconPath(value: String?) = _state.update { it.copy(iconPath = value) }
+
+    fun addAttachment(uri: Uri) {
+        val taskId = _state.value.taskId
+        if (taskId == 0L) return
+        viewModelScope.launch {
+            val saved = attachmentStore.import(uri) ?: return@launch
+            val attachment = TaskAttachment(
+                taskId = taskId, fileName = saved.fileName, displayName = saved.displayName,
+                mimeType = saved.mimeType, sizeBytes = saved.sizeBytes, createdAt = clock.now()
+            )
+            val id = tasks.addAttachment(attachment)
+            _state.update { it.copy(attachments = it.attachments + attachment.copy(id = id)) }
+        }
+    }
+
+    fun removeAttachment(attachment: TaskAttachment) = viewModelScope.launch {
+        tasks.removeAttachment(attachment.id)
+        attachmentStore.delete(attachment.fileName)
+        _state.update { it.copy(attachments = it.attachments.filterNot { item -> item.id == attachment.id }) }
+    }
 
     fun setNote(value: String) = _state.update { it.copy(note = value) }
     fun setProject(id: Long?) = _state.update { it.copy(projectId = id) }

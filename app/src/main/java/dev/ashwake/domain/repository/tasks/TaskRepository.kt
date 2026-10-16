@@ -6,6 +6,7 @@ import dev.ashwake.domain.model.tasks.PostponeSource
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.Tag
 import dev.ashwake.domain.model.tasks.Task
+import dev.ashwake.domain.model.tasks.TaskAttachment
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
@@ -108,6 +109,9 @@ interface TaskRepository {
 
     /** Разбивка залежавшейся задачи на подзадачи (одно из действий диалога на 5-м переносе). */
     suspend fun addSubtasks(parentId: Long, titles: List<String>)
+
+    suspend fun addAttachment(attachment: TaskAttachment): Long
+    suspend fun removeAttachment(id: Long)
 }
 
 interface ProjectRepository {
