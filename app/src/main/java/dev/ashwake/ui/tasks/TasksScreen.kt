@@ -215,7 +215,10 @@ fun TasksScreen(
                         ) == PackageManager.PERMISSION_GRANTED
                         if (granted) viewModel.startVoiceInput()
                         else micPermission.launch(Manifest.permission.RECORD_AUDIO)
-                    }
+                    },
+                    // Быстрый ввод располагается над глобальным островом.
+                    // Поэтому его фон не оказывается серой полосой под ним.
+                    modifier = Modifier.padding(bottom = 84.dp)
                 )
             }
         }

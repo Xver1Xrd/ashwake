@@ -53,8 +53,10 @@ val LocalHazeState = staticCompositionLocalOf<HazeState?> { null }
 /** Контент экрана, который должен просвечивать сквозь панель вкладок. */
 @Composable
 fun Modifier.appHazeSource(): Modifier {
-    val state = LocalHazeState.current ?: return this
-    return hazeSource(state)
+    // В текущей навигации нет стеклянного потребителя этого источника, а
+    // полноэкранный haze всё равно создаёт дополнительный слой при скролле.
+    // Не создаём его, пока стекло снова не понадобится конкретному экрану.
+    return this
 }
 
 /**

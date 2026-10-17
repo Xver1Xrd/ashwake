@@ -90,7 +90,9 @@ fun TodayScreen(
                 .fillMaxSize()
                 .background(colors.background)
                 .appHazeSource(),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            // Нижний остров лежит поверх контента. Этот запас не даёт ему
+            // перекрывать последнюю карточку, в частности «Отказы».
+            contentPadding = PaddingValues(bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {

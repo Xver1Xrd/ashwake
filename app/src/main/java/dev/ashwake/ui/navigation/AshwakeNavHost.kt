@@ -187,8 +187,9 @@ fun AshwakeRoot(
 
                 composable(TABS_ROUTE) {
                     HorizontalPager(
-                        state = pagerState,
-                        beyondViewportPageCount = 1
+                        // Не держим соседние тяжёлые экраны в композиции:
+                        // это заметно улучшает плавность на телефонах.
+                        state = pagerState
                     ) { page ->
                         TabPage(
                             destination = Destination.bottomBar[page],
