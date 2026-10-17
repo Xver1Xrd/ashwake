@@ -20,8 +20,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import kotlin.math.abs
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -56,7 +54,6 @@ import dev.ashwake.ui.settings.SettingsScreen
 import dev.ashwake.ui.settings.theme.ThemeEditorScreen
 import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.tasks.TasksScreen
-import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.trash.TrashScreen
@@ -193,16 +190,7 @@ fun AshwakeRoot(
                     ) { page ->
                         TabPage(
                             destination = Destination.bottomBar[page],
-                            navController = navController,
-                            modifier = Modifier.graphicsLayer {
-                                val offset = pagerState.pageOffset(page)
-                                if (reduceMotion) return@graphicsLayer
-                                translationX = -offset * size.width * PARALLAX_SHARE
-                                val scale = 1f - PARALLAX_SCALE * minOf(abs(offset), 1f)
-                                scaleX = scale
-                                scaleY = scale
-                                alpha = 1f - 0.25f * minOf(abs(offset), 1f)
-                            }
+                            navController = navController
                         )
                     }
                 }
@@ -212,13 +200,12 @@ fun AshwakeRoot(
                     arguments = listOf(
                         navArgument("taskId") { type = NavType.StringType }
                     )
-                ) {
+                ) { entry ->
+                    val taskId = entry.arguments?.getString("taskId") ?: return@composable
                     TaskDetailScreen(
                         onBack = { navController.popBackStack() },
                         onEdit = {
-                            navController.navigate(
-                                "task-edit?taskId=${navController.currentBackStackEntry?.arguments?.getString("taskId") ?: "0"}"
-                            )
+                            navController.navigate("task-edit?taskId=$taskId")
                         }
                     )
                 }
@@ -228,17 +215,7 @@ fun AshwakeRoot(
                     arguments = listOf(
                         navArgument("taskId") { type = NavType.StringType; defaultValue = "0" }
                     )
-                ) {
-                    val taskId = it.arguments?.getString("taskId")?.toLongOrNull() ?: 0L
-                    if (taskId == 0L) {
-                        TaskEditorScreen(onDone = { navController.popBackStack() })
-                    } else {
-                        TaskDetailScreen(
-                            onBack = { navController.popBackStack() },
-                            onEdit = { navController.navigate("task-editor?taskId=$taskId") }
-                        )
-                    }
-                }
+                ) { TaskEditorScreen(onDone = { navController.popBackStack() }) }
 
                 composable(
                     route = "task-editor?taskId={taskId}",
@@ -401,13 +378,6 @@ private fun TabPage(
  * ±1 — соседняя. Считается вручную, потому что `currentPageOffsetFraction`
  * знает только про текущую страницу.
  */
-private fun androidx.compose.foundation.pager.PagerState.pageOffset(page: Int): Float =
-    (currentPage - page) + currentPageOffsetFraction
-
-/** Доля ширины, на которую отстаёт уезжающая страница. */
-private const val PARALLAX_SHARE = 0.25f
-private const val PARALLAX_SCALE = 0.06f
-
 /**
  * Переходы между экранами.
  *
@@ -418,20 +388,20 @@ private const val PARALLAX_SCALE = 0.06f
 private fun screenDuration(reduceMotion: Boolean) = if (reduceMotion) 0 else NORMAL_MS
 
 private fun screenEnter(reduceMotion: Boolean) =
-    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 0.94f) +
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 0.985f) +
         fadeIn(tween(screenDuration(reduceMotion)))
 
 private fun screenExit(reduceMotion: Boolean) =
-    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 1.03f) +
-        fadeOut(tween(screenDuration(reduceMotion)))
+    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 1.01f) +
+        fadeOut(tween(screenDuration(reduceMotion) / 2))
 
 private fun screenPopEnter(reduceMotion: Boolean) =
-    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 1.03f) +
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 1.01f) +
         fadeIn(tween(screenDuration(reduceMotion)))
 
 private fun screenPopExit(reduceMotion: Boolean) =
-    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.94f) +
-        fadeOut(tween(screenDuration(reduceMotion)))
+    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.985f) +
+        fadeOut(tween(screenDuration(reduceMotion) / 2))
 
 /**
  * Динамическая иконка первой вкладки («Сегодня») в зависимости от времени суток:

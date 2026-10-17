@@ -92,7 +92,8 @@ fun Modifier.parallaxTilt(
 }
 
 /**
- * Нажатие по-эппловски: тактильное сжатие, лёгкий 3D-наклон, без дешёвого ripple.
+ * Нажатие с коротким тактильным сжатием. Без 3D-наклона: он заставлял
+ * перерисовывать крупные карточки во время скролла.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -106,17 +107,10 @@ fun Modifier.tappable(
     val pressed by interactionSource.collectIsPressedAsState()
     val reduceMotion = AshTheme.reduceMotion
     val haptics = rememberHaptics()
-    val density = LocalDensity.current
-
     val scale by animateFloatAsState(
         targetValue = if (pressed && !reduceMotion) 0.965f else 1f,
         animationSpec = responseSpring(),
         label = "press-scale"
-    )
-    val tiltX by animateFloatAsState(
-        targetValue = if (pressed && !reduceMotion) -2.5f else 0f,
-        animationSpec = responseSpring(),
-        label = "press-tilt-x"
     )
     val alpha by animateFloatAsState(
         targetValue = if (pressed) 0.82f else 1f,
@@ -128,9 +122,7 @@ fun Modifier.tappable(
         .graphicsLayer {
             scaleX = scale
             scaleY = scale
-            rotationX = tiltX
             this.alpha = alpha
-            cameraDistance = 12f * density.density
         }
         .combinedClickable(
             interactionSource = interactionSource,

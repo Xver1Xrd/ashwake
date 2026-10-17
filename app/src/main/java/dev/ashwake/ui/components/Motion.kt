@@ -68,8 +68,8 @@ fun <T> motionTween(durationMillis: Int = NORMAL_MS, delayMillis: Int = 0): Fini
     )
 }
 
-/** Пружина отклика: та же, что у нажатия, чтобы движение было одной семьи. */
-fun <T> responseSpring(): AnimationSpec<T> = spring(dampingRatio = 0.7f, stiffness = 500f)
+/** Пружина отклика: быстро приходит в покой и не даёт заметного отскока. */
+fun <T> responseSpring(): AnimationSpec<T> = spring(dampingRatio = 0.88f, stiffness = 600f)
 
 /**
  * Число с перекатом разрядов.

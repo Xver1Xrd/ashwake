@@ -37,15 +37,7 @@ import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.R
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import dev.ashwake.ui.components.parallaxTilt
 import dev.ashwake.ui.components.ActivityFlame
 import dev.ashwake.ui.components.AshIcons
@@ -325,17 +317,6 @@ private fun TodaySummaryCard(
     val isCompleted = state.totalCount > 0 && state.doneCount == state.totalCount
     val percentInt = animatedPercent.roundToInt().coerceIn(0, 100)
 
-    val shimmerTransition = rememberInfiniteTransition(label = "shimmer")
-    val shimmerPhase = shimmerTransition.animateFloat(
-        initialValue = -0.3f,
-        targetValue = 1.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2400, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "shimmer-phase"
-    )
-
     Box(
         modifier
             .fillMaxWidth()
@@ -412,30 +393,12 @@ private fun TodaySummaryCard(
             ) {
                 if (progress > 0f) {
                     val baseColor = if (isCompleted) colors.success else colors.accent
-                    val shimmerColors = remember(baseColor) {
-                        listOf(
-                            baseColor,
-                            baseColor,
-                            Color.White.copy(alpha = 0.75f),
-                            baseColor,
-                            baseColor
-                        )
-                    }
                     Box(
                         Modifier
                             .fillMaxWidth(progress.coerceIn(0f, 1f))
                             .height(6.dp)
                             .clip(AshShapes.pill)
-                            .drawBehind {
-                                val phase = shimmerPhase.value
-                                val width = size.width
-                                val shimmerBrush = Brush.horizontalGradient(
-                                    colors = shimmerColors,
-                                    startX = phase * (width + 400f) - 200f,
-                                    endX = phase * (width + 400f) + 200f
-                                )
-                                drawRect(shimmerBrush)
-                            }
+                            .background(baseColor, AshShapes.pill)
                     )
                 }
             }
