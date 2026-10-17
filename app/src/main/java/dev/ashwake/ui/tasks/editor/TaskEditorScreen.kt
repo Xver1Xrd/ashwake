@@ -50,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -121,7 +122,10 @@ fun TaskEditorScreen(
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
-    val attachmentPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let(viewModel::addAttachment)
+    }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let(viewModel::addAttachment)
     }
 
@@ -200,7 +204,12 @@ fun TaskEditorScreen(
                 Section(title = "Вложения") {
                     AttachmentGrid(
                         attachments = state.attachments,
-                        onAdd = { attachmentPicker.launch(arrayOf("image/*")) },
+                        onAddPhoto = {
+                            photoPicker.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        },
+                        onAddFile = { filePicker.launch(arrayOf("*/*")) },
                         onRemove = viewModel::removeAttachment
                     )
                 }
