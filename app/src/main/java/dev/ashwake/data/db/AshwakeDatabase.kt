@@ -254,14 +254,32 @@ abstract class AshwakeDatabase : RoomDatabase() {
         /** 7 → 8: приватная синхронизация, пространства друзей и пар. */
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE tasks ADD COLUMN globalId TEXT")
-                db.execSQL("ALTER TABLE tasks ADD COLUMN spaceId TEXT")
-                db.execSQL("ALTER TABLE tasks ADD COLUMN syncRevision INTEGER NOT NULL DEFAULT 0")
-                db.execSQL("ALTER TABLE tasks ADD COLUMN syncState TEXT NOT NULL DEFAULT 'LOCAL'")
+                // До 1.2.0 существовали две опубликованные схемы с номером 7:
+                // одна уже содержала онлайн-поля, другая — только локальные
+                // вложения. Проверяем реальные столбцы, а не предполагаем
+                // историю версии — иначе обновление падало с duplicate column.
+                fun hasColumn(table: String, column: String): Boolean =
+                    db.query("PRAGMA table_info($table)").use { cursor ->
+                        val nameIndex = cursor.getColumnIndex("name")
+                        generateSequence { if (cursor.moveToNext()) cursor else null }
+                            .any { it.getString(nameIndex) == column }
+                    }
+                fun addTaskColumn(column: String, type: String) {
+                    if (!hasColumn("tasks", column)) db.execSQL("ALTER TABLE tasks ADD COLUMN $column $type")
+                }
+
+                addTaskColumn("globalId", "TEXT")
+                addTaskColumn("spaceId", "TEXT")
+                addTaskColumn("syncRevision", "INTEGER NOT NULL DEFAULT 0")
+                addTaskColumn("syncState", "TEXT NOT NULL DEFAULT 'LOCAL'")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
-                db.execSQL("ALTER TABLE task_attachments RENAME COLUMN fileName TO storedName")
-                db.execSQL("ALTER TABLE task_attachments ADD COLUMN kind TEXT NOT NULL DEFAULT 'FILE'")
+                if (hasColumn("task_attachments", "fileName") && !hasColumn("task_attachments", "storedName")) {
+                    db.execSQL("ALTER TABLE task_attachments RENAME COLUMN fileName TO storedName")
+                }
+                if (!hasColumn("task_attachments", "kind")) {
+                    db.execSQL("ALTER TABLE task_attachments ADD COLUMN kind TEXT NOT NULL DEFAULT 'FILE'")
+                }
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_task_attachments_storedName ON task_attachments(storedName)")
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS sync_tombstones (" +
