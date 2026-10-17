@@ -10,7 +10,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,6 +42,7 @@ data class SearchResultItem(
 )
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class MoreViewModel @Inject constructor(
     private val taskDao: TaskDao,
     private val ritualDao: RitualDao
@@ -48,17 +54,22 @@ class MoreViewModel @Inject constructor(
     private val _filter = MutableStateFlow(HistoryFilter.ALL)
     val filter: StateFlow<HistoryFilter> = _filter.asStateFlow()
 
-    val searchResults: StateFlow<List<SearchResultItem>> = combine(
-        _query,
-        _filter,
-        taskDao.observeTasks(1, null, null, null, null, 0, null),
-        taskDao.observeTrash(),
-        ritualDao.observeReviews(0, 47500)
-    ) { q, f, tasks, trash, reviews ->
-        val trimmed = q.trim().lowercase()
-        if (trimmed.isEmpty()) return@combine emptyList()
+    /**
+     * База истории открывается только после первого символа запроса. Раньше
+     * сам вход во вкладку «Ещё» читал целиком активные задачи, корзину и все
+     * записи ритуалов, хотя пользователь ещё ничего не искал.
+     */
+    val searchResults: StateFlow<List<SearchResultItem>> = combine(_query, _filter) { q, f ->
+        q.trim().lowercase() to f
+    }.flatMapLatest { (trimmed, f) ->
+        if (trimmed.isEmpty()) return@flatMapLatest flowOf(emptyList())
 
-        val results = mutableListOf<SearchResultItem>()
+        combine(
+            taskDao.observeTasks(1, null, null, null, null, 0, null),
+            taskDao.observeTrash(),
+            ritualDao.observeReviews(0, 47500)
+        ) { tasks, trash, reviews ->
+            val results = mutableListOf<SearchResultItem>()
 
         // 1. Задачи
         if (f == HistoryFilter.ALL || f == HistoryFilter.TASKS) {
@@ -118,8 +129,9 @@ class MoreViewModel @Inject constructor(
             }
         }
 
-        results
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+            results
+        }
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun setQuery(value: String) { _query.value = value }
     fun setFilter(value: HistoryFilter) { _filter.value = value }

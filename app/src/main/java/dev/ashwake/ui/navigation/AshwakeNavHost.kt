@@ -18,7 +18,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
@@ -62,6 +65,8 @@ import dev.ashwake.ui.timers.TimersScreen
 import dev.ashwake.ui.today.TodayScreen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 
 /**
  * Корень приложения.
@@ -91,6 +96,7 @@ fun AshwakeRoot(
     val navController = rememberNavController()
     val route by pendingRoute.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    var tabAnimation by remember { mutableStateOf<Job?>(null) }
 
     val pagerState = rememberPagerState(
         initialPage = Destination.bottomBar.indexOf(Destination.Today).coerceAtLeast(0),
@@ -106,7 +112,13 @@ fun AshwakeRoot(
     /** Уйти на вкладку: снять всё, что открыто поверх, и пролистать пейджер. */
     fun openTab(index: Int) {
         if (!onTabs) navController.popBackStack(TABS_ROUTE, inclusive = false)
-        scope.launch { pagerState.animateScrollToPage(index) }
+        // Во время перетягивания острова TabBar может последовательно выбрать
+        // несколько вкладок. Отменяем старую прокрутку вместо очереди из
+        // анимаций: иначе pager продолжал двигаться после отпускания пальца.
+        tabAnimation?.cancel()
+        if (pagerState.currentPage != index || pagerState.currentPageOffsetFraction != 0f) {
+            tabAnimation = scope.launch { pagerState.animateScrollToPage(index) }
+        }
     }
 
     // Маршрут из виджета, плитки или шортката: открываем нужный экран

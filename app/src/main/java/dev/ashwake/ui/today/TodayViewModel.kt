@@ -27,8 +27,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -147,7 +149,7 @@ class TodayViewModel @Inject constructor(
                 activeTwoDaysAgo = activeTwoDaysAgo
             )
         }
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
         TodayUiState(today = clock.today(), selectedDate = clock.today())
