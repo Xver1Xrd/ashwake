@@ -388,20 +388,20 @@ private fun TabPage(
 private fun screenDuration(reduceMotion: Boolean) = if (reduceMotion) 0 else NORMAL_MS
 
 private fun screenEnter(reduceMotion: Boolean) =
-    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 0.985f) +
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 0.97f) +
         fadeIn(tween(screenDuration(reduceMotion)))
 
 private fun screenExit(reduceMotion: Boolean) =
     scaleOut(tween(screenDuration(reduceMotion)), targetScale = 1.01f) +
-        fadeOut(tween(screenDuration(reduceMotion) / 2))
+        fadeOut(tween(screenDuration(reduceMotion)))
 
 private fun screenPopEnter(reduceMotion: Boolean) =
-    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 1.01f) +
+    scaleIn(tween(screenDuration(reduceMotion)), initialScale = 1.025f) +
         fadeIn(tween(screenDuration(reduceMotion)))
 
 private fun screenPopExit(reduceMotion: Boolean) =
-    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.985f) +
-        fadeOut(tween(screenDuration(reduceMotion) / 2))
+    scaleOut(tween(screenDuration(reduceMotion)), targetScale = 0.97f) +
+        fadeOut(tween(screenDuration(reduceMotion)))
 
 /**
  * Динамическая иконка первой вкладки («Сегодня») в зависимости от времени суток:

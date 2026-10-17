@@ -47,10 +47,10 @@ import dev.ashwake.ui.theme.AshTheme
  */
 
 /** Отклик на действие: быстрый, но не мгновенный. */
-const val QUICK_MS = 180
+const val QUICK_MS = 210
 
 /** Смена состояния, за которой нужно проследить глазами. */
-const val NORMAL_MS = 260
+const val NORMAL_MS = 300
 
 /** Праздник: единственное место, где движение можно растянуть. */
 const val CELEBRATION_MS = 900
@@ -68,8 +68,8 @@ fun <T> motionTween(durationMillis: Int = NORMAL_MS, delayMillis: Int = 0): Fini
     )
 }
 
-/** Пружина отклика: быстро приходит в покой и не даёт заметного отскока. */
-fun <T> responseSpring(): AnimationSpec<T> = spring(dampingRatio = 0.88f, stiffness = 600f)
+/** Пружина отклика: мягко останавливается без резкого удара в конце. */
+fun <T> responseSpring(): AnimationSpec<T> = spring(dampingRatio = 0.82f, stiffness = 380f)
 
 /**
  * Число с перекатом разрядов.
