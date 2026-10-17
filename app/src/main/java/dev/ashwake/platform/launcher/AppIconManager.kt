@@ -18,7 +18,7 @@ enum class AppIcon(
     val title: String,
     @DrawableRes val previewRes: Int
 ) {
-    DEFAULT("default", "DefaultIconAlias", "Исходная", R.drawable.ic_launcher_foreground),
+    DEFAULT("default", "DefaultIconAlias", "Исходная", R.drawable.app_icon_obsidian),
     OBSIDIAN("obsidian", "ObsidianIconAlias", "Обсидиан", R.drawable.app_icon_obsidian),
     FROST("frost", "FrostIconAlias", "Лёд", R.drawable.app_icon_frost),
     IVORY("ivory", "IvoryIconAlias", "Светлая", R.drawable.app_icon_ivory),

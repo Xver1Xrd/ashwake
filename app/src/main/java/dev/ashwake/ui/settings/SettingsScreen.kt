@@ -254,9 +254,9 @@ private fun AppIconSection(
                     Image(
                         painter = painterResource(icon.previewRes),
                         contentDescription = icon.title,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .size(46.dp)
+                            .size(44.dp)
                             .clip(RoundedCornerShape(15.dp))
                             .background(colors.surface2, RoundedCornerShape(15.dp))
                             .border(
