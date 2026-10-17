@@ -1,6 +1,7 @@
 package dev.ashwake
 
 import android.app.Application
+import android.os.Build
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import androidx.work.WorkManager
@@ -38,6 +39,12 @@ class AshwakeApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         AshwakeNotifications.createChannels(this)
+
+        // Robolectric не предоставляет настоящие системные receiver'ы,
+        // нужные ограничениям WorkManager. Планирование периодических задач
+        // в unit-тестах ничего не проверяет и оставляет фоновые корутины
+        // между тестами; на устройстве эта ветка недостижима.
+        if (Build.FINGERPRINT == "robolectric") return
 
         // WorkManagerInitializer выключен в манифесте ради HiltWorkerFactory.
         // Раньше инициализация с шестью enqueueUniquePeriodicWork выполнялась

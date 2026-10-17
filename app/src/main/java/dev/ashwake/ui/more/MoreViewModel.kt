@@ -10,12 +10,14 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -42,7 +44,7 @@ data class SearchResultItem(
 )
 
 @HiltViewModel
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class MoreViewModel @Inject constructor(
     private val taskDao: TaskDao,
     private val ritualDao: RitualDao
@@ -61,7 +63,7 @@ class MoreViewModel @Inject constructor(
      */
     val searchResults: StateFlow<List<SearchResultItem>> = combine(_query, _filter) { q, f ->
         q.trim().lowercase() to f
-    }.flatMapLatest { (trimmed, f) ->
+    }.debounce(220).flatMapLatest { (trimmed, f) ->
         if (trimmed.isEmpty()) return@flatMapLatest flowOf(emptyList())
 
         combine(

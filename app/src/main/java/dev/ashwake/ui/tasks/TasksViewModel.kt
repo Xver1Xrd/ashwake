@@ -2,6 +2,7 @@ package dev.ashwake.ui.tasks
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.model.Priority
 import dev.ashwake.core.time.AppClock
@@ -54,6 +55,7 @@ enum class TasksViewMode { LIST, MATRIX, CALENDAR, TIMEBOX }
 enum class CalendarScale { MONTH, WEEK, DAY }
 
 /** Группа задач на день: название (Просрочено / Сегодня / Завтра / день недели) и список. */
+@Immutable
 data class TaskDayGroup(
     val title: String,
     val date: LocalDate? = null,
@@ -62,6 +64,7 @@ data class TaskDayGroup(
     val tasks: List<Task>
 )
 
+@Immutable
 data class TasksUiState(
     val tasks: List<Task> = emptyList(),
     val dayGroups: List<TaskDayGroup> = emptyList(),
@@ -140,6 +143,7 @@ fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
     return groups
 }
 
+@Immutable
 data class CalendarUiState(
     val scale: CalendarScale = CalendarScale.MONTH,
     val anchor: LocalDate = EPOCH_DAY,
@@ -197,7 +201,7 @@ class TasksViewModel @Inject constructor(
     }
 
     val state: StateFlow<TasksUiState> = combine(
-        filter.flatMapLatest { tasks.observeTasks(it) },
+        filter.flatMapLatest { tasks.observeTaskList(it) },
         projects.observeProjects(),
         tags.observeTags(),
         uiBits
@@ -237,7 +241,7 @@ class TasksViewModel @Inject constructor(
             Triple(scale, anchor, selected)
         }.flatMapLatest { (scale, anchor, selected) ->
             val (from, to) = visibleRange(anchor, scale)
-            tasks.observeTasksInRange(from, to).map { list ->
+            tasks.observeTaskListInRange(from, to).map { list ->
                 CalendarUiState(
                     scale = scale,
                     anchor = anchor,
@@ -268,6 +272,9 @@ class TasksViewModel @Inject constructor(
         }
 
     fun setCalendarScale(scale: CalendarScale) { calendarScale.value = scale }
+
+    /** Подзадачи не живут в состоянии списка и читаются только при раскрытии. */
+    fun observeSubtasks(parentId: Long) = tasks.observeSubtasks(parentId)
 
     fun selectDate(date: LocalDate) {
         selectedDate.value = date

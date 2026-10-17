@@ -16,10 +16,85 @@ import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.tasks.TaskWithRelations
+import dev.ashwake.data.db.entity.tasks.TaskListRow
 import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TaskDao {
+
+    /**
+     * Основа быстрых списков. Не присоединяем вложения и подзадачи к каждой
+     * строке: обе коллекции нужны только на экране задачи и после раскрытия.
+     */
+    @Transaction
+    @Query(
+        """
+        SELECT tasks.*,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id) AS subtaskCount,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id AND child.status = 'DONE') AS completedSubtaskCount
+        FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND status != 'DROPPED'
+          AND (:includeDone = 1 OR status = 'ACTIVE')
+          AND (:projectId IS NULL OR projectId = :projectId)
+          AND (:priority IS NULL OR priority = :priority)
+          AND (:dueBefore IS NULL OR (dueDate IS NOT NULL AND dueDate <= :dueBefore))
+          AND (:minPostpones = 0 OR postponeCount >= :minPostpones)
+          AND (:query IS NULL OR title LIKE '%' || :query || '%')
+          AND (:tagId IS NULL OR id IN (
+                SELECT taskId FROM task_tag_cross_ref WHERE tagId = :tagId))
+        ORDER BY (dueDate IS NULL), dueDate, dueTime, priority, position, id
+        """
+    )
+    fun observeTaskList(
+        includeDone: Int,
+        projectId: Long?,
+        tagId: Long?,
+        priority: String?,
+        dueBefore: Int?,
+        minPostpones: Int,
+        query: String?
+    ): Flow<List<TaskListRow>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT tasks.*,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id) AS subtaskCount,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id AND child.status = 'DONE') AS completedSubtaskCount
+        FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND dueDate IS NOT NULL
+          AND dueDate BETWEEN :from AND :to
+          AND status != 'DROPPED'
+          AND (:includeDone = 1 OR status = 'ACTIVE')
+        ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
+        """
+    )
+    fun observeTaskListInRange(from: Int, to: Int, includeDone: Int): Flow<List<TaskListRow>>
+
+    @Transaction
+    @Query(
+        """
+        SELECT tasks.*,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id) AS subtaskCount,
+          (SELECT COUNT(*) FROM tasks child WHERE child.parentTaskId = tasks.id AND child.status = 'DONE') AS completedSubtaskCount
+        FROM tasks
+        WHERE isTemplate = 0
+          AND parentTaskId IS NULL
+          AND dueDate IS NOT NULL
+          AND dueDate <= :today
+          AND status != 'DROPPED'
+          AND (status = 'ACTIVE' OR dueDate = :today)
+        ORDER BY dueDate, (dueTime IS NULL), dueTime, priority
+        """
+    )
+    fun observeTaskListForDay(today: Int): Flow<List<TaskListRow>>
+
+    @Query("SELECT * FROM tasks WHERE parentTaskId = :parentId ORDER BY position, id")
+    fun observeSubtasks(parentId: Long): Flow<List<TaskEntity>>
 
     @Transaction
     @Query("SELECT * FROM tasks WHERE isTemplate = 1 AND parentTaskId IS NULL AND status != 'DROPPED' ORDER BY updatedAt DESC")

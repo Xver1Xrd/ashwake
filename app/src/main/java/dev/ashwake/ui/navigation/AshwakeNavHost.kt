@@ -202,7 +202,8 @@ fun AshwakeRoot(
                     ) { page ->
                         TabPage(
                             destination = Destination.bottomBar[page],
-                            navController = navController
+                            navController = navController,
+                            isActive = pagerState.currentPage == page
                         )
                     }
                 }
@@ -348,11 +349,13 @@ fun AshwakeRoot(
 private fun TabPage(
     destination: Destination,
     navController: NavHostController,
+    isActive: Boolean,
     modifier: Modifier = Modifier
 ) {
     Box(modifier) {
     when (destination) {
         Destination.Today -> TodayScreen(
+            isActive = isActive,
             onOpenHabit = { id -> navController.navigate("habit/$id") },
             onOpenTask = { id -> navController.navigate("task/$id") },
             onCreateTask = { navController.navigate("task-edit?taskId=0") },

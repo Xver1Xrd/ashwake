@@ -389,7 +389,7 @@ private fun TaskRowContent(
         MetaIcon(task.sourceLink?.let { AshIcons.Link })
         StaleBadge(task)
 
-        if (task.subtasks.isNotEmpty() && onExpandToggle != null) {
+        if (task.hasSubtasks && onExpandToggle != null) {
             Box(
                 Modifier.size(28.dp).tappable(onClick = onExpandToggle),
                 contentAlignment = Alignment.Center
@@ -494,13 +494,13 @@ private fun MetaIcon(icon: ImageVector?) {
 /** Подзадачи под строкой. Отдельно от [TaskRow], чтобы свайп не задевал их. */
 @Composable
 fun SubtaskList(
-    task: Task,
+    subtasks: List<Task>,
     onToggle: (Task) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = AshTheme.colors
     Column(modifier = modifier.padding(start = 30.dp, top = 2.dp)) {
-        task.subtasks.forEach { subtask ->
+        subtasks.forEach { subtask ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -564,8 +564,8 @@ private fun buildMeta(task: Task, today: LocalDate): String {
     val is24Hour = dev.ashwake.ui.theme.LocalIs24Hour.current
     task.dueTime?.let { parts += dev.ashwake.ui.theme.formatTime(it, is24Hour) }
     task.estimateMinutes?.let { parts += formatEstimateRu(it) }
-    if (task.subtasks.isNotEmpty()) {
-        parts += "${task.subtasks.count { it.isDone }}/${task.subtasks.size}"
+    if (task.hasSubtasks) {
+        parts += "${task.visibleCompletedSubtaskCount}/${task.visibleSubtaskCount}"
     }
     task.delegatedTo?.let { parts += "→ $it" }
     return parts.joinToString(" · ")

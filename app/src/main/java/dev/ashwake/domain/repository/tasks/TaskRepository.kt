@@ -29,8 +29,17 @@ interface TaskRepository {
 
     fun observeTasks(filter: TaskFilter = TaskFilter()): Flow<List<Task>>
 
+    /** Лёгкие строки для основных списков, без файлов и тел подзадач. */
+    fun observeTaskList(filter: TaskFilter = TaskFilter()): Flow<List<Task>>
+
     /** Задачи с дедлайном в интервале — календарю и сетке дня. */
     fun observeTasksInRange(
+        from: LocalDate,
+        to: LocalDate,
+        includeDone: Boolean = true
+    ): Flow<List<Task>>
+
+    fun observeTaskListInRange(
         from: LocalDate,
         to: LocalDate,
         includeDone: Boolean = true
@@ -42,6 +51,11 @@ interface TaskRepository {
      * они и есть первое, что нужно увидеть утром.
      */
     fun observeTasksForDay(today: LocalDate): Flow<List<Task>>
+
+    fun observeTaskListForDay(today: LocalDate): Flow<List<Task>>
+
+    /** Реальные подзадачи загружаются только у раскрытой строки. */
+    fun observeSubtasks(parentId: Long): Flow<List<Task>>
 
     /**
      * Убирает экземпляр повтора, порождённый закрытием [taskId].

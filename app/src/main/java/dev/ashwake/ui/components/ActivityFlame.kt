@@ -72,41 +72,54 @@ enum class FlameLevel(val title: String, val description: String) {
 @Composable
 fun ActivityFlame(
     level: FlameLevel,
+    animate: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
-    val transition = rememberInfiniteTransition(label = "flame")
-    val pulseState = transition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.14f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "flame-pulse"
-    )
-
-    val glowAlphaState = transition.animateFloat(
-        initialValue = 0.25f,
-        targetValue = 0.65f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "flame-glow"
-    )
-
-    val flutterPhaseState = transition.animateFloat(
-        initialValue = 0f,
-        targetValue = (2 * Math.PI).toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(1800, easing = androidx.compose.animation.core.LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "flame-flutter"
-    )
+    // Вкладка «Сегодня» остаётся в pager при переходе на другую вкладку.
+    // Скрытому экрану не нужно держать три бесконечных кадра в секунду.
+    val shouldAnimate = animate && !AshTheme.reduceMotion
+    val pulse = if (shouldAnimate) {
+        val transition = rememberInfiniteTransition(label = "flame")
+        val value by transition.animateFloat(
+            initialValue = 0.88f,
+            targetValue = 1.14f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "flame-pulse"
+        )
+        value
+    } else 1f
+    val glowAlpha = if (shouldAnimate) {
+        val transition = rememberInfiniteTransition(label = "flame-glow")
+        val value by transition.animateFloat(
+            initialValue = 0.25f,
+            targetValue = 0.65f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1000, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "flame-glow"
+        )
+        value
+    } else 0.42f
+    val flutterPhase = if (shouldAnimate) {
+        val transition = rememberInfiniteTransition(label = "flame-flutter")
+        val value by transition.animateFloat(
+            initialValue = 0f,
+            targetValue = (2 * Math.PI).toFloat(),
+            animationSpec = infiniteRepeatable(
+                animation = tween(1800, easing = androidx.compose.animation.core.LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "flame-flutter"
+        )
+        value
+    } else 0f
 
     val flamePath = remember { Path() }
     val innerFlamePath = remember { Path() }
@@ -126,7 +139,7 @@ fun ActivityFlame(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(34.dp)) {
-            drawFlame(level, pulseState.value, glowAlphaState.value, flutterPhaseState.value, flamePath, innerFlamePath)
+            drawFlame(level, pulse, glowAlpha, flutterPhase, flamePath, innerFlamePath)
         }
     }
 

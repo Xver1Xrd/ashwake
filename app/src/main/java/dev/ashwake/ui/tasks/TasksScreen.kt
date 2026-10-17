@@ -301,8 +301,10 @@ fun TasksScreen(
                                         onDelete = { viewModel.delete(task) }
                                     )
                                     if (task.id in state.expandedTaskIds) {
+                                        val subtasks by viewModel.observeSubtasks(task.id)
+                                            .collectAsStateWithLifecycle(initialValue = emptyList())
                                         SubtaskList(
-                                            task = task,
+                                            subtasks = subtasks,
                                             onToggle = viewModel::complete
                                         )
                                     }

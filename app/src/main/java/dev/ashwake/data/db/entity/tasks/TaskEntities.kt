@@ -69,6 +69,10 @@ data class RecurrenceRuleEntity(
     indices = [
         Index("projectId"), Index("parentTaskId"), Index("recurrenceId"),
         Index("dueDate"), Index("status"), Index("seriesId"), Index("spaceId"),
+        // Основные списки всегда ограничены этими полями. Составной индекс
+        // избегает полного прохода по задачам при старте и смене вкладки.
+        Index(value = ["isTemplate", "parentTaskId", "status", "dueDate"]),
+        Index(value = ["parentTaskId", "status"]),
         Index(value = ["globalId"], unique = true)
     ]
 )
@@ -197,4 +201,23 @@ data class TaskWithRelations(
     val subtasks: List<TaskEntity> = emptyList(),
     @Relation(parentColumn = "id", entityColumn = "taskId")
     val attachments: List<TaskAttachmentEntity> = emptyList()
+)
+
+/** Лёгкая строка списка: без вложений и самих подзадач. */
+data class TaskListRow(
+    @Embedded val task: TaskEntity,
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "id",
+        associateBy = Junction(
+            value = TaskTagCrossRef::class,
+            parentColumn = "taskId",
+            entityColumn = "tagId"
+        )
+    )
+    val tags: List<TagEntity> = emptyList(),
+    @Relation(parentColumn = "recurrenceId", entityColumn = "id")
+    val recurrence: RecurrenceRuleEntity? = null,
+    val subtaskCount: Int = 0,
+    val completedSubtaskCount: Int = 0
 )

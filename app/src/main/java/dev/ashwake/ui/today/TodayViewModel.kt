@@ -2,6 +2,7 @@ package dev.ashwake.ui.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.compose.runtime.Immutable
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.domain.model.habits.EntryStatus
@@ -42,6 +43,7 @@ import javax.inject.Inject
  * Раньше отказы жили только на своём экране, и человек, который бросает
  * курить, видел свой счётчик, только если специально за ним ходил.
  */
+@Immutable
 data class TodayUiState(
     val today: LocalDate = EPOCH_DAY,
     val selectedDate: LocalDate = EPOCH_DAY,
@@ -50,23 +52,18 @@ data class TodayUiState(
     val abstinences: List<AbstinenceWithStats> = emptyList(),
     val activeYesterday: Boolean = false,
     val activeTwoDaysAgo: Boolean = false,
+    val overdueTasks: List<Task> = emptyList(),
+    val todayTasks: List<Task> = emptyList(),
+    private val precomputedDoneCount: Int? = null,
+    private val precomputedTotalCount: Int? = null,
     /** Первый запрос к базе ещё не вернулся: показываем заготовку, а не пустоту. */
     val loading: Boolean = true
 ) {
     val isSelectedToday: Boolean get() = selectedDate == today
 
-    /** Задачи, у которых срок раньше выбранной даты. */
-    val overdueTasks: List<Task> get() = if (isSelectedToday) tasks.filter { it.isOverdue(today) } else emptyList()
-
-    /** Всё, что относится к выбранному дню. */
-    val todayTasks: List<Task> get() = if (isSelectedToday) tasks.filterNot { it.isOverdue(today) } else tasks
-
     /** Прогресс дня относится только к задачам. Привычки имеют собственные серии. */
-    val doneCount: Int
-        get() = tasks.count { it.isDone }
-
-    val totalCount: Int
-        get() = tasks.size
+    val doneCount: Int get() = precomputedDoneCount ?: tasks.count { it.isDone }
+    val totalCount: Int get() = precomputedTotalCount ?: tasks.size
 
     val progress: Float
         get() = if (totalCount == 0) 0f else doneCount.toFloat() / totalCount
@@ -124,6 +121,7 @@ class TodayViewModel @Inject constructor(
      */
     private val minuteTicker = MutableStateFlow(clock.now())
     private val _selectedDate = MutableStateFlow(clock.today())
+    private val screenActive = MutableStateFlow(false)
 
     val state: StateFlow<TodayUiState> = _selectedDate.flatMapLatest { selDate ->
         val today = clock.today()
@@ -131,12 +129,14 @@ class TodayViewModel @Inject constructor(
         val twoDaysAgo = today.minusDays(2)
         combine(
             habits.observeHabitsWithProgress(selDate),
-            tasks.observeTasksForDay(selDate),
-            tasks.observeTasksInRange(twoDaysAgo, today, includeDone = true),
+            tasks.observeTaskListForDay(selDate),
+            tasks.observeTaskListInRange(twoDaysAgo, today, includeDone = true),
             minuteTicker.flatMapLatest { now -> abstinences.observeAll(now) }
         ) { habitList, taskList, recentTasks, abstinenceList ->
             val activeYesterday = recentTasks.any { it.isDone && it.dueDate == yesterday }
             val activeTwoDaysAgo = recentTasks.any { it.isDone && it.dueDate == twoDaysAgo }
+            val overdue = if (selDate == today) taskList.filter { it.isOverdue(today) } else emptyList()
+            val forSelectedDay = if (selDate == today) taskList.filterNot { it.isOverdue(today) } else taskList
 
             TodayUiState(
                 loading = false,
@@ -146,7 +146,11 @@ class TodayViewModel @Inject constructor(
                 habits = habitList.filter { it.dueToday && !it.paused },
                 abstinences = abstinenceList.filterNot { it.abstinence.archived },
                 activeYesterday = activeYesterday,
-                activeTwoDaysAgo = activeTwoDaysAgo
+                activeTwoDaysAgo = activeTwoDaysAgo,
+                overdueTasks = overdue,
+                todayTasks = forSelectedDay,
+                precomputedDoneCount = taskList.count { it.isDone },
+                precomputedTotalCount = taskList.size
             )
         }
     }.flowOn(Dispatchers.Default).stateIn(
@@ -163,6 +167,11 @@ class TodayViewModel @Inject constructor(
         _selectedDate.value = clock.today()
     }
 
+    fun setScreenActive(active: Boolean) {
+        screenActive.value = active
+        if (active) minuteTicker.value = clock.now()
+    }
+
     init {
         viewModelScope.launch {
             abstinences.ensureBuiltinData()
@@ -170,7 +179,7 @@ class TodayViewModel @Inject constructor(
         viewModelScope.launch {
             while (true) {
                 delay(TICK_MILLIS)
-                minuteTicker.value = clock.now()
+                if (screenActive.value) minuteTicker.value = clock.now()
             }
         }
     }

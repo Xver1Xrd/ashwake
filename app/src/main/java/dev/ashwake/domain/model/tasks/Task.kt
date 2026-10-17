@@ -88,10 +88,20 @@ data class Task(
     val attachments: List<TaskAttachment> = emptyList(),
     val tags: List<Tag> = emptyList(),
     val subtasks: List<Task> = emptyList(),
+    /**
+     * Сводка подзадач для списков. Сами подзадачи подгружаются только после
+     * раскрытия строки, поэтому прокрутка сотен задач не читает их все.
+     */
+    val subtaskCount: Int = 0,
+    val completedSubtaskCount: Int = 0,
     val createdAt: Instant = Instant.EPOCH,
     val updatedAt: Instant = Instant.EPOCH
 ) {
     val isDone: Boolean get() = status == TaskStatus.DONE
+    val hasSubtasks: Boolean get() = subtaskCount > 0 || subtasks.isNotEmpty()
+    val visibleSubtaskCount: Int get() = maxOf(subtaskCount, subtasks.size)
+    val visibleCompletedSubtaskCount: Int
+        get() = maxOf(completedSubtaskCount, subtasks.count { it.isDone })
 
     /** Жёлтая метка с 3 переносов, красная с 5 (п. 1). */
     val staleLevel: StaleLevel

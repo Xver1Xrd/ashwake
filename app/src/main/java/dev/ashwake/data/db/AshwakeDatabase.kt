@@ -165,7 +165,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
          * миграций с последней выгруженной схемой, и без имени сверять было
          * бы нечего.
          */
-        const val VERSION = 8
+        const val VERSION = 9
 
         /**
          * 1 → 2: у якоря появился день последнего срабатывания.
@@ -363,6 +363,20 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
+        /** 8 → 9: составные индексы горячих запросов экранов «Сегодня» и «Задачи». */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_tasks_isTemplate_parentTaskId_status_dueDate " +
+                        "ON tasks(isTemplate, parentTaskId, status, dueDate)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_tasks_parentTaskId_status " +
+                        "ON tasks(parentTaskId, status)"
+                )
+            }
+        }
+
         val MIGRATIONS: Array<Migration> =
             arrayOf(
                 MIGRATION_1_2,
@@ -371,7 +385,8 @@ abstract class AshwakeDatabase : RoomDatabase() {
                 MIGRATION_4_5,
                 MIGRATION_5_6,
                 MIGRATION_6_7,
-                MIGRATION_7_8
+                MIGRATION_7_8,
+                MIGRATION_8_9
             )
     }
 }

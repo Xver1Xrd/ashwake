@@ -164,7 +164,7 @@ class DatabaseMigrationTest {
         // версия 7 ещё нет: именно обе такие схемы должна принять 7→8.
         // Тест создаёт снимок схемы напрямую, поэтому не может передавать
         // поля, которых в этом снимке нет.
-        if (version == 6) {
+        if (version == 6 || version >= 8) {
             put("syncRevision", 0)
             put("syncState", "LOCAL")
         }

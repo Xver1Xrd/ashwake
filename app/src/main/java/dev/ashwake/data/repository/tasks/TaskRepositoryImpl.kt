@@ -12,6 +12,7 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
 import dev.ashwake.data.db.mapper.tasks.toDomain
+import dev.ashwake.data.db.mapper.tasks.toDomainShallow
 import dev.ashwake.data.db.mapper.tasks.toEntity
 import dev.ashwake.data.db.mapper.tasks.toEpochDayInt
 import dev.ashwake.data.db.mapper.tasks.toLocalDate
@@ -59,6 +60,17 @@ class TaskRepositoryImpl @Inject constructor(
             query = filter.query?.takeIf { it.isNotBlank() }
         ).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeTaskList(filter: TaskFilter): Flow<List<Task>> =
+        dao.observeTaskList(
+            includeDone = if (filter.includeDone) 1 else 0,
+            projectId = filter.projectId,
+            tagId = filter.tagId,
+            priority = filter.priority?.name,
+            dueBefore = filter.dueBefore?.toEpochDayInt(),
+            minPostpones = if (filter.onlyStale) STALE_THRESHOLD else 0,
+            query = filter.query?.takeIf { it.isNotBlank() }
+        ).map { rows -> rows.map { it.toDomain() } }
+
     override fun observeTasksInRange(
         from: LocalDate,
         to: LocalDate,
@@ -70,9 +82,27 @@ class TaskRepositoryImpl @Inject constructor(
             includeDone = if (includeDone) 1 else 0
         ).map { rows -> rows.map { it.toDomain() } }
 
+    override fun observeTaskListInRange(
+        from: LocalDate,
+        to: LocalDate,
+        includeDone: Boolean
+    ): Flow<List<Task>> =
+        dao.observeTaskListInRange(
+            from = from.toEpochDayInt(),
+            to = to.toEpochDayInt(),
+            includeDone = if (includeDone) 1 else 0
+        ).map { rows -> rows.map { it.toDomain() } }
+
     override fun observeTasksForDay(today: LocalDate): Flow<List<Task>> =
         dao.observeTasksForDay(today.toEpochDayInt())
             .map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeTaskListForDay(today: LocalDate): Flow<List<Task>> =
+        dao.observeTaskListForDay(today.toEpochDayInt())
+            .map { rows -> rows.map { it.toDomain() } }
+
+    override fun observeSubtasks(parentId: Long): Flow<List<Task>> =
+        dao.observeSubtasks(parentId).map { rows -> rows.map { it.toDomainShallow() } }
 
     override suspend fun tasksWithReminders(): List<Task> =
         dao.tasksWithReminders().map { it.toDomain() }

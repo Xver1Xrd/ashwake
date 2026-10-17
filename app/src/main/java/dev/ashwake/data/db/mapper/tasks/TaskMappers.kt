@@ -8,6 +8,7 @@ import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
 import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskWithRelations
+import dev.ashwake.data.db.entity.tasks.TaskListRow
 import dev.ashwake.domain.model.tasks.EisenhowerQuadrant
 import dev.ashwake.domain.model.tasks.Project
 import dev.ashwake.domain.model.tasks.RecurrenceRule
@@ -64,6 +65,45 @@ fun TaskWithRelations.toDomain(): Task = Task(
     attachments = attachments.map { it.toDomain() },
     tags = tags.map { it.toDomain() },
     subtasks = subtasks.map { it.toDomainShallow() },
+    subtaskCount = subtasks.size,
+    completedSubtaskCount = subtasks.count { it.status == TaskStatus.DONE.name },
+    createdAt = task.createdAt.toInstant(),
+    updatedAt = task.updatedAt.toInstant()
+)
+
+/** Маппер облегчённой строки списка: детали загружаются при открытии задачи. */
+fun TaskListRow.toDomain(): Task = Task(
+    id = task.id,
+    globalId = task.globalId,
+    spaceId = task.spaceId,
+    syncRevision = task.syncRevision,
+    syncState = TaskSyncState.valueOf(task.syncState),
+    title = task.title,
+    emoji = task.emoji,
+    iconPath = task.iconPath,
+    note = task.note,
+    projectId = task.projectId,
+    parentTaskId = task.parentTaskId,
+    priority = Priority.valueOf(task.priority),
+    difficulty = task.difficulty,
+    dueDate = task.dueDate?.toLocalDate(),
+    dueTime = task.dueTime?.toLocalTime(),
+    estimateMinutes = task.estimateMinutes,
+    status = TaskStatus.valueOf(task.status),
+    completedAt = task.completedAt?.toInstant(),
+    position = task.position,
+    quadrantOverride = task.quadrantOverride?.let { EisenhowerQuadrant.valueOf(it) },
+    recurrence = recurrence?.toDomain(),
+    seriesId = task.seriesId,
+    isTemplate = task.isTemplate,
+    persistentReminderMinutes = task.persistentReminderMinutes,
+    postponeCount = task.postponeCount,
+    lastPostponedAt = task.lastPostponedAt?.toInstant(),
+    sourceLink = task.sourceLink,
+    delegatedTo = task.delegatedTo,
+    tags = tags.map { it.toDomain() },
+    subtaskCount = subtaskCount,
+    completedSubtaskCount = completedSubtaskCount,
     createdAt = task.createdAt.toInstant(),
     updatedAt = task.updatedAt.toInstant()
 )

@@ -62,6 +62,7 @@ import java.util.Locale
  */
 @Composable
 fun TodayScreen(
+    isActive: Boolean,
     onOpenHabit: (Long) -> Unit,
     onOpenTask: (Long) -> Unit,
     onCreateTask: () -> Unit,
@@ -75,6 +76,8 @@ fun TodayScreen(
     var counterDialogTarget by remember { mutableStateOf<dev.ashwake.domain.model.habits.HabitWithProgress?>(null) }
     val postponedText = stringResource(R.string.toast_postponed)
     val undoText = stringResource(R.string.toast_undo)
+
+    LaunchedEffect(isActive) { viewModel.setScreenActive(isActive) }
 
     Box(Modifier.fillMaxSize()) {
         LazyColumn(
@@ -110,6 +113,7 @@ fun TodayScreen(
                     }
                 ActivityFlame(
                     level = state.flameLevel,
+                    animate = isActive,
                     modifier = Modifier.padding(end = 6.dp)
                 )
                 IconAction(
