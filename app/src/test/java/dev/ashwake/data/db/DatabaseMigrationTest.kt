@@ -87,6 +87,27 @@ class DatabaseMigrationTest {
     }
 
     @Test
+    fun `локальный файл задачи переживает миграцию 7 в 8`() {
+        val name = "migration-attachment.db"
+        SchemaFixture.createDatabase(context, version = 7, name = name).use { old ->
+            val taskId = old.insert("tasks", null, taskRow(title = "Документы", version = 7))
+            old.insert("task_attachments", null, ContentValues().apply {
+                put("taskId", taskId)
+                put("fileName", "document.pdf")
+                put("displayName", "Документ.pdf")
+                put("mimeType", "application/pdf")
+                put("sizeBytes", 42L)
+                put("createdAt", NOW)
+            })
+        }
+
+        withMigrated(name) { db ->
+            assertEquals("document.pdf", db.singleString("SELECT storedName FROM task_attachments"))
+            assertEquals("FILE", db.singleString("SELECT kind FROM task_attachments"))
+        }
+    }
+
+    @Test
     fun `каждая миграция применяется по отдельности`() {
         for (from in 1 until SchemaFixture.latestVersion()) {
             val name = "migration-step-$from.db"
@@ -96,7 +117,12 @@ class DatabaseMigrationTest {
             // Room сам сверяет получившуюся схему с ожидаемой и падает, если
             // миграция довела базу не туда, — отдельная проверка не нужна
             withMigrated(name) { db ->
-                assertEquals("Шаг $from", db.singleString("SELECT title FROM tasks"))
+                val count = db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM tasks").use { cursor ->
+                    cursor.moveToFirst()
+                    cursor.getInt(0)
+                }
+                assertEquals("задача потерялась на миграции $from → ${from + 1}", 1, count)
+                assertEquals("задача потерялась на миграции $from → ${from + 1}", "Шаг $from", db.singleString("SELECT title FROM tasks"))
             }
         }
     }
@@ -134,9 +160,11 @@ class DatabaseMigrationTest {
         put("postponeCount", 0)
         put("createdAt", NOW)
         put("updatedAt", NOW)
-        // С версии 6 эти поля обязательны. В реальной базе они появляются
-        // миграцией с DEFAULT, но тест создаёт снимок схемы напрямую.
-        if (version >= 6) {
+        // Версия 6 уже получила онлайн-поля, а опубликованная локальная
+        // версия 7 ещё нет: именно обе такие схемы должна принять 7→8.
+        // Тест создаёт снимок схемы напрямую, поэтому не может передавать
+        // поля, которых в этом снимке нет.
+        if (version == 6) {
             put("syncRevision", 0)
             put("syncState", "LOCAL")
         }

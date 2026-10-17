@@ -272,15 +272,77 @@ abstract class AshwakeDatabase : RoomDatabase() {
                 addTaskColumn("spaceId", "TEXT")
                 addTaskColumn("syncRevision", "INTEGER NOT NULL DEFAULT 0")
                 addTaskColumn("syncState", "TEXT NOT NULL DEFAULT 'LOCAL'")
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
+                // В одной из выпущенных схем с номером 7 отсутствовало поле
+                // сложности, хотя последовательная ветка 5→6 его уже имела.
+                addTaskColumn("difficulty", "INTEGER NOT NULL DEFAULT 1")
+                // Прежняя версия вложений называла файл fileName, а ранняя
+                // онлайн-схема уже содержала storedName и лишний unique-index.
+                // ALTER TABLE оставляет default и индексы от старой схемы, из-за
+                // чего Room отклоняет базу при запуске. Пересобираем только эту
+                // таблицу и переносим каждую запись, не теряя файлы.
+                val hasAttachments = db.query(
+                    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'task_attachments'"
+                ).use { it.moveToFirst() }
+                if (hasAttachments) {
+                    val sourceName = if (hasColumn("task_attachments", "storedName")) "storedName" else "fileName"
+                    val sourceKind = if (hasColumn("task_attachments", "kind")) "kind" else "'FILE'"
+                    db.execSQL(
+                        "CREATE TABLE task_attachments_new (" +
+                            "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                            "taskId INTEGER NOT NULL, storedName TEXT NOT NULL, " +
+                            "displayName TEXT NOT NULL, mimeType TEXT NOT NULL, " +
+                            "sizeBytes INTEGER NOT NULL, kind TEXT NOT NULL, createdAt INTEGER NOT NULL, " +
+                            "FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                    )
+                    db.execSQL(
+                        "INSERT INTO task_attachments_new " +
+                            "(id, taskId, storedName, displayName, mimeType, sizeBytes, kind, createdAt) " +
+                            "SELECT id, taskId, $sourceName, displayName, mimeType, sizeBytes, $sourceKind, createdAt " +
+                            "FROM task_attachments"
+                    )
+                    db.execSQL("DROP TABLE task_attachments")
+                    db.execSQL("ALTER TABLE task_attachments_new RENAME TO task_attachments")
+                    db.execSQL("CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)")
+                }
+
+                // У добавленных выше NOT NULL-полей были временные DEFAULT,
+                // чтобы старая база могла заполнить существующие строки. В
+                // финальной Room-схеме этих DEFAULT нет. Пересборка tasks
+                // убирает их и возвращает ровно контракт текущей сущности.
+                db.execSQL(
+                    "CREATE TABLE tasks_new (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, globalId TEXT, spaceId TEXT, " +
+                        "syncRevision INTEGER NOT NULL, syncState TEXT NOT NULL, title TEXT NOT NULL, " +
+                        "emoji TEXT, iconPath TEXT, note TEXT, projectId INTEGER, parentTaskId INTEGER, " +
+                        "priority TEXT NOT NULL, difficulty INTEGER NOT NULL, dueDate INTEGER, dueTime INTEGER, " +
+                        "estimateMinutes INTEGER, status TEXT NOT NULL, completedAt INTEGER, position INTEGER NOT NULL, " +
+                        "quadrantOverride TEXT, recurrenceId INTEGER, seriesId TEXT, isTemplate INTEGER NOT NULL, " +
+                        "persistentReminderMinutes INTEGER, postponeCount INTEGER NOT NULL, lastPostponedAt INTEGER, " +
+                        "sourceLink TEXT, delegatedTo TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, " +
+                        "FOREIGN KEY(projectId) REFERENCES projects(id) ON UPDATE NO ACTION ON DELETE SET NULL, " +
+                        "FOREIGN KEY(parentTaskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE, " +
+                        "FOREIGN KEY(recurrenceId) REFERENCES recurrence_rules(id) ON UPDATE NO ACTION ON DELETE SET NULL)"
+                )
+                db.execSQL(
+                    "INSERT INTO tasks_new (id, globalId, spaceId, syncRevision, syncState, title, emoji, iconPath, note, " +
+                        "projectId, parentTaskId, priority, difficulty, dueDate, dueTime, estimateMinutes, status, completedAt, " +
+                        "position, quadrantOverride, recurrenceId, seriesId, isTemplate, persistentReminderMinutes, postponeCount, " +
+                        "lastPostponedAt, sourceLink, delegatedTo, createdAt, updatedAt) " +
+                        "SELECT id, globalId, spaceId, syncRevision, syncState, title, emoji, iconPath, note, projectId, parentTaskId, " +
+                        "priority, difficulty, dueDate, dueTime, estimateMinutes, status, completedAt, position, quadrantOverride, " +
+                        "recurrenceId, seriesId, isTemplate, persistentReminderMinutes, postponeCount, lastPostponedAt, sourceLink, " +
+                        "delegatedTo, createdAt, updatedAt FROM tasks"
+                )
+                db.execSQL("DROP TABLE tasks")
+                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_projectId ON tasks(projectId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_parentTaskId ON tasks(parentTaskId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_recurrenceId ON tasks(recurrenceId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_dueDate ON tasks(dueDate)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_status ON tasks(status)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_seriesId ON tasks(seriesId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
-                if (hasColumn("task_attachments", "fileName") && !hasColumn("task_attachments", "storedName")) {
-                    db.execSQL("ALTER TABLE task_attachments RENAME COLUMN fileName TO storedName")
-                }
-                if (!hasColumn("task_attachments", "kind")) {
-                    db.execSQL("ALTER TABLE task_attachments ADD COLUMN kind TEXT NOT NULL DEFAULT 'FILE'")
-                }
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_task_attachments_storedName ON task_attachments(storedName)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS sync_tombstones (" +
                         "globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, " +
