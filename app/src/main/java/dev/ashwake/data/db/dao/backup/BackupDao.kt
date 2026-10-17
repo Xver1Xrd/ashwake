@@ -16,10 +16,8 @@ import dev.ashwake.data.db.entity.character.WalletEntity
 import dev.ashwake.data.db.entity.habits.HabitEntity
 import dev.ashwake.data.db.entity.habits.HabitEntryEntity
 import dev.ashwake.data.db.entity.ritual.DailyReviewEntity
-import dev.ashwake.data.db.entity.tasks.ProjectEntity
-import dev.ashwake.data.db.entity.tasks.TagEntity
 import dev.ashwake.data.db.entity.tasks.TaskEntity
-import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
+import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 
 /**
  * Операции восстановления из архива.
@@ -48,15 +46,6 @@ interface BackupDao {
     )
     suspend fun usedIconPaths(): List<String>
 
-    @Query("SELECT * FROM projects ORDER BY position, id")
-    suspend fun allProjects(): List<ProjectEntity>
-
-    @Query("SELECT * FROM tags ORDER BY name")
-    suspend fun allTags(): List<TagEntity>
-
-    @Query("SELECT * FROM task_tag_cross_ref")
-    suspend fun allTaskTags(): List<TaskTagCrossRef>
-
     // --- очистка ------------------------------------------------------------
     //
     // Порядок важен: сначала то, что ссылается, потом то, на что ссылаются.
@@ -72,9 +61,8 @@ interface BackupDao {
 
     @Query("DELETE FROM task_tag_cross_ref") suspend fun clearTaskTags()
     @Query("DELETE FROM task_postponements") suspend fun clearPostponements()
+    @Query("DELETE FROM task_attachments") suspend fun clearTaskAttachments()
     @Query("DELETE FROM tasks") suspend fun clearTasks()
-    @Query("DELETE FROM projects") suspend fun clearProjects()
-    @Query("DELETE FROM tags") suspend fun clearTags()
 
     @Query("DELETE FROM abstinence_attempts") suspend fun clearAttempts()
     @Query("DELETE FROM craving_events") suspend fun clearCravings()
@@ -101,13 +89,7 @@ interface BackupDao {
     suspend fun insertTasks(items: List<TaskEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertProjects(items: List<ProjectEntity>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTags(items: List<TagEntity>)
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertTaskTags(items: List<TaskTagCrossRef>)
+    suspend fun insertTaskAttachments(items: List<TaskAttachmentEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertHabits(items: List<HabitEntity>)

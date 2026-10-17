@@ -98,7 +98,6 @@ fun AshTabBar(
 ) {
     val colors = AshTheme.colors
     val accentColor = colors.accent
-    val haze = LocalHazeState.current
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
     val reduceMotion = AshTheme.reduceMotion
@@ -241,10 +240,9 @@ fun AshTabBar(
                     transformOrigin = TransformOrigin.Center
                 }
                 .clip(AshShapes.pill)
-                .then(
-                    if (haze != null) Modifier.glass(haze, AshShapes.pill)
-                    else Modifier.background(colors.surface1, AshShapes.pill)
-                )
+                // Остров рисуется сам по себе: за ним не должно быть
+                // дополнительной стеклянной подложки или размытого прямоугольника.
+                .background(colors.surface1, AshShapes.pill)
                 .border(
                     width = if (colors.isDark) 0.75.dp else 1.dp,
                     color = if (colors.isDark) colors.surface3 else colors.separator,

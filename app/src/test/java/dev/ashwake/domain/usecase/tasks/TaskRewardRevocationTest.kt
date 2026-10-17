@@ -10,6 +10,7 @@ import dev.ashwake.data.assets.CatalogLoader
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.repository.character.CharacterRepositoryImpl
 import dev.ashwake.data.repository.tasks.TagRepositoryImpl
+import dev.ashwake.data.attachments.TaskAttachmentStore
 import dev.ashwake.data.repository.tasks.TaskRepositoryImpl
 import dev.ashwake.domain.engine.abstinence.AbstinenceCalculator
 import dev.ashwake.domain.engine.achievement.AchievementEngine
@@ -81,7 +82,9 @@ class TaskRewardRevocationTest {
             dao = db.taskDao(),
             tags = TagRepositoryImpl(db.tagDao()),
             clock = clock,
-            recurrenceCalculator = RecurrenceCalculator()
+            recurrenceCalculator = RecurrenceCalculator(),
+            attachmentDao = db.taskAttachmentDao(),
+            attachmentStore = TaskAttachmentStore(context)
         )
         character = CharacterRepositoryImpl(
             db = db,

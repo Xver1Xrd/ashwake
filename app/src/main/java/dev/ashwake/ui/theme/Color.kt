@@ -124,6 +124,7 @@ enum class AccentColor(
     AZURE(R.string.accent_azure, Color(0xFF4CC9F0), Color(0xFF4C9BF0), Color(0xFF0E8CC0), Color(0xFF1367CE)),
     INDIGO(R.string.accent_indigo, Color(0xFF6C7BFF), Color(0xFF8B62F5), Color(0xFF4453EE), Color(0xFF6B36DE)),
     ROSE(R.string.accent_rose, Color(0xFFFF6FA5), Color(0xFFFF7BD0), Color(0xFFE0407D), Color(0xFFDB4BAF)),
+    GREEN(R.string.accent_green, Color(0xFF59DC42), Color(0xFF32C95B), Color(0xFF2FAF24), Color(0xFF169B43)),
     LIME(R.string.accent_lime, Color(0xFFA8DC3F), Color(0xFF5FD86B), Color(0xFF6F9C10), Color(0xFF23A03A));
 
     fun resolve(isDark: Boolean): Color = if (isDark) darkFrom else lightFrom

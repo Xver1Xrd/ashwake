@@ -16,6 +16,8 @@ import dev.ashwake.data.db.dao.timebox.TimeboxDao
 import dev.ashwake.data.db.dao.tasks.ProjectDao
 import dev.ashwake.data.db.dao.tasks.TagDao
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
+import dev.ashwake.data.db.dao.online.SyncDao
 import dev.ashwake.data.db.entity.abstinence.AbstinenceAttemptEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceEntity
 import dev.ashwake.data.db.entity.abstinence.AbstinenceMilestoneEntity
@@ -63,6 +65,9 @@ import dev.ashwake.data.db.entity.tasks.TaskEntity
 import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
+import dev.ashwake.data.db.entity.online.SyncConflictEntity
+import dev.ashwake.data.db.entity.online.SyncStateEntity
+import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
 
 /**
  * Единая база приложения.
@@ -128,13 +133,18 @@ import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
         // блокировка приложений
         BlockingRuleEntity::class,
         BlockedAppEntity::class,
-        BypassLogEntity::class
+        BypassLogEntity::class,
+        SyncTombstoneEntity::class,
+        SyncStateEntity::class,
+        SyncConflictEntity::class
     ],
     version = AshwakeDatabase.VERSION,
     exportSchema = true
 )
 abstract class AshwakeDatabase : RoomDatabase() {
     abstract fun taskDao(): TaskDao
+    abstract fun taskAttachmentDao(): TaskAttachmentDao
+    abstract fun syncDao(): SyncDao
     abstract fun projectDao(): ProjectDao
     abstract fun tagDao(): TagDao
     abstract fun habitDao(): HabitDao
@@ -155,7 +165,7 @@ abstract class AshwakeDatabase : RoomDatabase() {
          * миграций с последней выгруженной схемой, и без имени сверять было
          * бы нечего.
          */
-        const val VERSION = 7
+        const val VERSION = 8
 
         /**
          * 1 → 2: у якоря появился день последнего срабатывания.
@@ -191,21 +201,6 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
-        /** 6 → 7: к задаче можно прикрепить несколько изображений. */
-        val MIGRATION_6_7 = object : Migration(6, 7) {
-            override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL(
-                    "CREATE TABLE IF NOT EXISTS task_attachments (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
-                        "taskId INTEGER NOT NULL, fileName TEXT NOT NULL, " +
-                        "displayName TEXT NOT NULL, mimeType TEXT NOT NULL, " +
-                        "sizeBytes INTEGER NOT NULL, createdAt INTEGER NOT NULL, " +
-                        "FOREIGN KEY(taskId) REFERENCES tasks(id) ON DELETE CASCADE)"
-                )
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)")
-            }
-        }
-
         /**
          * 4 → 5: экономика персонажа — материалы улучшений, достижения
          * и ежедневный сундук (п. 4).
@@ -228,16 +223,75 @@ abstract class AshwakeDatabase : RoomDatabase() {
             }
         }
 
-        /**
-         * 5 → 6: сложность задачи (1..5).
-         */
+        /** 5 → 6: сложность задачи. */
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE tasks ADD COLUMN difficulty INTEGER NOT NULL DEFAULT 1")
             }
         }
 
+        /** 6 → 7: локальные фото и файлы в закрытом хранилище приложения. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS task_attachments (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        taskId INTEGER NOT NULL,
+                        fileName TEXT NOT NULL,
+                        displayName TEXT NOT NULL,
+                        mimeType TEXT NOT NULL,
+                        sizeBytes INTEGER NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)")
+            }
+        }
+
+        /** 7 → 8: приватная синхронизация, пространства друзей и пар. */
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE tasks ADD COLUMN globalId TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN spaceId TEXT")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN syncRevision INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE tasks ADD COLUMN syncState TEXT NOT NULL DEFAULT 'LOCAL'")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
+                db.execSQL("ALTER TABLE task_attachments RENAME COLUMN fileName TO storedName")
+                db.execSQL("ALTER TABLE task_attachments ADD COLUMN kind TEXT NOT NULL DEFAULT 'FILE'")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_task_attachments_storedName ON task_attachments(storedName)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS sync_tombstones (" +
+                        "globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, " +
+                        "recordType TEXT NOT NULL, baseRevision INTEGER NOT NULL, createdAt INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_tombstones_spaceId ON sync_tombstones(spaceId)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS sync_state (" +
+                        "accountId TEXT NOT NULL PRIMARY KEY, cursor INTEGER NOT NULL, lastSuccessAt INTEGER)"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS sync_conflicts (" +
+                        "globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, " +
+                        "localRevision INTEGER NOT NULL, remoteRevision INTEGER NOT NULL, " +
+                        "remoteCiphertext TEXT NOT NULL, createdAt INTEGER NOT NULL)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_sync_conflicts_spaceId ON sync_conflicts(spaceId)")
+            }
+        }
+
         val MIGRATIONS: Array<Migration> =
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            arrayOf(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8
+            )
     }
 }

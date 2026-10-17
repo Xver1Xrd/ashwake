@@ -24,6 +24,9 @@ data class TaskFilter(
 
 interface TaskRepository {
 
+    /** Шаблоны создаются пользователем и не участвуют в списках дня. */
+    fun observeTemplates(): Flow<List<Task>>
+
     fun observeTasks(filter: TaskFilter = TaskFilter()): Flow<List<Task>>
 
     /** Задачи с дедлайном в интервале — календарю и сетке дня. */

@@ -80,7 +80,7 @@ class BlockingRepositoryImpl @Inject constructor(
         val zoned = clock.now().atZone(clock.zone() ?: ZoneId.systemDefault())
 
         val unfinished = habits.observeHabitsWithProgress(today).first()
-            .filter { it.dueToday && !it.paused && it.todayEntry == null }
+            .filter { it.dueToday && !it.paused && !it.completedForPeriod }
             .filter { progress ->
                 val reminder = progress.habit.reminderTime
                 reminder == null || reminder.hour < MORNING_UNTIL_HOUR

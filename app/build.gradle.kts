@@ -14,8 +14,12 @@ android {
         applicationId = "dev.ashwake"
         minSdk = 26
         targetSdk = 35
-        versionCode = 111
-        versionName = "1.1.1"
+        versionCode = 120
+        versionName = "1.2.0"
+        val apiBaseUrl = providers.gradleProperty("ashwake.apiBaseUrl").orNull.orEmpty()
+            .replace("\\", "\\\\")
+            .replace("\"", "\\\"")
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ksp {

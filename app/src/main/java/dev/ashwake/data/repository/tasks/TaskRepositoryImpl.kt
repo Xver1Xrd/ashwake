@@ -4,10 +4,13 @@ import androidx.room.withTransaction
 import dev.ashwake.core.model.Priority
 import dev.ashwake.core.time.AppClock
 import dev.ashwake.data.db.AshwakeDatabase
+import dev.ashwake.data.attachments.TaskAttachmentStore
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.TaskAttachmentDao
 import dev.ashwake.data.db.entity.tasks.TaskPostponementEntity
 import dev.ashwake.data.db.entity.tasks.TaskTagCrossRef
 import dev.ashwake.data.db.entity.tasks.TaskAttachmentEntity
+import dev.ashwake.data.db.entity.online.SyncTombstoneEntity
 import dev.ashwake.data.db.mapper.tasks.toDomain
 import dev.ashwake.data.db.mapper.tasks.toEntity
 import dev.ashwake.data.db.mapper.tasks.toEpochDayInt
@@ -37,8 +40,13 @@ class TaskRepositoryImpl @Inject constructor(
     private val dao: TaskDao,
     private val tags: TagRepository,
     private val clock: AppClock,
-    private val recurrenceCalculator: RecurrenceCalculator
+    private val recurrenceCalculator: RecurrenceCalculator,
+    private val attachmentDao: TaskAttachmentDao,
+    private val attachmentStore: TaskAttachmentStore
 ) : TaskRepository {
+
+    override fun observeTemplates(): Flow<List<Task>> =
+        dao.observeTemplates().map { rows -> rows.map { it.toDomain() } }
 
     override fun observeTasks(filter: TaskFilter): Flow<List<Task>> =
         dao.observeTasks(
@@ -76,6 +84,14 @@ class TaskRepositoryImpl @Inject constructor(
 
     override suspend fun upsert(task: Task): Long = db.withTransaction {
         val now = clock.now()
+        val conflictRevision = if (
+            task.syncState == dev.ashwake.domain.model.tasks.TaskSyncState.CONFLICT &&
+            task.globalId != null
+        ) {
+            db.syncDao().conflict(task.globalId)?.remoteRevision
+        } else {
+            null
+        }
 
         // Правило повтора сохраняем первым: задача должна лечь уже со ссылкой на него.
         val recurrenceId = task.recurrence?.let { rule ->
@@ -83,7 +99,16 @@ class TaskRepositoryImpl @Inject constructor(
             else rule.id.also { dao.updateRecurrence(rule.toEntity()) }
         }
 
-        val entity = task.copy(updatedAt = now).toEntity(recurrenceId = recurrenceId)
+        val entity = task.copy(
+            globalId = task.globalId ?: UUID.randomUUID().toString(),
+            syncRevision = conflictRevision ?: task.syncRevision,
+            syncState = if (task.spaceId == null) {
+                task.syncState
+            } else {
+                dev.ashwake.domain.model.tasks.TaskSyncState.PENDING
+            },
+            updatedAt = now
+        ).toEntity(recurrenceId = recurrenceId)
         val id = if (task.id == 0L) {
             dao.insert(entity.copy(createdAt = now.toEpochMilli()))
         } else {
@@ -98,6 +123,9 @@ class TaskRepositoryImpl @Inject constructor(
         }
         if (tagIds.isNotEmpty()) {
             dao.insertCrossRefs(tagIds.distinct().map { TaskTagCrossRef(taskId = id, tagId = it) })
+        }
+        if (conflictRevision != null && task.globalId != null) {
+            db.syncDao().removeConflict(task.globalId)
         }
         id
     }
@@ -120,6 +148,9 @@ class TaskRepositoryImpl @Inject constructor(
         val series = row.task.seriesId ?: UUID.randomUUID().toString()
         val nextEntity = row.task.copy(
             id = 0,
+            globalId = UUID.randomUUID().toString(),
+            syncRevision = 0,
+            syncState = if (row.task.spaceId == null) "LOCAL" else "PENDING",
             status = TaskStatus.ACTIVE.name,
             completedAt = null,
             dueDate = nextDate.toEpochDayInt(),
@@ -213,7 +244,30 @@ class TaskRepositoryImpl @Inject constructor(
         dao.restoreFromTrash(id, clock.now().toEpochMilli())
     }
 
-    override suspend fun purge(id: Long) = dao.deleteById(id)
+    override suspend fun purge(id: Long) {
+        val storedAttachments = attachmentDao.storedNamesForTaskTree(id)
+        db.withTransaction {
+            val row = dao.getTask(id) ?: return@withTransaction
+            val synced = listOf(row.task) + row.subtasks
+            synced.forEach { task ->
+                val globalId = task.globalId
+                val spaceId = task.spaceId
+                if (globalId != null && spaceId != null) {
+                    db.syncDao().addTombstone(
+                        SyncTombstoneEntity(
+                            globalId = globalId,
+                            spaceId = spaceId,
+                            recordType = "task",
+                            baseRevision = task.syncRevision,
+                            createdAt = clock.now().toEpochMilli()
+                        )
+                    )
+                }
+            }
+            dao.deleteById(id)
+        }
+        storedAttachments.forEach(attachmentStore::delete)
+    }
 
     override suspend fun emptyTrash() = dao.emptyTrash()
 
@@ -236,6 +290,9 @@ class TaskRepositoryImpl @Inject constructor(
                 dao.insert(
                     parent.task.copy(
                         id = 0,
+                        globalId = UUID.randomUUID().toString(),
+                        syncRevision = 0,
+                        syncState = if (parent.task.spaceId == null) "LOCAL" else "PENDING",
                         title = title.trim(),
                         note = null,
                         parentTaskId = parentId,
@@ -258,9 +315,10 @@ class TaskRepositoryImpl @Inject constructor(
     override suspend fun addAttachment(attachment: TaskAttachment): Long =
         dao.insertAttachment(
             TaskAttachmentEntity(
-                taskId = attachment.taskId, fileName = attachment.fileName,
+                taskId = attachment.taskId, storedName = attachment.fileName,
                 displayName = attachment.displayName, mimeType = attachment.mimeType,
-                sizeBytes = attachment.sizeBytes, createdAt = attachment.createdAt.toEpochMilli()
+                sizeBytes = attachment.sizeBytes, kind = if (attachment.isImage) "PHOTO" else "FILE",
+                createdAt = attachment.createdAt.toEpochMilli()
             )
         )
 

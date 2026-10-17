@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Scaffold
@@ -48,6 +47,7 @@ import dev.ashwake.ui.habits.HabitsScreen
 import dev.ashwake.ui.habits.detail.HabitDetailScreen
 import dev.ashwake.ui.habits.editor.HabitEditorScreen
 import dev.ashwake.ui.more.MoreScreen
+import dev.ashwake.ui.online.OnlineScreen
 import dev.ashwake.ui.onboarding.OnboardingScreen
 import dev.ashwake.ui.ritual.RitualScreen
 import dev.ashwake.ui.routines.RoutineEditorScreen
@@ -56,6 +56,7 @@ import dev.ashwake.ui.settings.SettingsScreen
 import dev.ashwake.ui.settings.theme.ThemeEditorScreen
 import dev.ashwake.ui.stats.StatsScreen
 import dev.ashwake.ui.tasks.TasksScreen
+import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.editor.TaskEditorScreen
 import dev.ashwake.ui.tasks.detail.TaskDetailScreen
 import dev.ashwake.ui.tasks.trash.TrashScreen
@@ -154,11 +155,14 @@ fun AshwakeRoot(
                     )
                 }
             }
-        ) { padding ->
+        ) { _ ->
+            // Контент идёт до нижнего края, а остров лежит поверх него.
+            // Иначе Scaffold резервирует под меню прямоугольную полосу,
+            // которую видно за капсулой на экранах с градиентом.
             NavHost(
                 navController = navController,
                 startDestination = if (showOnboarding) ONBOARDING_ROUTE else TABS_ROUTE,
-                modifier = Modifier.padding(bottom = padding.calculateBottomPadding()),
+                modifier = Modifier,
                 // Экран поверх вкладок вырастает из содержимого и слегка
                 // отодвигает то, что под ним: видно, что он лёг сверху,
                 // а не заменил собой всё. Стандартный сдвиг сбоку тут врёт —
@@ -203,7 +207,23 @@ fun AshwakeRoot(
                 }
 
                 composable(
-                    route = "task?taskId={taskId}",
+                    route = "task/{taskId}",
+                    arguments = listOf(
+                        navArgument("taskId") { type = NavType.StringType }
+                    )
+                ) {
+                    TaskDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        onEdit = {
+                            navController.navigate(
+                                "task-edit?taskId=${navController.currentBackStackEntry?.arguments?.getString("taskId") ?: "0"}"
+                            )
+                        }
+                    )
+                }
+
+                composable(
+                    route = "task-edit?taskId={taskId}",
                     arguments = listOf(
                         navArgument("taskId") { type = NavType.StringType; defaultValue = "0" }
                     )
@@ -299,8 +319,13 @@ fun AshwakeRoot(
                         onBack = { navController.popBackStack() },
                         onOpenBlocking = { navController.navigate("blocking") },
                         onOpenBackup = { navController.navigate("backup") },
+                        onOpenOnline = { navController.navigate("online") },
                         onOpenThemeEditor = { navController.navigate("theme") }
                     )
+                }
+
+                composable("online") {
+                    OnlineScreen(onBack = { navController.popBackStack() })
                 }
 
                 composable("theme") {
@@ -339,13 +364,13 @@ private fun TabPage(
     when (destination) {
         Destination.Today -> TodayScreen(
             onOpenHabit = { id -> navController.navigate("habit/$id") },
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") },
-            onCreateTask = { navController.navigate("task?taskId=0") },
+            onOpenTask = { id -> navController.navigate("task/$id") },
+            onCreateTask = { navController.navigate("task-edit?taskId=0") },
             onOpenAbstinence = { id -> navController.navigate("abstinence/$id") }
         )
 
         Destination.Tasks -> TasksScreen(
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") },
+            onOpenTask = { id -> navController.navigate("task/$id") },
             onOpenRitual = { navController.navigate("ritual") },
             onOpenStats = { navController.navigate(Destination.Stats.route) }
         )
@@ -362,7 +387,7 @@ private fun TabPage(
             onOpenRitual = { navController.navigate("ritual") },
             onOpenSettings = { navController.navigate(Destination.Settings.route) },
             onOpenTrash = { navController.navigate("trash") },
-            onOpenTask = { id -> navController.navigate("task?taskId=$id") }
+            onOpenTask = { id -> navController.navigate("task/$id") }
         )
 
         else -> Unit
@@ -435,7 +460,7 @@ private fun tabs(): List<TabItem> = Destination.bottomBar.map {
 /** Маршрут из виджета в экран приложения. */
 private fun destinationFor(route: String): String = when (route) {
     AppRoutes.TASKS -> Destination.Tasks.route
-    AppRoutes.NEW_TASK -> "task?taskId=0"
+    AppRoutes.NEW_TASK -> "task-edit?taskId=0"
     AppRoutes.HABITS -> Destination.Habits.route
     AppRoutes.ABSTINENCE -> Destination.Abstinence.route
     AppRoutes.TIMERS, AppRoutes.FOCUS_START, AppRoutes.ROUTINE_START -> Destination.Timers.route
@@ -451,6 +476,6 @@ private fun destinationFor(route: String): String = when (route) {
  */
 private val FULLSCREEN_ROUTE_PREFIXES =
     listOf(
-        "task?", "habit-editor?", "routine-run", "routine-editor?", "ritual",
+        "task/", "task-edit?", "habit-editor?", "routine-run", "routine-editor?", "ritual",
         "blocking", "backup", "theme", ONBOARDING_ROUTE
     )

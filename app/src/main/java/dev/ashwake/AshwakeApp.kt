@@ -4,17 +4,21 @@ import android.app.Application
 import android.os.StrictMode
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import androidx.work.WorkManager
 import dagger.hilt.android.HiltAndroidApp
 import dev.ashwake.platform.notification.AshwakeNotifications
 import dev.ashwake.platform.work.BackupWorker
 import dev.ashwake.platform.work.MilestoneWorker
 import dev.ashwake.platform.work.RitualReminderWorker
 import dev.ashwake.platform.work.WeeklyReportWorker
+import dev.ashwake.platform.work.OnlineSyncWorker
+import dev.ashwake.platform.work.CloudBackupWorker
 import javax.inject.Inject
 
 /**
- * Приложение офлайн-first: ни одного сетевого вызова, ни одного стороннего SDK.
- * WorkManager поднимается вручную через Hilt — штатный инициализатор выключен в манифесте.
+ * Приложение local-first: сеть используется только после настройки собственного API
+ * и входа пользователя. WorkManager поднимается вручную через Hilt — штатный
+ * инициализатор выключен в манифесте.
  */
 @HiltAndroidApp
 class AshwakeApp : Application(), Configuration.Provider {
@@ -24,11 +28,20 @@ class AshwakeApp : Application(), Configuration.Provider {
     override fun onCreate() {
         enableStrictModeInDebug()
         super.onCreate()
+        // WorkManagerInitializer выключен в манифесте, чтобы использовать
+        // HiltWorkerFactory. Инициализируем его до постановки любых задач:
+        // на части устройств ленивый путь ещё не успевает получить
+        // Configuration.Provider и приложение падает на первом getInstance().
+        if (!WorkManager.isInitialized()) {
+            WorkManager.initialize(this, workManagerConfiguration)
+        }
         AshwakeNotifications.createChannels(this)
         MilestoneWorker.schedule(this)
         RitualReminderWorker.schedule(this)
         WeeklyReportWorker.schedule(this)
         BackupWorker.schedule(this)
+        OnlineSyncWorker.schedule(this)
+        CloudBackupWorker.schedule(this)
     }
 
     /**

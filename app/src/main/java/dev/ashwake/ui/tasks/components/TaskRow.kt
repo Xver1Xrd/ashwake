@@ -112,10 +112,10 @@ fun TaskRow(
 
     val dismissStateHolder = remember { arrayOf<SwipeToDismissBoxState?>(null) }
     val dismissState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { distance -> distance * 0.50f },
+        positionalThreshold = { distance -> distance * 0.68f },
         confirmValueChange = { value ->
             val progress = dismissStateHolder[0]?.progress ?: 0f
-            if (progress >= 0.50f) {
+            if (progress >= 0.68f) {
                 when (value) {
                     SwipeToDismissBoxValue.StartToEnd -> complete()
                     SwipeToDismissBoxValue.EndToStart -> postpone()
@@ -128,7 +128,7 @@ fun TaskRow(
     dismissStateHolder[0] = dismissState
 
     val haptics = rememberHaptics()
-    val reachedThreshold = dismissState.progress >= 0.50f
+    val reachedThreshold = dismissState.progress >= 0.68f
     LaunchedEffect(reachedThreshold) {
         if (reachedThreshold && dismissState.currentValue == SwipeToDismissBoxValue.Settled) {
             haptics.play(HapticKind.LIGHT)

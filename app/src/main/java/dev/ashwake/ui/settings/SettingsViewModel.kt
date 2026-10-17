@@ -6,6 +6,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.core.time.DEFAULT_DAY_START_HOUR
 import dev.ashwake.data.settings.AppSettings
 import dev.ashwake.domain.model.tasks.TimeboxSettings
+import dev.ashwake.platform.launcher.AppIcon
+import dev.ashwake.platform.launcher.AppIconManager
 import dev.ashwake.ui.theme.AccentColor
 import dev.ashwake.ui.theme.ThemeMode
 import dev.ashwake.ui.theme.ThemeSettings
@@ -18,7 +20,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val settings: AppSettings
+    private val settings: AppSettings,
+    private val appIconManager: AppIconManager
 ) : ViewModel() {
 
     val timebox: StateFlow<TimeboxSettings> = settings.timebox
@@ -35,6 +38,9 @@ class SettingsViewModel @Inject constructor(
 
     val is24Hour: StateFlow<Boolean> = settings.is24HourFormat
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), true)
+
+    val appIcon: StateFlow<AppIcon> = appIconManager.selected
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AppIcon.DEFAULT)
 
     fun setIs24Hour(enabled: Boolean) {
         viewModelScope.launch { settings.setIs24HourFormat(enabled) }
@@ -76,5 +82,9 @@ class SettingsViewModel @Inject constructor(
 
     fun setUseCalendar(enabled: Boolean) {
         viewModelScope.launch { settings.setUseSystemCalendar(enabled) }
+    }
+
+    fun setAppIcon(icon: AppIcon) {
+        viewModelScope.launch { appIconManager.select(icon) }
     }
 }

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "266e8aa0deed10d3cd25242160d73827",
+    "identityHash": "3a6f50292de7675820ae1c0be25f6355",
     "entities": [
       {
         "tableName": "projects",
@@ -104,12 +104,36 @@
       },
       {
         "tableName": "tasks",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `emoji` TEXT, `iconPath` TEXT, `note` TEXT, `projectId` INTEGER, `parentTaskId` INTEGER, `priority` TEXT NOT NULL, `difficulty` INTEGER NOT NULL, `dueDate` INTEGER, `dueTime` INTEGER, `estimateMinutes` INTEGER, `status` TEXT NOT NULL, `completedAt` INTEGER, `position` INTEGER NOT NULL, `quadrantOverride` TEXT, `recurrenceId` INTEGER, `seriesId` TEXT, `isTemplate` INTEGER NOT NULL, `persistentReminderMinutes` INTEGER, `postponeCount` INTEGER NOT NULL, `lastPostponedAt` INTEGER, `sourceLink` TEXT, `delegatedTo` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`parentTaskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`recurrenceId`) REFERENCES `recurrence_rules`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `globalId` TEXT, `spaceId` TEXT, `syncRevision` INTEGER NOT NULL, `syncState` TEXT NOT NULL, `title` TEXT NOT NULL, `emoji` TEXT, `iconPath` TEXT, `note` TEXT, `projectId` INTEGER, `parentTaskId` INTEGER, `priority` TEXT NOT NULL, `dueDate` INTEGER, `dueTime` INTEGER, `estimateMinutes` INTEGER, `status` TEXT NOT NULL, `completedAt` INTEGER, `position` INTEGER NOT NULL, `quadrantOverride` TEXT, `recurrenceId` INTEGER, `seriesId` TEXT, `isTemplate` INTEGER NOT NULL, `persistentReminderMinutes` INTEGER, `postponeCount` INTEGER NOT NULL, `lastPostponedAt` INTEGER, `sourceLink` TEXT, `delegatedTo` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL , FOREIGN KEY(`parentTaskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`recurrenceId`) REFERENCES `recurrence_rules`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "globalId",
+            "columnName": "globalId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "syncRevision",
+            "columnName": "syncRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncState",
+            "columnName": "syncState",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -152,12 +176,6 @@
             "fieldPath": "priority",
             "columnName": "priority",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "difficulty",
-            "columnName": "difficulty",
-            "affinity": "INTEGER",
             "notNull": true
           },
           {
@@ -323,6 +341,24 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_seriesId` ON `${TABLE_NAME}` (`seriesId`)"
+          },
+          {
+            "name": "index_tasks_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tasks_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          },
+          {
+            "name": "index_tasks_globalId",
+            "unique": true,
+            "columnNames": [
+              "globalId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tasks_globalId` ON `${TABLE_NAME}` (`globalId`)"
           }
         ],
         "foreignKeys": [
@@ -539,6 +575,99 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_task_postponements_taskId` ON `${TABLE_NAME}` (`taskId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tasks",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "taskId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "task_attachments",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `taskId` INTEGER NOT NULL, `storedName` TEXT NOT NULL, `displayName` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `sizeBytes` INTEGER NOT NULL, `kind` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`taskId`) REFERENCES `tasks`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "taskId",
+            "columnName": "taskId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storedName",
+            "columnName": "storedName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "displayName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sizeBytes",
+            "columnName": "sizeBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kind",
+            "columnName": "kind",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_task_attachments_taskId",
+            "unique": false,
+            "columnNames": [
+              "taskId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_task_attachments_taskId` ON `${TABLE_NAME}` (`taskId`)"
+          },
+          {
+            "name": "index_task_attachments_storedName",
+            "unique": true,
+            "columnNames": [
+              "storedName"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_task_attachments_storedName` ON `${TABLE_NAME}` (`storedName`)"
           }
         ],
         "foreignKeys": [
@@ -3185,12 +3314,158 @@
           }
         ],
         "foreignKeys": []
+      },
+      {
+        "tableName": "sync_tombstones",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`globalId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `recordType` TEXT NOT NULL, `baseRevision` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`globalId`))",
+        "fields": [
+          {
+            "fieldPath": "globalId",
+            "columnName": "globalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recordType",
+            "columnName": "recordType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "baseRevision",
+            "columnName": "baseRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "globalId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_tombstones_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_tombstones_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_state",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`accountId` TEXT NOT NULL, `cursor` INTEGER NOT NULL, `lastSuccessAt` INTEGER, PRIMARY KEY(`accountId`))",
+        "fields": [
+          {
+            "fieldPath": "accountId",
+            "columnName": "accountId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cursor",
+            "columnName": "cursor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastSuccessAt",
+            "columnName": "lastSuccessAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "accountId"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sync_conflicts",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`globalId` TEXT NOT NULL, `spaceId` TEXT NOT NULL, `localRevision` INTEGER NOT NULL, `remoteRevision` INTEGER NOT NULL, `remoteCiphertext` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`globalId`))",
+        "fields": [
+          {
+            "fieldPath": "globalId",
+            "columnName": "globalId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spaceId",
+            "columnName": "spaceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localRevision",
+            "columnName": "localRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteRevision",
+            "columnName": "remoteRevision",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteCiphertext",
+            "columnName": "remoteCiphertext",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "globalId"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_conflicts_spaceId",
+            "unique": false,
+            "columnNames": [
+              "spaceId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_conflicts_spaceId` ON `${TABLE_NAME}` (`spaceId`)"
+          }
+        ],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '266e8aa0deed10d3cd25242160d73827')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3a6f50292de7675820ae1c0be25f6355')"
     ]
   }
 }

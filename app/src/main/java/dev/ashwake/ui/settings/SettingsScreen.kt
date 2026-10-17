@@ -6,6 +6,8 @@ import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Switch
@@ -31,7 +34,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -50,6 +56,7 @@ import dev.ashwake.ui.theme.AccentColor
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.ui.theme.ThemeMode
 import dev.ashwake.ui.theme.ThemeSettings
+import dev.ashwake.platform.launcher.AppIcon
 
 /**
  * Настройки.
@@ -66,6 +73,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenBlocking: () -> Unit,
     onOpenBackup: () -> Unit = {},
+    onOpenOnline: () -> Unit = {},
     onOpenThemeEditor: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -74,6 +82,7 @@ fun SettingsScreen(
     val useCalendar by viewModel.useCalendar.collectAsStateWithLifecycle()
     val theme by viewModel.theme.collectAsStateWithLifecycle()
     val is24Hour by viewModel.is24Hour.collectAsStateWithLifecycle()
+    val appIcon by viewModel.appIcon.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
 
     Column(
@@ -95,6 +104,11 @@ fun SettingsScreen(
                 onThemeMode = viewModel::setThemeMode,
                 onAccent = viewModel::setAccent,
                 onOpenEditor = onOpenThemeEditor
+            )
+
+            AppIconSection(
+                selected = appIcon,
+                onSelect = viewModel::setAppIcon
             )
 
             ChipGroup(
@@ -188,6 +202,13 @@ fun SettingsScreen(
                 )
                 ListDivider()
                 ListRow(
+                    title = "Аккаунт и синхронизация",
+                    subtitle = "Профиль, друзья, пара и зашифрованная резервная копия",
+                    showChevron = true,
+                    onClick = onOpenOnline
+                )
+                ListDivider()
+                ListRow(
                     title = stringResource(R.string.blocking_blokirovka_prilozheniy),
                     subtitle = stringResource(
                         R.string.settings_vyklyuchena_po_umolchaniyu_trebuet_dvuh_razr
@@ -203,6 +224,55 @@ fun SettingsScreen(
                 stringResource(R.string.settings_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo)
             )
             Spacer(Modifier.navigationBarsPadding())
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AppIconSection(
+    selected: AppIcon,
+    onSelect: (AppIcon) -> Unit
+) {
+    val colors = AshTheme.colors
+    ListGroup(
+        header = "Иконка приложения",
+        footer = "Исходная иконка сохранена. Android может обновить значок на рабочем столе с небольшой задержкой."
+    ) {
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(ChipRowPadding),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            AppIcon.entries.forEach { icon ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Image(
+                        painter = painterResource(icon.previewRes),
+                        contentDescription = icon.title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(15.dp))
+                            .background(colors.surface2, RoundedCornerShape(15.dp))
+                            .border(
+                                width = if (selected == icon) 2.dp else 0.dp,
+                                color = if (selected == icon) colors.accent else Color.Transparent,
+                                shape = RoundedCornerShape(15.dp)
+                            )
+                            .tappable { onSelect(icon) }
+                    )
+                    androidx.compose.material3.Text(
+                        text = icon.title,
+                        style = AshTheme.type.caption,
+                        color = if (selected == icon) colors.accent else colors.text2
+                    )
+                }
+            }
         }
     }
 }

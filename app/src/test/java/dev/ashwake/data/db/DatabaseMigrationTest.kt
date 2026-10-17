@@ -91,7 +91,7 @@ class DatabaseMigrationTest {
         for (from in 1 until SchemaFixture.latestVersion()) {
             val name = "migration-step-$from.db"
             SchemaFixture.createDatabase(context, version = from, name = name).use { old ->
-                old.insert("tasks", null, taskRow(title = "Шаг $from"))
+                old.insert("tasks", null, taskRow(title = "Шаг $from", version = from))
             }
             // Room сам сверяет получившуюся схему с ожидаемой и падает, если
             // миграция довела базу не туда, — отдельная проверка не нужна
@@ -125,7 +125,7 @@ class DatabaseMigrationTest {
             if (cursor.isNull(0)) null else cursor.getString(0)
         }
 
-    private fun taskRow(title: String) = ContentValues().apply {
+    private fun taskRow(title: String, version: Int = 1) = ContentValues().apply {
         put("title", title)
         put("priority", "P2")
         put("status", "ACTIVE")
@@ -134,6 +134,13 @@ class DatabaseMigrationTest {
         put("postponeCount", 0)
         put("createdAt", NOW)
         put("updatedAt", NOW)
+        // С версии 6 эти поля обязательны. В реальной базе они появляются
+        // миграцией с DEFAULT, но тест создаёт снимок схемы напрямую.
+        if (version >= 6) {
+            put("syncRevision", 0)
+            put("syncState", "LOCAL")
+        }
+        if (version >= 7) put("difficulty", 1)
     }
 
     private fun habitRow(name: String) = ContentValues().apply {

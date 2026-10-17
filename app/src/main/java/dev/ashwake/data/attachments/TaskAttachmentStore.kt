@@ -16,7 +16,7 @@ import javax.inject.Singleton
 class TaskAttachmentStore @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private val directory: File get() = File(context.filesDir, DIRECTORY).apply { mkdirs() }
+    val directory: File get() = File(context.filesDir, DIRECTORY).apply { mkdirs() }
 
     suspend fun import(uri: Uri): SavedAttachment? = withContext(Dispatchers.IO) {
         runCatching {
@@ -40,5 +40,10 @@ class TaskAttachmentStore @Inject constructor(
 
     data class SavedAttachment(val fileName: String, val displayName: String, val mimeType: String, val sizeBytes: Long)
 
-    private companion object { const val DIRECTORY = "task_attachments" }
+    companion object {
+        const val DIRECTORY = "task_attachments"
+        const val MAX_ATTACHMENT_BYTES = 25L * 1024 * 1024
+        const val MAX_TOTAL_BYTES = 64L * 1024 * 1024
+        val STORED_NAME = Regex("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(?:\\.[A-Za-z0-9]{1,12})?")
+    }
 }

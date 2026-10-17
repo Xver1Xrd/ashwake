@@ -21,7 +21,7 @@ sealed interface BackupResult {
 }
 
 sealed interface RestoreResult {
-    data class Preview(val contents: BackupContents) : RestoreResult
+    data class Preview(val contents: BackupContents, val json: String? = null) : RestoreResult
     data object NeedsPassword : RestoreResult
     data object WrongPassword : RestoreResult
     data class Failed(val reason: String) : RestoreResult
@@ -47,6 +47,13 @@ class BackupManager @Inject constructor(
     private val settings: AppSettings,
     private val clock: AppClock
 ) {
+
+    /** Зашифрованный архив в памяти для загрузки в собственное облако. */
+    suspend fun createEncryptedPayload(password: CharArray): Pair<ByteArray, BackupContents> =
+        withContext(Dispatchers.IO) {
+            val (json, contents) = serializer.export()
+            crypto.encrypt(json.toByteArray(), password) to contents
+        }
 
     suspend fun createBackup(password: CharArray? = null): BackupResult =
         withContext(Dispatchers.IO) {
@@ -99,6 +106,30 @@ class BackupManager @Inject constructor(
             }
         }
 
+    /** Проверяет уже скачанный архив и возвращает JSON только после расшифровки. */
+    suspend fun readPayload(bytes: ByteArray, password: CharArray? = null): RestoreResult =
+        withContext(Dispatchers.IO) {
+            decodePayload(bytes, password) { json ->
+                val contents = serializer.peek(json)
+                    ?: return@decodePayload RestoreResult.Failed(
+                        "Файл не похож на архив Ashwake"
+                    )
+                RestoreResult.Preview(contents, json)
+            }
+        }
+
+    /** Восстанавливает проверенный JSON, полученный из облачной копии. */
+    suspend fun restore(json: String): RestoreResult = withContext(Dispatchers.IO) {
+        runCatching {
+            if (serializer.peek(json) == null) {
+                return@runCatching RestoreResult.Failed("Файл не похож на архив Ashwake")
+            }
+            RestoreResult.Restored(serializer.import(json))
+        }.getOrElse { error ->
+            RestoreResult.Failed(error.message ?: "Не удалось восстановить архив")
+        }
+    }
+
     /**
      * Восстановление: полная замена данных содержимым архива.
      *
@@ -129,6 +160,16 @@ class BackupManager @Inject constructor(
         val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
             ?: return@runCatching RestoreResult.Failed("Файл не читается")
 
+        decodePayload(bytes, password, block)
+    }.getOrElse { error ->
+        RestoreResult.Failed(error.message ?: "Не удалось прочитать архив")
+    }
+
+    private suspend fun decodePayload(
+        bytes: ByteArray,
+        password: CharArray?,
+        block: suspend (String) -> RestoreResult
+    ): RestoreResult = runCatching {
         val json = when {
             !crypto.isEncrypted(bytes) -> String(bytes)
             password == null -> return@runCatching RestoreResult.NeedsPassword

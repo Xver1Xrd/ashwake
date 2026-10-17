@@ -59,12 +59,12 @@ data class TodayUiState(
     /** Всё, что относится к выбранному дню. */
     val todayTasks: List<Task> get() = if (isSelectedToday) tasks.filterNot { it.isOverdue(today) } else tasks
 
-    /** Сделано дел за день: привычки плюс задачи, одним числом на обложке. */
+    /** Прогресс дня относится только к задачам. Привычки имеют собственные серии. */
     val doneCount: Int
-        get() = habits.count { it.doneToday } + tasks.count { it.isDone }
+        get() = tasks.count { it.isDone }
 
     val totalCount: Int
-        get() = habits.size + tasks.size
+        get() = tasks.size
 
     val progress: Float
         get() = if (totalCount == 0) 0f else doneCount.toFloat() / totalCount
@@ -190,7 +190,10 @@ class TodayViewModel @Inject constructor(
                     markHabit(progress, statusForValue(progress, next), date = date, value = next)
                 }
 
-                progress.doneToday -> clearHabitMark(habit.id, date)
+                progress.doneToday -> clearHabitMark(
+                    habit.id,
+                    progress.periodCompletionDate ?: date
+                )
 
                 else -> markHabit(progress, EntryStatus.DONE, date = date)
             }

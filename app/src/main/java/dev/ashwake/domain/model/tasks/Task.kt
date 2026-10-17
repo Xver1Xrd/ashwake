@@ -48,6 +48,10 @@ data class RecurrenceRule(
 
 data class Task(
     val id: Long = 0,
+    val globalId: String? = null,
+    val spaceId: String? = null,
+    val syncRevision: Long = 0,
+    val syncState: TaskSyncState = TaskSyncState.LOCAL,
     val title: String,
     /**
      * Значок задачи: одна эмодзи. Список из десятка одинаковых строк
@@ -114,7 +118,12 @@ data class TaskAttachment(
     val isImage: Boolean get() = mimeType.startsWith("image/")
 }
 
+/** Тип нужен только выбору источника: галерея и проводник — разные действия. */
+enum class AttachmentKind { PHOTO, FILE }
+
 enum class StaleLevel { NONE, WARNING, CRITICAL }
+
+enum class TaskSyncState { LOCAL, PENDING, SYNCED, CONFLICT }
 
 /** Что предлагается сделать с залежавшейся задачей на 5-м переносе. */
 enum class StaleResolution { DELETE, DELEGATE, SPLIT, SCHEDULE_SLOT, KEEP }

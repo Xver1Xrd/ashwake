@@ -1,0 +1,26 @@
+name: Публикация APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Создать GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          apk="releases/ashwake-v${GITHUB_REF_NAME#v}-debug.apk"
+          test -f "$apk"
+          gh release create "$GITHUB_REF_NAME" "$apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Ashwake ${GITHUB_REF_NAME#v}" \
+            --generate-notes

@@ -1,5 +1,10 @@
 package dev.ashwake.ui.tasks.editor
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.BackHandler
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.res.stringArrayResource
 import dev.ashwake.R
 import androidx.compose.ui.res.stringResource
@@ -46,16 +51,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.components.TextAction
 import dev.ashwake.domain.model.tasks.RecurrenceType
+import dev.ashwake.domain.model.tasks.AttachmentKind
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshNavBar
 import dev.ashwake.ui.components.AshTextField
@@ -112,22 +116,32 @@ fun TaskEditorScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val projects by viewModel.projectList.collectAsStateWithLifecycle()
     val presets by viewModel.presets.collectAsStateWithLifecycle()
+    val userTemplates by viewModel.userTemplates.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
+
+    val photoPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.PHOTO)
+    }
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris ->
+        viewModel.addAttachments(uris.map(Uri::toString), AttachmentKind.FILE)
+    }
 
     // Закрываем экран только после того, как сохранение реально дошло до базы
     LaunchedEffect(state.saved) { if (state.saved) onDone() }
 
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
     var showEmojiPicker by remember { mutableStateOf(false) }
     var showTemplates by remember { mutableStateOf(false) }
     var newSubtask by remember { mutableStateOf("") }
-    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let(viewModel::addAttachment)
-    }
-    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let(viewModel::addAttachment)
-    }
+    val exitEditor = { viewModel.saveBeforeExit(onDone) }
+
+    BackHandler(onBack = exitEditor)
 
     Column(
         Modifier
@@ -136,9 +150,9 @@ fun TaskEditorScreen(
     ) {
         AshNavBar(
             title = if (state.isNew) stringResource(R.string.shortcut_new_task) else stringResource(R.string.tile_add_task),
-            onBack = onDone,
+            onBack = exitEditor,
             actions = {
-                if (state.isNew && presets.isNotEmpty()) {
+                if (state.isNew && (presets.isNotEmpty() || userTemplates.isNotEmpty())) {
                     TextAction(
                         text = "Шаблоны",
                         onClick = { showTemplates = true }
@@ -200,19 +214,21 @@ fun TaskEditorScreen(
                 )
             }
 
-            if (!state.isNew) {
-                Section(title = "Вложения") {
-                    AttachmentGrid(
-                        attachments = state.attachments,
-                        onAddPhoto = {
-                            photoPicker.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        },
-                        onAddFile = { filePicker.launch(arrayOf("*/*")) },
-                        onRemove = viewModel::removeAttachment
-                    )
-                }
+            Section(
+                title = "Вложения",
+                footer = if (state.canSave) "Фото и файлы сохраняются в закрытой памяти приложения" else "Сначала укажите название задачи",
+                footerDanger = !state.canSave
+            ) {
+                AttachmentGrid(
+                    attachments = state.attachments,
+                    onAddPhoto = {
+                        if (state.canSave) photoPicker.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                    onAddFile = { if (state.canSave) filePicker.launch(arrayOf("*/*")) },
+                    onRemove = viewModel::removeAttachment
+                )
             }
 
             AshTextField(
@@ -274,6 +290,7 @@ fun TaskEditorScreen(
                     state = state,
                     onPickDate = { showDatePicker = true },
                     onPickTime = { showTimePicker = true },
+                    onPickEndTime = { showEndTimePicker = true },
                     onSetDate = viewModel::setDate,
                     onClear = {
                         viewModel.setDate(null)
@@ -321,6 +338,16 @@ fun TaskEditorScreen(
                             onClick = viewModel::clearEstimate
                         )
                     }
+                }
+            }
+
+            Section(
+                title = "Шаблон задачи",
+                footer = "Шаблон не попадает в список задач. Его можно использовать для работы по расписанию и повторов."
+            ) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Сохранить как шаблон", style = AshTheme.type.body, color = colors.text, modifier = Modifier.weight(1f))
+                    Switch(checked = state.isTemplate, onCheckedChange = viewModel::setIsTemplate)
                 }
             }
 
@@ -492,11 +519,24 @@ fun TaskEditorScreen(
         )
     }
 
+    if (showEndTimePicker) {
+        TimePickerSheet(
+            initial = state.endTime,
+            onPick = viewModel::setEndTime,
+            onDismiss = { showEndTimePicker = false }
+        )
+    }
+
     if (showTemplates) {
         TaskTemplatesDialog(
             presets = presets,
+            userTemplates = userTemplates,
             onPick = {
                 viewModel.applyPreset(it)
+                showTemplates = false
+            },
+            onPickUser = {
+                viewModel.applyUserTemplate(it)
                 showTemplates = false
             },
             onDismiss = { showTemplates = false }
@@ -554,6 +594,7 @@ private fun DueDateRow(
     state: TaskEditorState,
     onPickDate: () -> Unit,
     onPickTime: () -> Unit,
+    onPickEndTime: () -> Unit,
     onSetDate: (LocalDate?) -> Unit,
     onClear: () -> Unit
 ) {
@@ -588,6 +629,14 @@ private fun DueDateRow(
                 selected = state.dueTime != null,
                 onClick = onPickTime
             )
+            if (state.dueTime != null) {
+                ChipButton(
+                    text = state.endTime?.let { "до " + dev.ashwake.ui.theme.formatTime(it, is24Hour) } ?: "До",
+                    icon = AshIcons.Timer,
+                    selected = state.endTime != null,
+                    onClick = onPickEndTime
+                )
+            }
             if (state.dueDate != null || state.dueTime != null) {
                 ChipButton(text = stringResource(R.string.editor_bez_sroka), icon = AshIcons.Close, onClick = onClear)
             }
@@ -914,7 +963,9 @@ private fun formatMinutes(minutes: Int): String = formatEstimateRu(minutes)
 @Composable
 private fun TaskTemplatesDialog(
     presets: List<dev.ashwake.data.assets.TaskPreset>,
+    userTemplates: List<dev.ashwake.domain.model.tasks.Task>,
     onPick: (dev.ashwake.data.assets.TaskPreset) -> Unit,
+    onPickUser: (dev.ashwake.domain.model.tasks.Task) -> Unit,
     onDismiss: () -> Unit
 ) {
     val colors = AshTheme.colors
@@ -926,6 +977,19 @@ private fun TaskTemplatesDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (userTemplates.isNotEmpty()) {
+                    Text("Мои шаблоны", style = AshTheme.type.headline, color = colors.text)
+                    userTemplates.forEach { template ->
+                        Column(
+                            modifier = Modifier.fillMaxWidth().clip(AshShapes.card)
+                                .background(colors.surface2).tappable { onPickUser(template) }.padding(14.dp)
+                        ) {
+                            Text(template.title, style = AshTheme.type.headline, color = colors.text)
+                            Text("${template.dueTime ?: "без времени"} · ${template.estimateMinutes ?: 0} мин", style = AshTheme.type.footnote, color = colors.text2)
+                        }
+                    }
+                }
+                if (presets.isNotEmpty()) Text("Готовые шаблоны", style = AshTheme.type.headline, color = colors.text)
                 presets.forEach { preset ->
                     Column(
                         modifier = Modifier

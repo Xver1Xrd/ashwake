@@ -151,9 +151,14 @@ data class HabitWithProgress(
     val recordStreak: Int = 0,
     val todayEntry: HabitEntry? = null,
     val dueToday: Boolean = true,
+    val completedForPeriod: Boolean = todayEntry?.countsForStreak == true,
+    val periodCompletedCount: Int = if (todayEntry?.countsForStreak == true) 1 else 0,
+    val periodTarget: Int = 1,
+    val periodCompletionDate: LocalDate? = todayEntry?.date,
     val freezesLeftThisMonth: Int = 0,
     val paused: Boolean = false
 ) {
     val todayValue: Float get() = todayEntry?.value ?: 0f
-    val doneToday: Boolean get() = todayEntry?.countsForStreak == true
+    /** Для периодической привычки «сегодня выполнено» означает, что закрыт весь текущий срок. */
+    val doneToday: Boolean get() = completedForPeriod
 }
