@@ -299,11 +299,48 @@ class TaskRepositoryImpl @Inject constructor(
         storedAttachments.forEach(attachmentStore::delete)
     }
 
-    override suspend fun emptyTrash() = dao.emptyTrash()
+    override suspend fun emptyTrash() {
+        purgeDropped(before = null)
+    }
 
     override suspend fun purgeTrashOlderThan(days: Long): Int {
         val before = clock.now().minus(java.time.Duration.ofDays(days)).toEpochMilli()
-        return dao.purgeTrashOlderThan(before)
+        return purgeDropped(before)
+    }
+
+    /**
+     * Room каскадно удаляет вложения из БД, но сами файлы в filesDir SQLite
+     * видеть не может. Перед очисткой собираем имена файлов и tombstone всех
+     * удаляемых записей, затем удаляем файлы только после успешной транзакции.
+     */
+    private suspend fun purgeDropped(before: Long?): Int {
+        val rows = dao.droppedTaskTree(before)
+        if (rows.isEmpty()) return 0
+        // SQLite ограничивает число параметров в IN; корзина может быть
+        // большой, поэтому читаем имена файлов порциями.
+        val storedAttachments = rows.map { it.id }.chunked(900)
+            .flatMap { attachmentDao.storedNamesForTasks(it) }
+        val count = rows.count { it.status == TaskStatus.DROPPED.name }
+        db.withTransaction {
+            rows.forEach { task ->
+                val globalId = task.globalId
+                val spaceId = task.spaceId
+                if (globalId != null && spaceId != null) {
+                    db.syncDao().addTombstone(
+                        SyncTombstoneEntity(
+                            globalId = globalId,
+                            spaceId = spaceId,
+                            recordType = "task",
+                            baseRevision = task.syncRevision,
+                            createdAt = clock.now().toEpochMilli()
+                        )
+                    )
+                }
+            }
+            if (before == null) dao.emptyTrash() else dao.purgeTrashOlderThan(before)
+        }
+        storedAttachments.forEach(attachmentStore::delete)
+        return count
     }
 
     override suspend fun setDelegate(id: Long, delegateTo: String?) {
@@ -342,7 +379,13 @@ class TaskRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun addAttachment(attachment: TaskAttachment): Long =
+    override suspend fun addAttachment(attachment: TaskAttachment): Long = db.withTransaction {
+        require(attachment.sizeBytes in 1..TaskAttachmentStore.MAX_ATTACHMENT_BYTES) {
+            "Вложение должно занимать не более 25 МБ"
+        }
+        require(
+            attachmentDao.totalSizeBytes() + attachment.sizeBytes <= TaskAttachmentStore.MAX_TOTAL_BYTES
+        ) { "Все вложения вместе не могут занимать больше 64 МБ" }
         dao.insertAttachment(
             TaskAttachmentEntity(
                 taskId = attachment.taskId, storedName = attachment.fileName,
@@ -350,9 +393,16 @@ class TaskRepositoryImpl @Inject constructor(
                 sizeBytes = attachment.sizeBytes, kind = if (attachment.isImage) "PHOTO" else "FILE",
                 createdAt = attachment.createdAt.toEpochMilli()
             )
-        )
+        ).also { attachmentDao.markTaskPending(attachment.taskId, clock.now().toEpochMilli()) }
+    }
 
-    override suspend fun removeAttachment(id: Long) = dao.deleteAttachment(id)
+    override suspend fun removeAttachment(id: Long) = db.withTransaction {
+        attachmentDao.attachment(id)?.let { attachment ->
+            dao.deleteAttachment(id)
+            attachmentDao.markTaskPending(attachment.taskId, clock.now().toEpochMilli())
+        }
+        Unit
+    }
 
     private companion object {
         /**

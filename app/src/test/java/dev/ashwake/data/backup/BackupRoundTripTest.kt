@@ -25,6 +25,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -148,6 +149,26 @@ class BackupRoundTripTest {
         val tasks = db.taskDao().observeTasks(1, null, null, null, null, 0, null).first()
         assertEquals(1, tasks.size)
         assertEquals("Дописать отчёт", tasks.first().task.title)
+    }
+
+    @Test
+    fun `неполный снимок не очищает текущую базу`() = runTest {
+        seed()
+        val (json, _) = serializer.export()
+        val broken = org.json.JSONObject(json)
+        val tables = broken.getJSONObject("database").getJSONArray("tables")
+        // Убираем одну существующую таблицу: раньше такой архив проходил
+        // валидацию, а restore затем очищал и её текущие данные.
+        tables.remove(0)
+
+        try {
+            serializer.import(broken.toString())
+            fail("Неполный снимок не должен восстанавливаться")
+        } catch (_: IllegalArgumentException) {
+            // ожидаемо
+        }
+
+        assertEquals(1L, db.taskDao().getTask(1)?.task?.id)
     }
 
     @Test

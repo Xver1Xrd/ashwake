@@ -226,7 +226,7 @@ interface TaskDao {
      * сразу после смены статуса, а строка на руках у вызывающего снята до
      * неё — запись такой строки вернула бы задачу в «активна».
      */
-    @Query("UPDATE tasks SET seriesId = :seriesId WHERE id = :id")
+    @Query("UPDATE tasks SET seriesId = :seriesId, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun setSeriesId(id: Long, seriesId: String)
 
     @Query("SELECT * FROM task_postponements WHERE taskId = :taskId ORDER BY at DESC LIMIT 1")
@@ -240,7 +240,8 @@ interface TaskDao {
         UPDATE tasks
         SET dueDate = :dueDate,
             postponeCount = MAX(postponeCount - 1, 0),
-            updatedAt = :at
+            updatedAt = :at,
+            syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END
         WHERE id = :id
         """
     )
@@ -277,10 +278,10 @@ interface TaskDao {
     // случается регулярно, и восстановление должно быть возможно; окончательно
     // задачи вычищаются по времени.
 
-    @Query("UPDATE tasks SET status = 'DROPPED', updatedAt = :at WHERE id = :id")
+    @Query("UPDATE tasks SET status = 'DROPPED', updatedAt = :at, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun moveToTrash(id: Long, at: Long)
 
-    @Query("UPDATE tasks SET status = 'ACTIVE', updatedAt = :at WHERE id = :id")
+    @Query("UPDATE tasks SET status = 'ACTIVE', updatedAt = :at, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun restoreFromTrash(id: Long, at: Long)
 
     @Transaction
@@ -299,7 +300,23 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE status = 'DROPPED'")
     suspend fun emptyTrash()
 
-    @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now WHERE id = :id")
+    /** Корни корзины и все их дочерние задачи, которые SQLite удалит каскадом. */
+    @Query(
+        """
+        SELECT * FROM tasks
+        WHERE id IN (
+            SELECT id FROM tasks
+            WHERE status = 'DROPPED' AND (:before IS NULL OR updatedAt < :before)
+            UNION
+            SELECT child.id FROM tasks AS child
+            JOIN tasks AS parent ON child.parentTaskId = parent.id
+            WHERE parent.status = 'DROPPED' AND (:before IS NULL OR parent.updatedAt < :before)
+        )
+        """
+    )
+    suspend fun droppedTaskTree(before: Long?): List<TaskEntity>
+
+    @Query("UPDATE tasks SET status = :status, completedAt = :completedAt, updatedAt = :now, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun setStatus(id: Long, status: String, completedAt: Long?, now: Long)
 
     @Query(
@@ -308,7 +325,8 @@ interface TaskDao {
         SET dueDate = :toDate,
             postponeCount = postponeCount + 1,
             lastPostponedAt = :now,
-            updatedAt = :now
+            updatedAt = :now,
+            syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END
         WHERE id = :id
         """
     )
@@ -319,13 +337,14 @@ interface TaskDao {
         UPDATE tasks
         SET quadrantOverride = :quadrant,
             priority = COALESCE(:priority, priority),
-            updatedAt = :now
+            updatedAt = :now,
+            syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END
         WHERE id = :id
         """
     )
     suspend fun setQuadrant(id: Long, quadrant: String, priority: String?, now: Long)
 
-    @Query("UPDATE tasks SET delegatedTo = :delegateTo, updatedAt = :now WHERE id = :id")
+    @Query("UPDATE tasks SET delegatedTo = :delegateTo, updatedAt = :now, syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END WHERE id = :id")
     suspend fun setDelegate(id: Long, delegateTo: String?, now: Long)
 
     // --- теги задачи ---
@@ -391,6 +410,9 @@ interface TaskAttachmentDao {
     @Query("DELETE FROM task_attachments WHERE id = :id")
     suspend fun deleteAttachment(id: Long)
 
+    @Query("UPDATE tasks SET syncState = CASE WHEN spaceId IS NULL THEN syncState ELSE 'PENDING' END, updatedAt = :updatedAt WHERE id = :taskId")
+    suspend fun markTaskPending(taskId: Long, updatedAt: Long)
+
     @Query(
         """
         SELECT storedName FROM task_attachments
@@ -398,6 +420,9 @@ interface TaskAttachmentDao {
         """
     )
     suspend fun storedNamesForTaskTree(taskId: Long): List<String>
+
+    @Query("SELECT storedName FROM task_attachments WHERE taskId IN (:taskIds)")
+    suspend fun storedNamesForTasks(taskIds: List<Long>): List<String>
 }
 
 @Dao

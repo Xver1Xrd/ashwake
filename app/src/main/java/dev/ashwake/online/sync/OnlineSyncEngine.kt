@@ -18,6 +18,8 @@ import dev.ashwake.online.repository.OnlineRepository
 import dev.ashwake.domain.repository.tasks.TagRepository
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +33,15 @@ class OnlineSyncEngine @Inject constructor(
     private val api: OnlineApi,
     private val crypto: SpaceCrypto
 ) {
+    /** Один push/pull за раз: ручной запуск и WorkManager не должны читать
+     * одинаковую базовую ревизию и создавать ложные конфликты. */
+    private val syncMutex = Mutex()
+
     suspend fun sync() {
+        syncMutex.withLock { syncLocked() }
+    }
+
+    private suspend fun syncLocked() {
         if (!online.configured || !online.hasSession()) return
         val snapshot = online.loadSnapshot()
         val session = online.session()
@@ -81,16 +91,20 @@ class OnlineSyncEngine @Inject constructor(
                 )
         }
         if (mutations.isNotEmpty()) {
-            val results = api.push(mutations, token)
-            results.forEach { result ->
-                if (result.accepted && result.revision != null) {
-                    if (tombstones.any { it.globalId == result.recordId }) {
-                        syncDao.removeTombstone(result.recordId)
+            // API намеренно ограничивает запрос 100 мутациями. В одном цикле
+            // могут быть и задачи, и tombstone, поэтому делим итоговый список.
+            mutations.chunked(MAX_MUTATIONS_PER_REQUEST).forEach { batch ->
+                val results = api.push(batch, token)
+                results.forEach { result ->
+                    if (result.accepted && result.revision != null) {
+                        if (tombstones.any { it.globalId == result.recordId }) {
+                            syncDao.removeTombstone(result.recordId)
+                        } else {
+                            syncDao.markTaskSynced(result.recordId, result.revision)
+                        }
                     } else {
-                        syncDao.markTaskSynced(result.recordId, result.revision)
+                        syncDao.markTaskConflict(result.recordId)
                     }
-                } else {
-                    syncDao.markTaskConflict(result.recordId)
                 }
             }
         }
@@ -180,8 +194,10 @@ class OnlineSyncEngine @Inject constructor(
 
 private fun TaskWithRelations.toSyncJson(parentGlobalId: String?) = JSONObject().apply {
     put("title", task.title)
+    putNullable("emoji", task.emoji)
     putNullable("note", task.note)
     put("priority", task.priority)
+    put("difficulty", task.difficulty)
     putNullable("dueDate", task.dueDate)
     putNullable("dueTime", task.dueTime)
     putNullable("estimateMinutes", task.estimateMinutes)
@@ -228,10 +244,16 @@ private fun JSONObject.toTaskEntity(
     syncRevision = revision,
     syncState = "SYNCED",
     title = getString("title"),
+    emoji = stringOrNull("emoji"),
+    // Картинка лежит в приватном хранилище конкретного устройства; её нельзя
+    // записывать как путь на другом устройстве. Файл синхронизируется отдельным
+    // протоколом, а до его получения сохраняем локальное изображение.
+    iconPath = local?.iconPath,
     note = stringOrNull("note"),
     projectId = local?.projectId,
     parentTaskId = parentTaskId,
     priority = getString("priority"),
+    difficulty = optInt("difficulty", local?.difficulty ?: 1),
     dueDate = intOrNull("dueDate"),
     dueTime = intOrNull("dueTime"),
     estimateMinutes = intOrNull("estimateMinutes"),
@@ -250,6 +272,8 @@ private fun JSONObject.toTaskEntity(
     createdAt = getLong("createdAt"),
     updatedAt = getLong("updatedAt")
 )
+
+private const val MAX_MUTATIONS_PER_REQUEST = 100
 
 private fun JSONObject.toRecurrenceEntity(id: Long) = RecurrenceRuleEntity(
     id = id,

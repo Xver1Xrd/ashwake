@@ -19,6 +19,15 @@
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
+    <!-- Android 11+ скрывает список сторонних launcher-приложений без явного
+         запроса. Нужен только для экрана блокировки выбранных приложений. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+    </queries>
+
     <application
         android:name=".AshwakeApp"
         android:allowBackup="false"

@@ -242,8 +242,15 @@ class TaskEditorViewModel @Inject constructor(
                 taskId = taskId, fileName = saved.fileName, displayName = saved.displayName,
                 mimeType = saved.mimeType, sizeBytes = saved.sizeBytes, createdAt = clock.now()
             )
-            val id = tasks.addAttachment(attachment)
-            _state.update { it.copy(attachments = it.attachments + attachment.copy(id = id)) }
+            runCatching { tasks.addAttachment(attachment) }
+                .onSuccess { id ->
+                    _state.update { it.copy(attachments = it.attachments + attachment.copy(id = id)) }
+                }
+                .onFailure {
+                    // Файл уже был скопирован в закрытое хранилище. Если БД
+                    // отказала по лимиту, не оставляем бесхозный файл.
+                    attachmentStore.delete(saved.fileName)
+                }
         }
     }
 

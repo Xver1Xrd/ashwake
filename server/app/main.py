@@ -8,7 +8,8 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import and_, delete, func, or_, select
+from sqlalchemy import and_, delete, func, or_, select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .config import Settings, get_settings
@@ -259,6 +260,16 @@ async def recover(body: RecoveryRequest, session: Session, config: Config) -> Re
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid recovery credentials")
     validate_public_key(body.public_key_pem)
     validate_public_key(body.encryption_public_key_pem)
+    # Обнуляем код условным UPDATE, а не присваиванием объекту: две
+    # параллельные попытки с одним кодом не смогут обе создать устройство.
+    consumed = await session.execute(
+        update(User)
+        .where(User.id == user.id, User.recovery_token_hash == supplied)
+        .values(recovery_token_hash=None)
+        .execution_options(synchronize_session="fetch")
+    )
+    if consumed.rowcount != 1:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid recovery credentials")
     device = Device(
         user_id=user.id,
         name=body.device_name,
@@ -267,8 +278,9 @@ async def recover(body: RecoveryRequest, session: Session, config: Config) -> Re
     )
     session.add(device)
     await session.flush()
+    bundle = user.recovery_bundle
     tokens = await issue_tokens(session, user, device, config)
-    return RecoveryResponse(session=tokens, encrypted_bundle=user.recovery_bundle)
+    return RecoveryResponse(session=tokens, encrypted_bundle=bundle)
 
 
 @app.post("/v1/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -640,32 +652,60 @@ async def sync_push(body: SyncPush, actor: Actor, session: Session) -> list[Sync
         if mutation.key_version != space.key_version:
             results.append(SyncResult(record_id=mutation.record_id, accepted=False, conflict_revision=None))
             continue
-        record = await session.scalar(select(EncryptedRecord).where(EncryptedRecord.space_id == mutation.space_id, EncryptedRecord.record_id == mutation.record_id))
-        current_revision = record.revision if record else 0
-        if mutation.base_revision != current_revision:
-            results.append(SyncResult(record_id=mutation.record_id, accepted=False, conflict_revision=current_revision))
-            continue
-        revision = current_revision + 1
-        if record:
-            record.record_type = mutation.record_type
-            record.key_version = mutation.key_version
-            record.revision = revision
-            record.ciphertext = mutation.ciphertext
-            record.deleted = mutation.deleted
-            record.author_id = actor.user.id
-            record.updated_at = now()
+        revision = mutation.base_revision + 1
+        if mutation.base_revision == 0:
+            # Уникальный индекс не позволит двум параллельным первым записям
+            # одновременно стать ревизией 1.
+            try:
+                async with session.begin_nested():
+                    session.add(EncryptedRecord(
+                        space_id=mutation.space_id,
+                        record_id=mutation.record_id,
+                        record_type=mutation.record_type,
+                        key_version=mutation.key_version,
+                        revision=revision,
+                        ciphertext=mutation.ciphertext,
+                        deleted=mutation.deleted,
+                        author_id=actor.user.id,
+                    ))
+                    await session.flush()
+            except IntegrityError:
+                current = await session.scalar(
+                    select(EncryptedRecord.revision).where(
+                        EncryptedRecord.space_id == mutation.space_id,
+                        EncryptedRecord.record_id == mutation.record_id,
+                    )
+                )
+                results.append(SyncResult(record_id=mutation.record_id, accepted=False, conflict_revision=current or 0))
+                continue
         else:
-            record = EncryptedRecord(
-                space_id=mutation.space_id,
-                record_id=mutation.record_id,
-                record_type=mutation.record_type,
-                key_version=mutation.key_version,
-                revision=revision,
-                ciphertext=mutation.ciphertext,
-                deleted=mutation.deleted,
-                author_id=actor.user.id,
+            # Проверка base_revision и обновление выполняются атомарно.
+            changed = await session.execute(
+                update(EncryptedRecord)
+                .where(
+                    EncryptedRecord.space_id == mutation.space_id,
+                    EncryptedRecord.record_id == mutation.record_id,
+                    EncryptedRecord.revision == mutation.base_revision,
+                )
+                .values(
+                    record_type=mutation.record_type,
+                    key_version=mutation.key_version,
+                    revision=revision,
+                    ciphertext=mutation.ciphertext,
+                    deleted=mutation.deleted,
+                    author_id=actor.user.id,
+                    updated_at=now(),
+                )
             )
-            session.add(record)
+            if changed.rowcount != 1:
+                current = await session.scalar(
+                    select(EncryptedRecord.revision).where(
+                        EncryptedRecord.space_id == mutation.space_id,
+                        EncryptedRecord.record_id == mutation.record_id,
+                    )
+                )
+                results.append(SyncResult(record_id=mutation.record_id, accepted=False, conflict_revision=current or 0))
+                continue
         session.add(ChangeLog(space_id=mutation.space_id, record_id=mutation.record_id, revision=revision))
         results.append(SyncResult(record_id=mutation.record_id, accepted=True, revision=revision))
     await session.commit()

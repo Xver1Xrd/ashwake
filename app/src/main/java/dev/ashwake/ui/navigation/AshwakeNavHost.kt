@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.isImeVisible
@@ -164,14 +165,15 @@ fun AshwakeRoot(
                     )
                 }
             }
-        ) { _ ->
+        ) { contentPadding ->
             // Контент идёт до нижнего края, а остров лежит поверх него.
             // Иначе Scaffold резервирует под меню прямоугольную полосу,
             // которую видно за капсулой на экранах с градиентом.
-            NavHost(
-                navController = navController,
-                startDestination = if (showOnboarding) ONBOARDING_ROUTE else TABS_ROUTE,
-                modifier = Modifier,
+            Box(Modifier.consumeWindowInsets(contentPadding)) {
+                NavHost(
+                    navController = navController,
+                    startDestination = if (showOnboarding) ONBOARDING_ROUTE else TABS_ROUTE,
+                    modifier = Modifier,
                 // Экран поверх вкладок вырастает из содержимого и слегка
                 // отодвигает то, что под ним: видно, что он лёг сверху,
                 // а не заменил собой всё. Стандартный сдвиг сбоку тут врёт —
@@ -180,7 +182,7 @@ fun AshwakeRoot(
                 exitTransition = { screenExit(reduceMotion) },
                 popEnterTransition = { screenPopEnter(reduceMotion) },
                 popExitTransition = { screenPopExit(reduceMotion) }
-            ) {
+                ) {
                 composable(ONBOARDING_ROUTE) {
                     OnboardingScreen(
                         onDone = {
@@ -333,6 +335,7 @@ fun AshwakeRoot(
 
                 composable("backup") {
                     BackupScreen(onBack = { navController.popBackStack() })
+                }
                 }
             }
         }

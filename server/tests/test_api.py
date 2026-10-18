@@ -73,6 +73,19 @@ def test_social_partnership_and_encrypted_sync():
         )
         assert recovered.status_code == 200, recovered.text
         assert recovered.json()["encrypted_bundle"].startswith("encrypted-recovery")
+        # Код восстановления одноразовый: повторное использование означает,
+        # что его могли скопировать с потерянного устройства.
+        repeated_recovery = client.post(
+            "/v1/auth/recover",
+            json={
+                "username": "alice",
+                "recovery_token": recovery_token,
+                "device_name": "stolen phone",
+                "public_key_pem": recovered_device["public_key_pem"],
+                "encryption_public_key_pem": recovered_device["encryption_public_key_pem"],
+            },
+        )
+        assert repeated_recovery.status_code == 401
         recovered_session = recovered.json()["session"]
         assert client.post(
             "/v1/auth/logout",

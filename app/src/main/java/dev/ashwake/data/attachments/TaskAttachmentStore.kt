@@ -19,6 +19,7 @@ class TaskAttachmentStore @Inject constructor(
     val directory: File get() = File(context.filesDir, DIRECTORY).apply { mkdirs() }
 
     suspend fun import(uri: Uri): SavedAttachment? = withContext(Dispatchers.IO) {
+        var output: File? = null
         runCatching {
             val resolver = context.contentResolver
             val mimeType = resolver.getType(uri) ?: "application/octet-stream"
@@ -28,11 +29,23 @@ class TaskAttachmentStore @Inject constructor(
             } ?: "image"
             val extension = displayName.substringAfterLast('.', "").takeIf { it.isNotBlank() }
             val fileName = UUID.randomUUID().toString() + extension?.let { ".$it" }.orEmpty()
-            val output = File(directory, fileName)
-            resolver.openInputStream(uri)?.use { input -> output.outputStream().use(input::copyTo) }
-                ?: return@runCatching null
-            SavedAttachment(fileName, displayName, mimeType, output.length())
-        }.getOrNull()
+            val target = File(directory, fileName)
+            output = target
+            resolver.openInputStream(uri)?.use { input ->
+                target.outputStream().use { stream ->
+                    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                    var total = 0L
+                    while (true) {
+                        val count = input.read(buffer)
+                        if (count < 0) break
+                        total += count
+                        require(total <= MAX_ATTACHMENT_BYTES) { "Файл больше 25 МБ" }
+                        stream.write(buffer, 0, count)
+                    }
+                }
+            } ?: return@runCatching null
+            SavedAttachment(fileName, displayName, mimeType, target.length())
+        }.onFailure { output?.delete() }.getOrNull()
     }
 
     fun file(name: String): File = File(directory, name)
