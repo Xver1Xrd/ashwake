@@ -272,15 +272,29 @@ abstract class AshwakeDatabase : RoomDatabase() {
                 addTaskColumn("spaceId", "TEXT")
                 addTaskColumn("syncRevision", "INTEGER NOT NULL DEFAULT 0")
                 addTaskColumn("syncState", "TEXT NOT NULL DEFAULT 'LOCAL'")
+                addTaskColumn("difficulty", "INTEGER NOT NULL DEFAULT 1")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
                 if (hasColumn("task_attachments", "fileName") && !hasColumn("task_attachments", "storedName")) {
                     db.execSQL("ALTER TABLE task_attachments RENAME COLUMN fileName TO storedName")
                 }
-                if (!hasColumn("task_attachments", "kind")) {
-                    db.execSQL("ALTER TABLE task_attachments ADD COLUMN kind TEXT NOT NULL DEFAULT 'FILE'")
-                }
-                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_task_attachments_storedName ON task_attachments(storedName)")
+                // Room ожидает kind без SQL DEFAULT и только индекс taskId.
+                // Перестраиваем таблицу, сохраняя ID и все вложения из обеих схем v7.
+                val kindExpression = if (hasColumn("task_attachments", "kind")) "kind" else "'FILE'"
+                db.execSQL(
+                    "CREATE TABLE task_attachments_v8 (" +
+                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, taskId INTEGER NOT NULL, " +
+                        "storedName TEXT NOT NULL, displayName TEXT NOT NULL, mimeType TEXT NOT NULL, " +
+                        "sizeBytes INTEGER NOT NULL, kind TEXT NOT NULL, createdAt INTEGER NOT NULL, " +
+                        "FOREIGN KEY(taskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE)"
+                )
+                db.execSQL(
+                    "INSERT INTO task_attachments_v8 (id, taskId, storedName, displayName, mimeType, sizeBytes, kind, createdAt) " +
+                        "SELECT id, taskId, storedName, displayName, mimeType, sizeBytes, $kindExpression, createdAt FROM task_attachments"
+                )
+                db.execSQL("DROP TABLE task_attachments")
+                db.execSQL("ALTER TABLE task_attachments_v8 RENAME TO task_attachments")
+                db.execSQL("CREATE INDEX index_task_attachments_taskId ON task_attachments(taskId)")
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS sync_tombstones (" +
                         "globalId TEXT NOT NULL PRIMARY KEY, spaceId TEXT NOT NULL, " +

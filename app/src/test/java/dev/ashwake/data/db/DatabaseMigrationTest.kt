@@ -101,6 +101,35 @@ class DatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun `вложения обеих схем версии 7 сохраняются при миграции`() {
+        for (onlineSchema in listOf(false, true)) {
+            val name = "migration-attachments-$onlineSchema.db"
+            SchemaFixture.createDatabase(context, version = 7, name = name).use { old ->
+                val taskId = old.insert("tasks", null, taskRow(title = "Фото", version = 7))
+                if (!onlineSchema) {
+                    old.execSQL("DROP INDEX index_task_attachments_storedName")
+                    old.execSQL("ALTER TABLE task_attachments RENAME COLUMN storedName TO fileName")
+                    old.execSQL("ALTER TABLE task_attachments DROP COLUMN kind")
+                }
+                val values = ContentValues().apply {
+                    put("taskId", taskId)
+                    put(if (onlineSchema) "storedName" else "fileName", "photo.jpg")
+                    put("displayName", "Фото.jpg")
+                    put("mimeType", "image/jpeg")
+                    put("sizeBytes", 123L)
+                    put("createdAt", 1234L)
+                    if (onlineSchema) put("kind", "PHOTO")
+                }
+                old.insert("task_attachments", null, values)
+            }
+            withMigrated(name) { db ->
+                assertEquals("photo.jpg", db.singleString("SELECT storedName FROM task_attachments"))
+                assertEquals(if (onlineSchema) "PHOTO" else "FILE", db.singleString("SELECT kind FROM task_attachments"))
+            }
+        }
+    }
+
     /**
      * Открывает базу через Room со всеми миграциями — ровно так, как это
      * делает приложение. Обращение к `writableDatabase` обязательно: Room

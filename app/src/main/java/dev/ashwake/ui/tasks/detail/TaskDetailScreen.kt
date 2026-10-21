@@ -1,5 +1,8 @@
 package dev.ashwake.ui.tasks.detail
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,8 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -43,6 +48,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun TaskDetailScreen(onBack: () -> Unit, onEdit: () -> Unit, viewModel: TaskDetailViewModel = hiltViewModel()) {
     val task by viewModel.task.collectAsStateWithLifecycle()
+    val attachmentError by viewModel.attachmentError.collectAsStateWithLifecycle()
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(maxItems = 10)) {
+        viewModel.addAttachments(it)
+    }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) {
+        viewModel.addAttachments(it)
+    }
     val colors = AshTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background)) {
         AshNavBar(title = "Задача", onBack = onBack, actions = {
@@ -78,9 +90,14 @@ fun TaskDetailScreen(onBack: () -> Unit, onEdit: () -> Unit, viewModel: TaskDeta
                 item.note?.takeIf { it.isNotBlank() }?.let { note ->
                     ListGroup(header = "Заметка") { Text(note, style = AshTheme.type.body, color = colors.text, modifier = Modifier.padding(16.dp)) }
                 }
-                if (item.attachments.isNotEmpty()) Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Фото и файлы", style = AshTheme.type.subhead, color = colors.text2)
-                    AttachmentGrid(attachments = item.attachments, onRemove = viewModel::removeAttachment)
+                    AttachmentGrid(
+                        attachments = item.attachments,
+                        onAddPhoto = { photoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        onAddFile = { filePicker.launch(arrayOf("*/*")) },
+                        onRemove = viewModel::removeAttachment
+                    )
                 }
                 ListGroup(header = "Параметры") {
                     ListRow(title = "Приоритет", subtitle = item.priority.meaning,
@@ -94,6 +111,12 @@ fun TaskDetailScreen(onBack: () -> Unit, onEdit: () -> Unit, viewModel: TaskDeta
                 }
             }
         }
+    }
+    attachmentError?.let { message ->
+        AlertDialog(onDismissRequest = viewModel::dismissAttachmentError, title = { Text("Ошибка вложения") },
+            text = { Text(message) }, confirmButton = {
+                TextButton(onClick = viewModel::dismissAttachmentError) { Text("Понятно") }
+            })
     }
 }
 

@@ -4,11 +4,16 @@ import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,21 +25,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.ui.components.AshIcons
-import dev.ashwake.ui.components.SecondaryButton
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /** Вложения показываются карточками; фото и файлы добавляются разными действиями. */
 @Composable
@@ -46,28 +59,35 @@ fun AttachmentGrid(
 ) {
     var opened by remember { mutableStateOf<TaskAttachment?>(null) }
     var pendingDelete by remember { mutableStateOf<TaskAttachment?>(null) }
+    var choosingType by remember { mutableStateOf(false) }
+    val hasAdd = onAddPhoto != null || onAddFile != null
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        attachments.chunked(2).forEach { row ->
+        (attachments.map { it as TaskAttachment? } + if (hasAdd) listOf(null) else emptyList()).chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { attachment ->
-                    AttachmentTile(attachment, Modifier.weight(1f), { opened = it }) { pendingDelete = it }
+                    if (attachment == null) {
+                        Box(Modifier.weight(1f).height(144.dp).clip(AshShapes.group)
+                            .background(AshTheme.colors.surface2).clickable { choosingType = true },
+                            contentAlignment = Alignment.Center) {
+                            Text("+ Добавить", color = AshTheme.colors.accent)
+                        }
+                    } else AttachmentTile(attachment, Modifier.weight(1f), { opened = it }) { pendingDelete = it }
                 }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }
-        if (onAddPhoto != null || onAddFile != null) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                onAddPhoto?.let { action ->
-                    SecondaryButton(text = "Добавить фото", onClick = action, modifier = Modifier.weight(1f))
-                }
-                onAddFile?.let { action ->
-                    SecondaryButton(text = "Прикрепить файл", onClick = action, modifier = Modifier.weight(1f))
-                }
-            }
-        }
     }
 
+    if (choosingType) AlertDialog(
+        onDismissRequest = { choosingType = false },
+        title = { Text("Добавить вложение") },
+        text = { Column {
+            onAddPhoto?.let { action -> TextButton(onClick = { choosingType = false; action() }) { Text("Фото") } }
+            onAddFile?.let { action -> TextButton(onClick = { choosingType = false; action() }) { Text("Файл") } }
+        } },
+        confirmButton = { TextButton(onClick = { choosingType = false }) { Text("Отмена") } }
+    )
     opened?.let { attachment -> AttachmentViewer(attachment) { opened = null } }
     pendingDelete?.let { attachment ->
         AlertDialog(
@@ -107,6 +127,42 @@ private fun AttachmentTile(
 
 @Composable
 private fun AttachmentViewer(attachment: TaskAttachment, close: () -> Unit) {
+    if (attachment.isImage) {
+        var scale by remember(attachment.id) { mutableStateOf(1f) }
+        var offsetX by remember(attachment.id) { mutableStateOf(0f) }
+        var offsetY by remember(attachment.id) { mutableStateOf(0f) }
+        Dialog(onDismissRequest = close, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Box(Modifier.fillMaxSize().background(Color.Black).pointerInput(attachment.id) {
+                awaitEachGesture {
+                    awaitFirstDown()
+                    do {
+                        val event = awaitPointerEvent()
+                        val pan = event.calculatePan()
+                        scale = (scale * event.calculateZoom()).coerceIn(1f, 5f)
+                        if (scale > 1f) {
+                            offsetX += pan.x
+                            offsetY += pan.y
+                        } else {
+                            offsetX = 0f
+                            offsetY = (offsetY + pan.y).coerceAtLeast(0f)
+                        }
+                        event.changes.forEach { if (it.positionChanged()) it.consume() }
+                    } while (event.changes.any { it.pressed })
+                    if (scale <= 1f) {
+                        if (offsetY > 160.dp.toPx()) close() else offsetY = 0f
+                    }
+                }
+            }) {
+                AttachmentImage(attachment, Modifier.fillMaxSize().graphicsLayer {
+                    scaleX = scale; scaleY = scale; translationX = offsetX; translationY = offsetY
+                }, ContentScale.Fit)
+                TextButton(onClick = close, modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)) {
+                    Text("Закрыть", color = Color.White)
+                }
+            }
+        }
+        return
+    }
     AlertDialog(
         onDismissRequest = close,
         confirmButton = { TextButton(onClick = close) { Text("Закрыть") } },
@@ -122,10 +178,19 @@ private fun AttachmentViewer(attachment: TaskAttachment, close: () -> Unit) {
 }
 
 @Composable
-private fun AttachmentImage(attachment: TaskAttachment, modifier: Modifier) {
+private fun AttachmentImage(attachment: TaskAttachment, modifier: Modifier, contentScale: ContentScale = ContentScale.Crop) {
     val file = File(LocalContext.current.filesDir, "task_attachments/${attachment.fileName}")
-    val bitmap = remember(file.path) { BitmapFactory.decodeFile(file.path) }
-    bitmap?.let { Image(it.asImageBitmap(), null, modifier, contentScale = ContentScale.Crop) }
+    val bitmap by produceState<android.graphics.Bitmap?>(null, file.path, contentScale) {
+        value = withContext(Dispatchers.IO) {
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.path, bounds)
+            val limit = if (contentScale == ContentScale.Fit) 2048 else 512
+            var sample = 1
+            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > limit * 2) sample *= 2
+            BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+        }
+    }
+    bitmap?.let { Image(it.asImageBitmap(), null, modifier, contentScale = contentScale) }
 }
 
 private fun fileSize(bytes: Long): String = when {
