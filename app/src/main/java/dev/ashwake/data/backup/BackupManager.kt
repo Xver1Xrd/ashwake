@@ -81,7 +81,14 @@ class BackupManager @Inject constructor(
                     name
                 ) ?: return@runCatching BackupResult.Failed("Не удалось создать файл")
 
-                context.contentResolver.openOutputStream(file.uri)?.use { it.write(bytes) }
+                try {
+                    val stream = context.contentResolver.openOutputStream(file.uri)
+                        ?: error("Не удалось открыть файл резервной копии для записи")
+                    stream.use { it.write(bytes) }
+                } catch (error: Throwable) {
+                    file.delete()
+                    throw error
+                }
                 rotate(folder)
                 BackupResult.Success(name, contents)
             }.getOrElse { error ->

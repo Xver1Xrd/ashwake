@@ -7,7 +7,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dev.ashwake.BuildConfig
 import dev.ashwake.data.db.AshwakeDatabase
 import dev.ashwake.data.db.dao.abstinence.AbstinenceDao
 import dev.ashwake.data.db.dao.blocking.BlockingDao
@@ -34,12 +33,6 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): AshwakeDatabase =
         Room.databaseBuilder(context, AshwakeDatabase::class.java, AshwakeDatabase.NAME)
             .addMigrations(*AshwakeDatabase.MIGRATIONS)
-            .apply {
-                // В debug база пересоздаётся, если миграции не хватило: там
-                // терять нечего. В release этого пути нет — история отметок,
-                // попыток и покупок восстановлению не подлежит.
-                if (BuildConfig.DEBUG) fallbackToDestructiveMigration()
-            }
             .build()
 
     @Provides fun provideTaskDao(db: AshwakeDatabase): TaskDao = db.taskDao()

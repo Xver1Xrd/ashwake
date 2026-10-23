@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,10 +85,30 @@ fun TasksScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedTaskIds by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
+    var viewBeforeSelection by remember { mutableStateOf<TasksViewMode?>(null) }
+    val visibleTaskIds = state.tasks.map { it.id }.toSet()
 
-    androidx.activity.compose.BackHandler(enabled = isSelectionMode) {
+    fun startSelection(ids: Set<Long> = emptySet()) {
+        viewBeforeSelection = state.viewMode.takeIf { it != TasksViewMode.LIST }
+        if (state.viewMode != TasksViewMode.LIST) viewModel.setViewMode(TasksViewMode.LIST)
+        selectedTaskIds = ids
+        isSelectionMode = true
+    }
+
+    fun finishSelection() {
         isSelectionMode = false
         selectedTaskIds = emptySet()
+        viewBeforeSelection?.let(viewModel::setViewMode)
+        viewBeforeSelection = null
+    }
+
+    // Не выполнять массовые действия над задачами, скрытыми новым фильтром.
+    LaunchedEffect(visibleTaskIds) {
+        selectedTaskIds = selectedTaskIds.intersect(visibleTaskIds)
+    }
+
+    androidx.activity.compose.BackHandler(enabled = isSelectionMode) {
+        finishSelection()
     }
 
     // Микрофон работает только с разрешением: спрашиваем в момент нажатия,
@@ -106,20 +127,15 @@ fun TasksScreen(
                     title = "Выбрано: ${selectedTaskIds.size}",
                     actions = {
                         TextAction(
-                            text = if (selectedTaskIds.size == state.tasks.size && state.tasks.isNotEmpty()) "Снять" else "Все",
+                            text = if (visibleTaskIds.isNotEmpty() && selectedTaskIds.containsAll(visibleTaskIds)) "Снять" else "Все",
                             onClick = {
-                                selectedTaskIds = if (selectedTaskIds.size == state.tasks.size) {
-                                    emptySet()
-                                } else {
-                                    state.tasks.map { it.id }.toSet()
-                                }
+                                selectedTaskIds = toggleVisibleSelection(selectedTaskIds, visibleTaskIds)
                             }
                         )
                         TextAction(
                             text = "Готово",
                             onClick = {
-                                isSelectionMode = false
-                                selectedTaskIds = emptySet()
+                                finishSelection()
                             }
                         )
                     }
@@ -132,7 +148,7 @@ fun TasksScreen(
                             icon = AshIcons.Export,
                             contentDescription = "Выбрать и поделиться",
                             tint = AshTheme.colors.text2,
-                            onClick = { isSelectionMode = true }
+                            onClick = { startSelection() }
                         )
                         IconAction(
                             icon = AshIcons.Moon,
@@ -195,8 +211,7 @@ fun TasksScreen(
                                 context.startActivity(
                                     android.content.Intent.createChooser(shareIntent, "Поделиться задачами")
                                 )
-                                isSelectionMode = false
-                                selectedTaskIds = emptySet()
+                                finishSelection()
                             }
                         },
                         modifier = Modifier.weight(1f)
@@ -282,7 +297,7 @@ fun TasksScreen(
                                         },
                                         onClick = { onOpenTask(task.id) },
                                         expanded = task.id in state.expandedTaskIds,
-                                        onExpandToggle = { viewModel.toggleExpanded(task.id) },
+                                        onExpandToggle = if (isSelectionMode) null else { { viewModel.toggleExpanded(task.id) } },
                                         selectionMode = isSelectionMode,
                                         selected = task.id in selectedTaskIds,
                                         onSelectToggle = {
@@ -294,13 +309,12 @@ fun TasksScreen(
                                         },
                                         onLongClick = {
                                             if (!isSelectionMode) {
-                                                isSelectionMode = true
-                                                selectedTaskIds = setOf(task.id)
+                                                startSelection(setOf(task.id))
                                             }
                                         },
                                         onDelete = { viewModel.delete(task) }
                                     )
-                                    if (task.id in state.expandedTaskIds) {
+                                    if (!isSelectionMode && task.id in state.expandedTaskIds) {
                                         val subtasks by viewModel.observeSubtasks(task.id)
                                             .collectAsStateWithLifecycle(initialValue = emptyList())
                                         SubtaskList(
@@ -351,10 +365,10 @@ fun TasksScreen(
                                 text = stringResource(R.string.blocking_udalit),
                                 color = AshTheme.colors.danger,
                                 onClick = {
-                                    val count = selectedTaskIds.size
-                                    viewModel.deleteTasks(selectedTaskIds)
-                                    isSelectionMode = false
-                                    selectedTaskIds = emptySet()
+                                    val idsToDelete = selectedTaskIds.intersect(visibleTaskIds)
+                                    val count = idsToDelete.size
+                                    viewModel.deleteTasks(idsToDelete)
+                                    finishSelection()
                                     showDeleteSelectedConfirm = false
                                     toast.show("Удалено задач: $count")
                                 }
@@ -374,6 +388,9 @@ fun TasksScreen(
         }
     }
 }
+
+internal fun toggleVisibleSelection(selected: Set<Long>, visible: Set<Long>): Set<Long> =
+    if (visible.isNotEmpty() && selected.containsAll(visible)) selected - visible else selected + visible
 
 private fun nextMode(mode: TasksViewMode): TasksViewMode = when (mode) {
     TasksViewMode.LIST -> TasksViewMode.MATRIX

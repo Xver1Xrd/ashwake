@@ -91,6 +91,11 @@ class DatabaseMigrationTest {
         val name = "migration-attachment.db"
         SchemaFixture.createDatabase(context, version = 7, name = name).use { old ->
             val taskId = old.insert("tasks", null, taskRow(title = "Документы", version = 7))
+            // Снимок 7.json относится к онлайн-варианту; воспроизводим
+            // опубликованный локальный вариант со старым именем поля.
+            old.execSQL("DROP INDEX index_task_attachments_storedName")
+            old.execSQL("ALTER TABLE task_attachments RENAME COLUMN storedName TO fileName")
+            old.execSQL("ALTER TABLE task_attachments DROP COLUMN kind")
             old.insert("task_attachments", null, ContentValues().apply {
                 put("taskId", taskId)
                 put("fileName", "document.pdf")
@@ -102,6 +107,7 @@ class DatabaseMigrationTest {
         }
 
         withMigrated(name) { db ->
+            assertEquals("Документы", db.singleString("SELECT title FROM tasks"))
             assertEquals("document.pdf", db.singleString("SELECT storedName FROM task_attachments"))
             assertEquals("FILE", db.singleString("SELECT kind FROM task_attachments"))
         }
@@ -124,6 +130,56 @@ class DatabaseMigrationTest {
                 assertEquals("задача потерялась на миграции $from → ${from + 1}", 1, count)
                 assertEquals("задача потерялась на миграции $from → ${from + 1}", "Шаг $from", db.singleString("SELECT title FROM tasks"))
             }
+        }
+    }
+
+    @Test
+    fun `вложения обеих схем версии 7 сохраняются при миграции`() {
+        for (onlineSchema in listOf(false, true)) {
+            val name = "migration-attachments-$onlineSchema.db"
+            SchemaFixture.createDatabase(context, version = 7, name = name).use { old ->
+                val taskId = old.insert("tasks", null, taskRow(title = "Фото", version = 7))
+                if (!onlineSchema) {
+                    old.execSQL("DROP INDEX index_task_attachments_storedName")
+                    old.execSQL("ALTER TABLE task_attachments RENAME COLUMN storedName TO fileName")
+                    old.execSQL("ALTER TABLE task_attachments DROP COLUMN kind")
+                }
+                val values = ContentValues().apply {
+                    put("taskId", taskId)
+                    put(if (onlineSchema) "storedName" else "fileName", "photo.jpg")
+                    put("displayName", "Фото.jpg")
+                    put("mimeType", "image/jpeg")
+                    put("sizeBytes", 123L)
+                    put("createdAt", 1234L)
+                    if (onlineSchema) put("kind", "PHOTO")
+                }
+                old.insert("task_attachments", null, values)
+            }
+            withMigrated(name) { db ->
+                assertEquals("photo.jpg", db.singleString("SELECT storedName FROM task_attachments"))
+                assertEquals(if (onlineSchema) "PHOTO" else "FILE", db.singleString("SELECT kind FROM task_attachments"))
+            }
+        }
+    }
+
+    @Test
+    fun `локальная схема 7 без онлайн полей сохраняет задачу`() {
+        val name = "migration-local-v7.db"
+        SchemaFixture.createDatabase(context, version = 7, name = name).use { old ->
+            old.execSQL("DROP INDEX index_tasks_globalId")
+            old.execSQL("DROP INDEX index_tasks_spaceId")
+            listOf("globalId", "spaceId", "syncRevision", "syncState").forEach { column ->
+                old.execSQL("ALTER TABLE tasks DROP COLUMN $column")
+            }
+            val row = taskRow(title = "Из старой версии", version = 7).apply {
+                remove("syncRevision")
+                remove("syncState")
+            }
+            old.insert("tasks", null, row)
+        }
+        withMigrated(name) { db ->
+            assertEquals("Из старой версии", db.singleString("SELECT title FROM tasks"))
+            assertEquals("LOCAL", db.singleString("SELECT syncState FROM tasks"))
         }
     }
 
@@ -160,11 +216,10 @@ class DatabaseMigrationTest {
         put("postponeCount", 0)
         put("createdAt", NOW)
         put("updatedAt", NOW)
-        // Версия 6 уже получила онлайн-поля, а опубликованная локальная
-        // версия 7 ещё нет: именно обе такие схемы должна принять 7→8.
-        // Тест создаёт снимок схемы напрямую, поэтому не может передавать
-        // поля, которых в этом снимке нет.
-        if (version == 6 || version >= 8) {
+        // Выгруженная схема 7 уже содержит обязательные онлайн-поля.
+        // Без них SQLite отвергает тестовую строку, и тест миграции
+        // ошибочно сообщает о «потере» записи, которой не было.
+        if (version >= 6) {
             put("syncRevision", 0)
             put("syncState", "LOCAL")
         }

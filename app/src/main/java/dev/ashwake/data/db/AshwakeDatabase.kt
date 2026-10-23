@@ -305,42 +305,9 @@ abstract class AshwakeDatabase : RoomDatabase() {
                     db.execSQL("CREATE INDEX IF NOT EXISTS index_task_attachments_taskId ON task_attachments(taskId)")
                 }
 
-                // У добавленных выше NOT NULL-полей были временные DEFAULT,
-                // чтобы старая база могла заполнить существующие строки. В
-                // финальной Room-схеме этих DEFAULT нет. Пересборка tasks
-                // убирает их и возвращает ровно контракт текущей сущности.
-                db.execSQL(
-                    "CREATE TABLE tasks_new (" +
-                        "id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, globalId TEXT, spaceId TEXT, " +
-                        "syncRevision INTEGER NOT NULL, syncState TEXT NOT NULL, title TEXT NOT NULL, " +
-                        "emoji TEXT, iconPath TEXT, note TEXT, projectId INTEGER, parentTaskId INTEGER, " +
-                        "priority TEXT NOT NULL, difficulty INTEGER NOT NULL, dueDate INTEGER, dueTime INTEGER, " +
-                        "estimateMinutes INTEGER, status TEXT NOT NULL, completedAt INTEGER, position INTEGER NOT NULL, " +
-                        "quadrantOverride TEXT, recurrenceId INTEGER, seriesId TEXT, isTemplate INTEGER NOT NULL, " +
-                        "persistentReminderMinutes INTEGER, postponeCount INTEGER NOT NULL, lastPostponedAt INTEGER, " +
-                        "sourceLink TEXT, delegatedTo TEXT, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, " +
-                        "FOREIGN KEY(projectId) REFERENCES projects(id) ON UPDATE NO ACTION ON DELETE SET NULL, " +
-                        "FOREIGN KEY(parentTaskId) REFERENCES tasks(id) ON UPDATE NO ACTION ON DELETE CASCADE, " +
-                        "FOREIGN KEY(recurrenceId) REFERENCES recurrence_rules(id) ON UPDATE NO ACTION ON DELETE SET NULL)"
-                )
-                db.execSQL(
-                    "INSERT INTO tasks_new (id, globalId, spaceId, syncRevision, syncState, title, emoji, iconPath, note, " +
-                        "projectId, parentTaskId, priority, difficulty, dueDate, dueTime, estimateMinutes, status, completedAt, " +
-                        "position, quadrantOverride, recurrenceId, seriesId, isTemplate, persistentReminderMinutes, postponeCount, " +
-                        "lastPostponedAt, sourceLink, delegatedTo, createdAt, updatedAt) " +
-                        "SELECT id, globalId, spaceId, syncRevision, syncState, title, emoji, iconPath, note, projectId, parentTaskId, " +
-                        "priority, difficulty, dueDate, dueTime, estimateMinutes, status, completedAt, position, quadrantOverride, " +
-                        "recurrenceId, seriesId, isTemplate, persistentReminderMinutes, postponeCount, lastPostponedAt, sourceLink, " +
-                        "delegatedTo, createdAt, updatedAt FROM tasks"
-                )
-                db.execSQL("DROP TABLE tasks")
-                db.execSQL("ALTER TABLE tasks_new RENAME TO tasks")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_projectId ON tasks(projectId)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_parentTaskId ON tasks(parentTaskId)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_recurrenceId ON tasks(recurrenceId)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_dueDate ON tasks(dueDate)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_status ON tasks(status)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_seriesId ON tasks(seriesId)")
+                // Не удаляем tasks ради удаления временных DEFAULT: DROP TABLE
+                // с включёнными внешними ключами каскадно удаляет дочерние
+                // задачи, вложения и остальные связанные данные.
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_tasks_spaceId ON tasks(spaceId)")
                 db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_tasks_globalId ON tasks(globalId)")
                 db.execSQL(

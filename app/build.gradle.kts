@@ -14,8 +14,8 @@ android {
         applicationId = "dev.ashwake"
         minSdk = 26
         targetSdk = 35
-        versionCode = 128
-        versionName = "1.2.8"
+        versionCode = 129
+        versionName = "1.2.9"
         val apiBaseUrl = providers.gradleProperty("ashwake.apiBaseUrl").orNull.orEmpty()
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
