@@ -71,7 +71,7 @@ fun AbstinenceScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize().appHazeSource(),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {

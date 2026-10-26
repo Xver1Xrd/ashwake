@@ -4,12 +4,15 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,7 +40,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.components.AshTextField
@@ -60,6 +66,7 @@ import dev.ashwake.R
  * Обратный отсчёт по текущему шагу, превью следующего снизу, автопереход.
  * Крупная цифра и минимум прочего: экран смотрят краем глаза во время дела.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RoutineRunScreen(
     onExit: () -> Unit,
@@ -93,6 +100,7 @@ fun RoutineRunScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(AshTheme.colors.background)
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -117,19 +125,30 @@ fun RoutineRunScreen(
             color = AshTheme.colors.text2
         )
 
-        Box(contentAlignment = Alignment.Center) {
-            StepRing(progress = run.progress.stepProgress)
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(formatTime(run.progress.stepRemainingSeconds), style = CounterLarge)
-                Text(
-                    run.currentStep?.title.orEmpty(),
-                    style = AshTheme.type.title3,
-                    textAlign = TextAlign.Center
-                )
+        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val ringSize = minOf(260.dp, maxWidth)
+            val remaining = formatTime(run.progress.stepRemainingSeconds)
+            val fontScale = LocalDensity.current.fontScale
+            val counterSize = minOf(68f, ringSize.value * 0.75f / (remaining.length * 0.6f * fontScale)).coerceAtLeast(18f)
+            Box(Modifier.size(ringSize), contentAlignment = Alignment.Center) {
+                StepRing(progress = run.progress.stepProgress, modifier = Modifier.size(ringSize))
+                Column(
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(remaining, style = CounterLarge.copy(fontSize = counterSize.sp, lineHeight = counterSize.sp), maxLines = 1)
+                    Text(
+                        run.currentStep?.title.orEmpty(),
+                        style = AshTheme.type.title3,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
 
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             ChipButton(text = "−1", onClick = { viewModel.adjust(-1) })
             ChipButton(text = "−10", onClick = { viewModel.adjust(-10) })
             ChipButton(text = "+1", onClick = { viewModel.adjust(1) })
@@ -205,11 +224,11 @@ fun RoutineRunScreen(
 }
 
 @Composable
-private fun StepRing(progress: Float) {
+private fun StepRing(progress: Float, modifier: Modifier = Modifier) {
     val track = AshTheme.colors.surface2
     val accent = AshTheme.colors.accent
 
-    Canvas(modifier = Modifier.size(260.dp)) {
+    Canvas(modifier = modifier) {
         val stroke = 12.dp.toPx()
         val diameter = size.minDimension - stroke
         val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)

@@ -88,7 +88,7 @@ fun RoutinesScreen(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(padding),
-                contentPadding = PaddingValues(12.dp),
+                contentPadding = PaddingValues(start = 12.dp, top = 12.dp, end = 12.dp, bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(routines, key = { it.id }) { routine ->

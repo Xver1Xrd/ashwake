@@ -68,7 +68,7 @@ fun StatsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {

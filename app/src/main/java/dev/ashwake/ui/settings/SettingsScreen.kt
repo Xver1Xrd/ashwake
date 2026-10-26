@@ -96,7 +96,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp),
+                .padding(bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             verticalArrangement = Arrangement.spacedBy(GroupGap)
         ) {
             AppearanceSection(

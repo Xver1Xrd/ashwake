@@ -70,7 +70,8 @@ fun MoreScreen(
             .appHazeSource()
             .imePadding()
             .verticalScroll(rememberScrollState())
-            .statusBarsPadding(),
+            .statusBarsPadding()
+            .padding(bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(

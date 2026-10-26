@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -100,7 +100,7 @@ private fun FilledPill(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(ButtonHeight)
+            .heightIn(min = ButtonHeight)
             .tappable(enabled = enabled, haptic = haptic, onClick = onClick)
             .background(background, AshShapes.pill),
         contentAlignment = Alignment.Center
@@ -108,7 +108,8 @@ private fun FilledPill(
         Text(
             text = text,
             style = AshTheme.type.body.copy(fontWeight = FontWeight.SemiBold),
-            color = textColor
+            color = textColor,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
         )
     }
 }

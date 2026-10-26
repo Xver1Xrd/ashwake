@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,6 +43,8 @@ fun SegmentedControl(
     val colors = AshTheme.colors
     val haptics = rememberHaptics()
     val reduceMotion = AshTheme.reduceMotion
+    val segmentHeight = if (LocalDensity.current.fontScale > 1.3f) 48.dp else 32.dp
+    val innerHeight = segmentHeight - 4.dp
 
     // Позиция бегунка в долях ширины: анимируется, чтобы движение читалось
     // как одно, а не как мигание подложки под новым сегментом.
@@ -54,7 +58,7 @@ fun SegmentedControl(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(32.dp)
+            .heightIn(min = segmentHeight)
             .clip(SquircleShape(9.dp))
             .background(colors.surface2)
             .padding(2.dp)
@@ -73,7 +77,7 @@ fun SegmentedControl(
                     }
                 }
                 .fillMaxWidth()
-                .height(28.dp)
+                .height(innerHeight)
                 .background(colors.surface3, SquircleShape(7.dp))
         )
 
@@ -83,7 +87,7 @@ fun SegmentedControl(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .height(28.dp)
+                        .height(innerHeight)
                         .tappable(haptic = null) {
                             if (!selected) haptics.play(HapticKind.LIGHT)
                             onSelect(index)

@@ -3,6 +3,7 @@ package dev.ashwake.ui.focus
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -30,8 +31,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.ashwake.ui.components.PrimaryButton
@@ -61,7 +64,7 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -74,15 +77,18 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
                     color = if (run.phase == FocusPhase.WORK) Moss else Gold
                 )
 
-                Box(contentAlignment = Alignment.Center) {
-                    TimerRing(progress = run.progress)
-                    Text(
-                        formatTime(
-                            if (run.mode == FocusMode.STOPWATCH) run.elapsedSeconds
-                            else run.remainingSeconds
-                        ),
-                        style = CounterLarge
+                BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    val ringSize = minOf(240.dp, maxWidth)
+                    val time = formatTime(
+                        if (run.mode == FocusMode.STOPWATCH) run.elapsedSeconds
+                        else run.remainingSeconds
                     )
+                    val fontScale = LocalDensity.current.fontScale
+                    val counterSize = minOf(68f, ringSize.value * 0.75f / (time.length * 0.6f * fontScale)).coerceAtLeast(18f)
+                    Box(Modifier.size(ringSize), contentAlignment = Alignment.Center) {
+                        TimerRing(progress = run.progress, modifier = Modifier.size(ringSize))
+                        Text(time, style = CounterLarge.copy(fontSize = counterSize.sp, lineHeight = counterSize.sp), maxLines = 1)
+                    }
                 }
 
                 run.taskTitle?.let { title ->
@@ -202,11 +208,11 @@ fun FocusScreen(viewModel: FocusViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun TimerRing(progress: Float) {
+private fun TimerRing(progress: Float, modifier: Modifier = Modifier) {
     val track = AshTheme.colors.surface2
     val accent = AshTheme.colors.accent
 
-    Canvas(modifier = Modifier.size(240.dp)) {
+    Canvas(modifier = modifier) {
         val stroke = 12.dp.toPx()
         val diameter = size.minDimension - stroke
         val topLeft = Offset((size.width - diameter) / 2f, (size.height - diameter) / 2f)

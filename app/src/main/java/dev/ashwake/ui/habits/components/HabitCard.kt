@@ -76,31 +76,9 @@ fun HabitCard(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ScoreRing(
-                score = progress.score,
-                done = progress.doneToday,
-                modifier = Modifier.size(44.dp)
-            )
-
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(start = 12.dp)
-            ) {
-                Text(
-                    text = habit.name,
-                    style = AshTheme.type.body,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle(progress),
-                    style = AshTheme.type.footnote,
-                    color = AshTheme.colors.text2
-                )
-            }
-
+        val compact = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360 ||
+            androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+        val action: @Composable () -> Unit = {
             if (progress.paused) {
                 Icon(
                     Icons.Filled.PauseCircle,
@@ -119,6 +97,37 @@ fun HabitCard(
                     }
                 )
             }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ScoreRing(
+                score = progress.score,
+                done = progress.doneToday,
+                modifier = Modifier.size(44.dp)
+            )
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
+            ) {
+                Text(
+                    text = habit.name,
+                    style = AshTheme.type.body,
+                    maxLines = if (compact) 2 else 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = subtitle(progress),
+                    style = AshTheme.type.footnote,
+                    color = AshTheme.colors.text2
+                )
+            }
+
+            if (!compact) action()
+        }
+
+        if (compact) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { action() }
         }
 
         if (habit.hasMinimum && !progress.doneToday && !progress.paused) {

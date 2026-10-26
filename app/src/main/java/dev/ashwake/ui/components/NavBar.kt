@@ -16,6 +16,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,6 +50,7 @@ fun AshLargeTitle(
     subtitle: String? = null,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 360 || LocalDensity.current.fontScale > 1.3f
     Row(
         modifier
             .fillMaxWidth()
@@ -58,7 +61,7 @@ fun AshLargeTitle(
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = AshTheme.type.largeTitle,
+                style = if (compact) AshTheme.type.headline else AshTheme.type.largeTitle,
                 color = AshTheme.colors.text,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

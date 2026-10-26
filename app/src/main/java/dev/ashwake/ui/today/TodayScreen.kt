@@ -101,7 +101,10 @@ fun TodayScreen(
                     Column(Modifier.weight(1f)) {
                         Text(
                             text = stringResource(R.string.calendar_segodnya),
-                            style = AshTheme.type.largeTitle,
+                            style = if (
+                                androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 360 ||
+                                androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
+                            ) AshTheme.type.headline else AshTheme.type.largeTitle,
                             color = colors.text
                         )
                         Text(

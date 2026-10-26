@@ -25,6 +25,10 @@ import androidx.compose.material.icons.filled.ViewTimeline
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +39,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import dev.ashwake.platform.speech.VoiceResult
@@ -86,6 +92,8 @@ fun TasksScreen(
     var selectedTaskIds by remember { mutableStateOf(setOf<Long>()) }
     var showDeleteSelectedConfirm by remember { mutableStateOf(false) }
     var viewBeforeSelection by remember { mutableStateOf<TasksViewMode?>(null) }
+    var showHeaderMenu by remember { mutableStateOf(false) }
+    val compactHeader = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
     val visibleTaskIds = state.tasks.map { it.id }.toSet()
 
     fun startSelection(ids: Set<Long> = emptySet()) {
@@ -144,6 +152,30 @@ fun TasksScreen(
                 AshLargeTitle(
                     title = stringResource(R.string.tasks_zadachi),
                     actions = {
+                        if (compactHeader) {
+                            Box {
+                                IconAction(
+                                    icon = Icons.Filled.MoreVert,
+                                    contentDescription = "Дополнительные действия",
+                                    tint = AshTheme.colors.text2,
+                                    onClick = { showHeaderMenu = true }
+                                )
+                                DropdownMenu(expanded = showHeaderMenu, onDismissRequest = { showHeaderMenu = false }) {
+                                    DropdownMenuItem(text = { Text("Выбрать и поделиться") }, onClick = {
+                                        showHeaderMenu = false; startSelection()
+                                    })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.ritual_vecherniy_ritual)) }, onClick = {
+                                        showHeaderMenu = false; onOpenRitual()
+                                    })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.stats_statistika)) }, onClick = {
+                                        showHeaderMenu = false; onOpenStats()
+                                    })
+                                    DropdownMenuItem(text = { Text(stringResource(R.string.tasks_zalezhavshiesya)) }, onClick = {
+                                        showHeaderMenu = false; viewModel.toggleStaleFilter()
+                                    })
+                                }
+                            }
+                        } else {
                         IconAction(
                             icon = AshIcons.Export,
                             contentDescription = "Выбрать и поделиться",
@@ -169,6 +201,7 @@ fun TasksScreen(
                             else AshTheme.colors.text2,
                             onClick = viewModel::toggleStaleFilter
                         )
+                        }
                         IconAction(
                             icon = when (state.viewMode) {
                                 TasksViewMode.LIST -> AshIcons.GridView

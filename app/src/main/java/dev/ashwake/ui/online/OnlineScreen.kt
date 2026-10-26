@@ -56,7 +56,7 @@ fun OnlineScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
-                .padding(bottom = 24.dp),
+                .padding(bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
             when {

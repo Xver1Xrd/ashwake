@@ -8,16 +8,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,8 +39,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.SegmentedControl
 import dev.ashwake.ui.theme.AshTheme
 import dev.ashwake.domain.model.tasks.Task
 import dev.ashwake.ui.tasks.CalendarScale
@@ -77,16 +81,13 @@ fun TaskCalendar(
         HorizontalDivider()
 
         when (state.scale) {
-            CalendarScale.MONTH -> {
-                MonthGrid(state, today, onDateSelected)
-                HorizontalDivider()
-                DayTaskList(state.tasksByDate[state.selected].orEmpty(), onTaskClick)
-            }
-
-            CalendarScale.WEEK -> {
-                WeekStrip(state, today, onDateSelected)
-                HorizontalDivider()
-                DayTaskList(state.tasksByDate[state.selected].orEmpty(), onTaskClick)
+            CalendarScale.MONTH, CalendarScale.WEEK -> LazyColumn(Modifier.fillMaxSize()) {
+                item(key = "calendar-grid") {
+                    if (state.scale == CalendarScale.MONTH) MonthGrid(state, today, onDateSelected)
+                    else WeekStrip(state, today, onDateSelected)
+                    HorizontalDivider()
+                }
+                dayTaskItems(state.tasksByDate[state.selected].orEmpty(), onTaskClick)
             }
 
             CalendarScale.DAY -> DayGrid(
@@ -104,6 +105,7 @@ private fun CalendarHeader(
     onShift: (Boolean) -> Unit,
     onToday: () -> Unit
 ) {
+    val compact = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -124,10 +126,19 @@ private fun CalendarHeader(
         IconButton(onClick = { onShift(true) }) {
             Icon(Icons.Filled.ChevronRight, contentDescription = stringResource(R.string.calendar_vpered))
         }
-        TextAction(text = stringResource(R.string.calendar_segodnya), onClick = onToday)
+        if (!compact) TextAction(text = stringResource(R.string.calendar_segodnya), onClick = onToday)
     }
-
-    SingleChoiceSegmentedButtonRow(
+    if (compact) {
+        Row(Modifier.fillMaxWidth().padding(end = 8.dp), horizontalArrangement = Arrangement.End) {
+            TextAction(text = stringResource(R.string.calendar_segodnya), onClick = onToday)
+        }
+        SegmentedControl(
+            options = CalendarScale.entries.map { scaleLabel(it) },
+            selectedIndex = CalendarScale.entries.indexOf(state.scale),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+            onSelect = { onScaleChange(CalendarScale.entries[it]) }
+        )
+    } else SingleChoiceSegmentedButtonRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         CalendarScale.entries.forEachIndexed { index, scale ->
@@ -222,9 +233,10 @@ private fun DayCell(
     modifier: Modifier,
     onClick: () -> Unit
 ) {
+    val largeText = LocalDensity.current.fontScale > 1.3f
     Column(
         modifier = modifier
-            .aspectRatio(0.9f)
+            .heightIn(min = if (largeText) 64.dp else 48.dp)
             .padding(2.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
@@ -270,27 +282,24 @@ private fun DayCell(
     }
 }
 
-@Composable
-private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
+private fun LazyListScope.dayTaskItems(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
     if (tasks.isEmpty()) {
-        Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-            Text(
-                stringResource(R.string.calendar_na_etot_den_zadach_net),
-                style = AshTheme.type.callout,
-                color = AshTheme.colors.text2
-            )
+        item {
+            Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Text(
+                    stringResource(R.string.calendar_na_etot_den_zadach_net),
+                    style = AshTheme.type.callout,
+                    color = AshTheme.colors.text2
+                )
+            }
         }
         return
     }
-    LazyColumn(
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
-    ) {
-        items(tasks, key = { it.id }) { task ->
+    items(tasks, key = { it.id }) { task ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 3.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(AshTheme.colors.surface1)
                     .clickable { onTaskClick(task) }
@@ -310,7 +319,6 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-        }
     }
 }
 
@@ -322,6 +330,8 @@ private fun DayTaskList(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
  */
 @Composable
 private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
+    val fontScale = LocalDensity.current.fontScale
+    val hourHeight = HOUR_HEIGHT * fontScale.coerceIn(1f, 2f)
     val timed = tasks.filter { it.dueTime != null }
     val untimed = tasks.filter { it.dueTime == null }
 
@@ -349,14 +359,14 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
             HorizontalDivider(Modifier.padding(top = 8.dp))
         }
 
-        Box(Modifier.fillMaxWidth().height(HOUR_HEIGHT * 24)) {
+        Box(Modifier.fillMaxWidth().height(hourHeight * 24)) {
             // Часовая разметка
             repeat(24) { hour ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(HOUR_HEIGHT)
-                        .offset(y = HOUR_HEIGHT * hour)
+                        .height(hourHeight)
+                        .offset(y = hourHeight * hour)
                 ) {
                     Text(
                         text = "%02d".format(hour),
@@ -375,9 +385,9 @@ private fun DayGrid(tasks: List<Task>, onTaskClick: (Task) -> Unit) {
                 Box(
                     modifier = Modifier
                         .padding(start = 40.dp, end = 8.dp)
-                        .offset(y = HOUR_HEIGHT * (minutesFromMidnight / 60f))
+                        .offset(y = hourHeight * (minutesFromMidnight / 60f))
                         .fillMaxWidth()
-                        .height(HOUR_HEIGHT * (blockMinutes / 60f))
+                        .height((hourHeight * (blockMinutes / 60f)).coerceAtLeast(if (fontScale > 1.3f) 36.dp else 20.dp))
                         .clip(RoundedCornerShape(6.dp))
                         .background(PriorityColors[task.priority.ordinal].copy(alpha = 0.25f))
                         .border(

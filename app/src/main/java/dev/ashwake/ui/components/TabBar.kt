@@ -39,7 +39,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.contentDescription
@@ -67,6 +66,8 @@ data class TabItem(
 
 private val TabBarHeight = 52.dp
 private val TabBarInset = 24.dp
+/** Space reserved by scrollable screens so the floating island never covers their last item. */
+val FloatingTabBarClearance = 116.dp
 private const val SELECTED_FILL_ALPHA = 0.18f
 
 /**
@@ -101,8 +102,6 @@ fun AshTabBar(
     val haptics = rememberHaptics()
     val select by rememberUpdatedState(onSelect)
     val reduceMotion = AshTheme.reduceMotion
-    val density = LocalDensity.current
-    val insetPx = with(density) { TabBarInset.toPx() }
 
     var pressedIndex by remember { mutableIntStateOf(-1) }
     var rawOverscrollPx by remember { mutableFloatStateOf(0f) }
@@ -182,8 +181,10 @@ fun AshTabBar(
 
                 awaitEachGesture {
                     val down = awaitFirstDown()
-                    val barLeft = insetPx
-                    val barRight = (size.width - insetPx).coerceAtLeast(barLeft + 1f)
+                    // pointerInput is already inside the horizontal padding. Its local
+                    // coordinates match the island, so applying the inset again shifts tabs.
+                    val barLeft = 0f
+                    val barRight = size.width.toFloat().coerceAtLeast(1f)
                     val barWidth = barRight - barLeft
                     val cellWidth = barWidth / tabs.size
                     var currentTab = ((down.position.x - barLeft) / cellWidth).toInt().coerceIn(0, tabs.size - 1)

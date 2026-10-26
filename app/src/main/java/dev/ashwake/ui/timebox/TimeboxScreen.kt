@@ -273,6 +273,7 @@ private fun DayGrid(
     onSelect: (TimeboxBlock) -> Unit
 ) {
     val density = LocalDensity.current
+    val hourHeight = HOUR_HEIGHT * density.fontScale.coerceIn(1f, 2f)
     val startHour = (workStartMinute / 60).coerceAtMost(23)
     val endHour = ((workEndMinute + 59) / 60).coerceAtLeast(startHour + 1)
     val hours = endHour - startHour
@@ -283,14 +284,14 @@ private fun DayGrid(
     Box(
         Modifier
             .fillMaxWidth()
-            .height(HOUR_HEIGHT * hours)
+            .height(hourHeight * hours)
     ) {
         repeat(hours) { index ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(HOUR_HEIGHT)
-                    .offset(y = HOUR_HEIGHT * index)
+                    .height(hourHeight)
+                    .offset(y = hourHeight * index)
             ) {
                 Text(
                     "%02d:00".format(startHour + index),
@@ -310,16 +311,16 @@ private fun DayGrid(
             Box(
                 modifier = Modifier
                     .padding(start = 52.dp, end = 12.dp)
-                    .offset(y = minuteHeight(minuteOffset))
+                    .offset(y = minuteHeight(minuteOffset, hourHeight))
                     .fillMaxWidth()
-                    .height(minuteHeight(block.durationMinutes).coerceAtLeast(22.dp))
+                    .height(minuteHeight(block.durationMinutes, hourHeight).coerceAtLeast(if (density.fontScale > 1.3f) 36.dp else 22.dp))
                     .clip(RoundedCornerShape(8.dp))
                     .background(colorOf(block.kind).copy(alpha = if (isDragged) 0.5f else 0.22f))
                     .border(1.dp, colorOf(block.kind), RoundedCornerShape(8.dp))
                     .alpha(if (block.pinned) 0.9f else 1f)
                     .then(
                         if (block.pinned) Modifier
-                        else Modifier.pointerInput(block.id) {
+                        else Modifier.pointerInput(block.id, hourHeight) {
                             detectDragGesturesAfterLongPress(
                                 onDragStart = {
                                     draggedId = block.id
@@ -328,7 +329,7 @@ private fun DayGrid(
                                 onDrag = { change, amount ->
                                     change.consume()
                                     val minutes = with(density) {
-                                        (amount.y / HOUR_HEIGHT.toPx() * 60).roundToInt()
+                                        (amount.y / hourHeight.toPx() * 60).roundToInt()
                                     }
                                     dragOffsetMinutes += minutes
                                 },
@@ -409,7 +410,7 @@ private fun BlockActionsDialog(
 }
 
 @Composable
-private fun minuteHeight(minutes: Int): Dp = HOUR_HEIGHT * (minutes / 60f)
+private fun minuteHeight(minutes: Int, hourHeight: Dp): Dp = hourHeight * (minutes / 60f)
 
 @Composable
 private fun colorOf(kind: BlockKind): Color = when (kind) {

@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -40,6 +42,7 @@ fun HabitDetailScreen(
     viewModel: HabitDetailViewModel = hiltViewModel()
 ) {
     val detail by viewModel.detail.collectAsStateWithLifecycle()
+    val compactMetrics = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
 
     Scaffold(
         containerColor = AshTheme.colors.background,
@@ -70,17 +73,21 @@ fun HabitDetailScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 16.dp, end = 16.dp, bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Metric("${(data.progress.score * 100).roundToInt()}%", "score")
-                Metric("${data.progress.currentStreak}", stringResource(R.string.detail_seriya))
-                Metric("${data.progress.recordStreak}", stringResource(R.string.components_rekord))
-                Metric("${data.progress.freezesLeftThisMonth}", stringResource(R.string.detail_zamorozki))
+            val metrics = listOf(
+                "${(data.progress.score * 100).roundToInt()}%" to "score",
+                "${data.progress.currentStreak}" to stringResource(R.string.detail_seriya),
+                "${data.progress.recordStreak}" to stringResource(R.string.components_rekord),
+                "${data.progress.freezesLeftThisMonth}" to stringResource(R.string.detail_zamorozki)
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                metrics.chunked(if (compactMetrics) 2 else 4).forEach { pair ->
+                    Row(Modifier.fillMaxWidth()) {
+                        pair.forEach { (value, label) -> Metric(value, label, Modifier.weight(1f)) }
+                    }
+                }
             }
 
             HorizontalDivider()
@@ -118,8 +125,8 @@ fun HabitDetailScreen(
 }
 
 @Composable
-private fun Metric(value: String, label: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+private fun Metric(value: String, label: String, modifier: Modifier = Modifier) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(value, style = AshTheme.type.title2)
         Text(
             label,
@@ -138,13 +145,18 @@ private fun Statistics(data: dev.ashwake.domain.repository.habits.HabitDetail) {
     val marked = done + minimum
 
     Text(stringResource(R.string.detail_za_god), style = AshTheme.type.headline)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        Metric("$done", stringResource(R.string.detail_vypolneno))
-        Metric("$minimum", stringResource(R.string.detail_po_minimumu))
-        Metric("$skipped", stringResource(R.string.detail_propuscheno))
+    val metrics = listOf(
+        "$done" to stringResource(R.string.detail_vypolneno),
+        "$minimum" to stringResource(R.string.detail_po_minimumu),
+        "$skipped" to stringResource(R.string.detail_propuscheno)
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        val compact = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
+        metrics.chunked(if (compact) 2 else 3).forEach { pair ->
+            Row(Modifier.fillMaxWidth()) {
+                pair.forEach { (value, label) -> Metric(value, label, Modifier.weight(1f)) }
+            }
+        }
     }
     if (marked > 0) {
         Text(

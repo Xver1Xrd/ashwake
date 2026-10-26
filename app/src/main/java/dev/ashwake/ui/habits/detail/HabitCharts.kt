@@ -9,9 +9,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -76,7 +79,7 @@ fun HabitHeatmap(
                         text = if (weekStart.dayOfMonth <= 7) weekStart.format(MONTH_LABEL) else "",
                         style = AshTheme.type.footnote,
                         color = AshTheme.colors.text2,
-                        modifier = Modifier.height(14.dp)
+                        modifier = Modifier.heightIn(min = 20.dp)
                     )
                     repeat(7) { dayIndex ->
                         val date = weekStart.plusDays(dayIndex.toLong())
@@ -102,12 +105,13 @@ fun HabitHeatmap(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeatmapLegend() {
-    Row(
+    FlowRow(
         modifier = Modifier.padding(top = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
         LegendItem(Moss, stringResource(R.string.detail_vypolneno))
         LegendItem(Moss.copy(alpha = 0.5f), stringResource(R.string.detail_minimum))

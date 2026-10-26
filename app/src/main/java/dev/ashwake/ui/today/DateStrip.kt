@@ -20,10 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,6 +52,7 @@ fun DateStrip(
     val colors = AshTheme.colors
     val scrollState = rememberScrollState()
     val density = LocalDensity.current
+    var viewportWidth by remember { mutableIntStateOf(0) }
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
 
     // Диапазон и предрассчитанные строки кэшируются на дату
@@ -66,11 +70,14 @@ fun DateStrip(
     }
 
     // Автоматическая магнитная центровка выбранного дня
-    LaunchedEffect(selectedDate) {
+    LaunchedEffect(selectedDate, viewportWidth, density, scrollState.maxValue) {
         val index = days.indexOfFirst { it.date == selectedDate }
-        if (index >= 0) {
-            val itemWidthPx = with(density) { 56.dp.toPx() }
-            val targetOffset = (index * itemWidthPx - with(density) { 120.dp.toPx() }).toInt().coerceAtLeast(0)
+        if (index >= 0 && viewportWidth > 0) {
+            val itemWidth = if (density.fontScale > 1.3f) 64.dp else 48.dp
+            val stridePx = with(density) { (itemWidth + 8.dp).toPx() }
+            val startPadding = with(density) { 16.dp.toPx() }
+            val targetOffset = (startPadding + index * stridePx + with(density) { itemWidth.toPx() } / 2f - viewportWidth / 2f)
+                .toInt().coerceIn(0, scrollState.maxValue)
             scrollState.animateScrollTo(targetOffset)
         }
     }
@@ -78,6 +85,7 @@ fun DateStrip(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .onSizeChanged { viewportWidth = it.width }
             .horizontalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -124,7 +132,7 @@ private fun DateStripItem(
 
     Column(
         modifier = Modifier
-            .width(48.dp)
+            .width(if (androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f) 64.dp else 48.dp)
             .clip(AshShapes.card)
             .background(bgColor)
             .border(
