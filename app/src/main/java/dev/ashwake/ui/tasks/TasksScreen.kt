@@ -8,10 +8,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.draw.clip
 import dev.ashwake.ui.components.ChipButton
@@ -61,17 +66,17 @@ import dev.ashwake.ui.tasks.components.SubtaskList
 import dev.ashwake.ui.tasks.components.TaskDayHeader
 import dev.ashwake.ui.tasks.components.TaskFilterRow
 import dev.ashwake.ui.tasks.components.TaskRow
-import androidx.compose.foundation.layout.navigationBarsPadding
 import dev.ashwake.ui.components.PrimaryButton
 import dev.ashwake.ui.components.SecondaryButton
 import dev.ashwake.ui.components.TextAction
+import dev.ashwake.ui.components.FloatingTabBarClearance
 import androidx.compose.material3.AlertDialog
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TasksScreen(
     onOpenTask: (Long) -> Unit,
@@ -94,6 +99,7 @@ fun TasksScreen(
     var viewBeforeSelection by remember { mutableStateOf<TasksViewMode?>(null) }
     var showHeaderMenu by remember { mutableStateOf(false) }
     val compactHeader = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
+    val isImeVisible = WindowInsets.isImeVisible
     val visibleTaskIds = state.tasks.map { it.id }.toSet()
 
     fun startSelection(ids: Set<Long> = emptySet()) {
@@ -219,36 +225,40 @@ fun TasksScreen(
         },
         bottomBar = {
             if (isSelectionMode) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(AshTheme.colors.surface1)
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                        .navigationBarsPadding(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    SecondaryButton(
-                        text = "Удалить (${selectedTaskIds.size})",
-                        enabled = selectedTaskIds.isNotEmpty(),
-                        onClick = { showDeleteSelectedConfirm = true },
-                        modifier = Modifier.weight(1f)
-                    )
-                    PrimaryButton(
-                        text = "Поделиться (${selectedTaskIds.size})",
-                        enabled = selectedTaskIds.isNotEmpty(),
-                        onClick = {
-                            val selectedTasks = state.tasks.filter { it.id in selectedTaskIds }
-                            val dateText = state.today.format(DateTimeFormatter.ofPattern("d MMMM", Locale("ru")))
-                            viewModel.shareTasksAsImage(selectedTasks, "Задачи · $dateText") { shareIntent ->
-                                context.startActivity(
-                                    android.content.Intent.createChooser(shareIntent, "Поделиться задачами")
-                                )
-                                finishSelection()
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+                Column {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(AshTheme.colors.surface1)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SecondaryButton(
+                            text = "Удалить (${selectedTaskIds.size})",
+                            enabled = selectedTaskIds.isNotEmpty(),
+                            onClick = { showDeleteSelectedConfirm = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                        PrimaryButton(
+                            text = "Поделиться (${selectedTaskIds.size})",
+                            enabled = selectedTaskIds.isNotEmpty(),
+                            onClick = {
+                                val selectedTasks = state.tasks.filter { it.id in selectedTaskIds }
+                                val dateText = state.today.format(DateTimeFormatter.ofPattern("d MMMM", Locale("ru")))
+                                viewModel.shareTasksAsImage(selectedTasks, "Задачи · $dateText") { shareIntent ->
+                                    context.startActivity(
+                                        android.content.Intent.createChooser(shareIntent, "Поделиться задачами")
+                                    )
+                                    finishSelection()
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    // Прозрачный участок оставляет остров на фоне экрана, а действия
+                    // выделения поднимает выше него.
+                    Spacer(Modifier.height(FloatingTabBarClearance))
                 }
             } else {
                 QuickAddBar(
@@ -266,7 +276,7 @@ fun TasksScreen(
                     },
                     // Быстрый ввод располагается над глобальным островом.
                     // Поэтому его фон не оказывается серой полосой под ним.
-                    modifier = Modifier.padding(bottom = 84.dp)
+                    modifier = Modifier.padding(bottom = if (isImeVisible) 0.dp else 84.dp)
                 )
             }
         }

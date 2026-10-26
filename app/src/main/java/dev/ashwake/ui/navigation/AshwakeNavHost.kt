@@ -142,6 +142,9 @@ fun AshwakeRoot(
     CompositionLocalProvider(LocalHazeState provides haze) {
         Scaffold(
             containerColor = AshTheme.colors.background,
+            // Экраны сами применяют statusBarsPadding. Если Scaffold передаст и
+            // поглотит системный верхний inset, заголовки окажутся под часами.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             bottomBar = {
                 // На экранах-формах и при открытой клавиатуре нижняя навигация прячется
                 val isImeVisible = WindowInsets.isImeVisible

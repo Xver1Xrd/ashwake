@@ -11,6 +11,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -18,6 +19,7 @@ import dev.ashwake.ui.theme.AshwakeTheme
 import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.AshTabBar
 import dev.ashwake.ui.components.TabItem
+import dev.ashwake.ui.tasks.components.AttachmentGrid
 import dev.ashwake.ui.today.DateStrip
 import java.time.LocalDate
 import org.junit.Assert.assertTrue
@@ -75,5 +77,24 @@ class AdaptiveLayoutTest {
             click(Offset(bounds.width * 0.30f, bounds.height / 2f))
         }
         assertTrue("Touch position should match the visible second segment", selected == "tasks")
+    }
+
+    @Test fun `photo and file actions open directly without a large add tile`() {
+        var selected = ""
+        compose.setContent {
+            AshwakeTheme {
+                AttachmentGrid(
+                    attachments = emptyList(),
+                    onAddPhoto = { selected = "photo" },
+                    onAddFile = { selected = "file" },
+                    onRemove = {}
+                )
+            }
+        }
+        compose.onNodeWithText("+ Добавить").assertDoesNotExist()
+        compose.onNodeWithText("Фото").performClick()
+        assertTrue(selected == "photo")
+        compose.onNodeWithText("Файл").performClick()
+        assertTrue(selected == "file")
     }
 }

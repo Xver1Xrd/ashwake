@@ -21,6 +21,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -43,6 +46,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import dev.ashwake.domain.model.tasks.TaskAttachment
 import dev.ashwake.ui.components.AshIcons
+import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
 import java.io.File
@@ -55,39 +59,33 @@ fun AttachmentGrid(
     attachments: List<TaskAttachment>,
     onAddPhoto: (() -> Unit)? = null,
     onAddFile: (() -> Unit)? = null,
+    addEnabled: Boolean = true,
     onRemove: (TaskAttachment) -> Unit
 ) {
     var opened by remember { mutableStateOf<TaskAttachment?>(null) }
     var pendingDelete by remember { mutableStateOf<TaskAttachment?>(null) }
-    var choosingType by remember { mutableStateOf(false) }
-    val hasAdd = onAddPhoto != null || onAddFile != null
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        (attachments.map { it as TaskAttachment? } + if (hasAdd) listOf(null) else emptyList()).chunked(2).forEach { row ->
+        attachments.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { attachment ->
-                    if (attachment == null) {
-                        Box(Modifier.weight(1f).height(144.dp).clip(AshShapes.group)
-                            .background(AshTheme.colors.surface2).clickable { choosingType = true },
-                            contentAlignment = Alignment.Center) {
-                            Text("+ Добавить", color = AshTheme.colors.accent)
-                        }
-                    } else AttachmentTile(attachment, Modifier.weight(1f), { opened = it }) { pendingDelete = it }
+                    AttachmentTile(attachment, Modifier.weight(1f), { opened = it }) { pendingDelete = it }
                 }
                 if (row.size == 1) Box(Modifier.weight(1f))
             }
         }
+        if (onAddPhoto != null || onAddFile != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                onAddPhoto?.let { action ->
+                    ChipButton("Фото", icon = Icons.Filled.Image, enabled = addEnabled, onClick = action)
+                }
+                onAddFile?.let { action ->
+                    ChipButton("Файл", icon = Icons.Filled.AttachFile, enabled = addEnabled, onClick = action)
+                }
+            }
+        }
     }
 
-    if (choosingType) AlertDialog(
-        onDismissRequest = { choosingType = false },
-        title = { Text("Добавить вложение") },
-        text = { Column {
-            onAddPhoto?.let { action -> TextButton(onClick = { choosingType = false; action() }) { Text("Фото") } }
-            onAddFile?.let { action -> TextButton(onClick = { choosingType = false; action() }) { Text("Файл") } }
-        } },
-        confirmButton = { TextButton(onClick = { choosingType = false }) { Text("Отмена") } }
-    )
     opened?.let { attachment -> AttachmentViewer(attachment) { opened = null } }
     pendingDelete?.let { attachment ->
         AlertDialog(

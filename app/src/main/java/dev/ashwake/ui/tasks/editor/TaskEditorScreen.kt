@@ -227,6 +227,7 @@ fun TaskEditorScreen(
                         )
                     },
                     onAddFile = { if (state.canSave) filePicker.launch(arrayOf("*/*")) },
+                    addEnabled = state.canSave,
                     onRemove = viewModel::removeAttachment
                 )
             }
