@@ -14,8 +14,8 @@ android {
         applicationId = "dev.ashwake"
         minSdk = 26
         targetSdk = 35
-        versionCode = 132
-        versionName = "1.2.12"
+        versionCode = 133
+        versionName = "1.2.13"
         val apiBaseUrl = providers.gradleProperty("ashwake.apiBaseUrl").orNull.orEmpty()
             .replace("\\", "\\\\")
             .replace("\"", "\\\"")
@@ -55,6 +55,13 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             isMinifyEnabled = false
+        }
+        // Installable performance build compatible with the existing debug app.
+        create("performance") {
+            initWith(getByName("debug"))
+            isDebuggable = false
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += listOf("debug")
         }
         // Сборка для Macrobenchmark: близка к релизной, но отлаживаемая
         create("benchmark") {

@@ -83,7 +83,7 @@ fun ActivityFlame(
     val shouldAnimate = animate && !AshTheme.reduceMotion
     val pulse = if (shouldAnimate) {
         val transition = rememberInfiniteTransition(label = "flame")
-        val value by transition.animateFloat(
+        val value = transition.animateFloat(
             initialValue = 0.88f,
             targetValue = 1.14f,
             animationSpec = infiniteRepeatable(
@@ -93,10 +93,10 @@ fun ActivityFlame(
             label = "flame-pulse"
         )
         value
-    } else 1f
+    } else androidx.compose.runtime.rememberUpdatedState(1f)
     val glowAlpha = if (shouldAnimate) {
         val transition = rememberInfiniteTransition(label = "flame-glow")
-        val value by transition.animateFloat(
+        val value = transition.animateFloat(
             initialValue = 0.25f,
             targetValue = 0.65f,
             animationSpec = infiniteRepeatable(
@@ -106,10 +106,10 @@ fun ActivityFlame(
             label = "flame-glow"
         )
         value
-    } else 0.42f
+    } else androidx.compose.runtime.rememberUpdatedState(0.42f)
     val flutterPhase = if (shouldAnimate) {
         val transition = rememberInfiniteTransition(label = "flame-flutter")
-        val value by transition.animateFloat(
+        val value = transition.animateFloat(
             initialValue = 0f,
             targetValue = (2 * Math.PI).toFloat(),
             animationSpec = infiniteRepeatable(
@@ -119,7 +119,7 @@ fun ActivityFlame(
             label = "flame-flutter"
         )
         value
-    } else 0f
+    } else androidx.compose.runtime.rememberUpdatedState(0f)
 
     val flamePath = remember { Path() }
     val innerFlamePath = remember { Path() }
@@ -139,7 +139,7 @@ fun ActivityFlame(
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.size(34.dp)) {
-            drawFlame(level, pulse, glowAlpha, flutterPhase, flamePath, innerFlamePath)
+            drawFlame(level, pulse.value, glowAlpha.value, flutterPhase.value, flamePath, innerFlamePath)
         }
     }
 
