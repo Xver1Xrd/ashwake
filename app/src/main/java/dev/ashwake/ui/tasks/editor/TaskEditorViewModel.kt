@@ -92,6 +92,7 @@ class TaskEditorViewModel @Inject constructor(
     private val tasks: TaskRepository,
     private val projects: ProjectRepository,
     private val tags: TagRepository,
+    private val settings: dev.ashwake.data.settings.AppSettings,
     private val saveTask: SaveTaskUseCase,
     private val completeTask: CompleteTaskUseCase,
     private val reopenTask: ReopenTaskUseCase,
@@ -116,7 +117,9 @@ class TaskEditorViewModel @Inject constructor(
     val projectList: StateFlow<List<Project>> = projects.observeProjects()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    val availableTags: StateFlow<List<Tag>> = tags.observeTags()
+    val availableTags: StateFlow<List<Tag>> = kotlinx.coroutines.flow.combine(
+        tags.observeTags(), settings.hiddenTagSuggestions
+    ) { all, hidden -> all.filter { it.name.lowercase() !in hidden } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Подзадачи, удалённые в редакторе: применяются одной пачкой при сохранении. */
@@ -265,6 +268,10 @@ class TaskEditorViewModel @Inject constructor(
     fun setPriority(value: Priority) = _state.update { it.copy(priority = value) }
     fun setDifficulty(value: Int) = _state.update { it.copy(difficulty = value.coerceIn(1, 5)) }
     fun setDate(value: LocalDate?) = _state.update { it.copy(dueDate = value) }
+    fun hideTagSuggestion(name: String) {
+        viewModelScope.launch { settings.hideTagSuggestion(name) }
+    }
+
     fun setTagsInput(value: String) = _state.update { it.copy(tagsInput = value) }
     fun setSourceLink(value: String?) = _state.update { it.copy(sourceLink = value) }
 

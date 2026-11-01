@@ -38,6 +38,17 @@ class AppSettings @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
 
+    private val hiddenTagSuggestionsKey = androidx.datastore.preferences.core.stringSetPreferencesKey("hidden_tag_suggestions")
+    val hiddenTagSuggestions: Flow<Set<String>> = context.dataStore.data.map {
+        it[hiddenTagSuggestionsKey] ?: emptySet()
+    }
+
+    suspend fun hideTagSuggestion(name: String) {
+        context.dataStore.edit { prefs ->
+            prefs[hiddenTagSuggestionsKey] = (prefs[hiddenTagSuggestionsKey] ?: emptySet()) + name.lowercase()
+        }
+    }
+
     val timebox: Flow<TimeboxSettings> = context.dataStore.data.map { prefs ->
         TimeboxSettings(
             workStartMinute = prefs[WORK_START] ?: DEFAULT_WORK_START,

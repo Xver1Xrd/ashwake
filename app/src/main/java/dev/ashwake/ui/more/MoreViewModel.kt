@@ -4,7 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.ashwake.data.db.dao.ritual.RitualDao
+import dev.ashwake.data.db.dao.ritual.SearchReviewRow
 import dev.ashwake.data.db.dao.tasks.TaskDao
+import dev.ashwake.data.db.dao.tasks.SearchTaskRow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -56,84 +59,62 @@ class MoreViewModel @Inject constructor(
     private val _filter = MutableStateFlow(HistoryFilter.ALL)
     val filter: StateFlow<HistoryFilter> = _filter.asStateFlow()
 
-    /**
-     * База истории открывается только после первого символа запроса. Раньше
-     * сам вход во вкладку «Ещё» читал целиком активные задачи, корзину и все
-     * записи ритуалов, хотя пользователь ещё ничего не искал.
-     */
+    // Keep only the light projections warm between keystrokes. The database
+    // subscriptions still stop shortly after search is closed.
+    private val taskRows: StateFlow<List<SearchTaskRow>> = taskDao.observeSearchTasks()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val trashRows: StateFlow<List<SearchTaskRow>> = taskDao.observeSearchTrash()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+    private val noteRows: StateFlow<List<SearchReviewRow>> = ritualDao.observeSearchNotes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Лёгкие проекции: поиск сохраняет Unicode-регистр и не грузит связи задач. */
     val searchResults: StateFlow<List<SearchResultItem>> = combine(_query, _filter) { q, f ->
         q.trim().lowercase() to f
     }.debounce(220).flatMapLatest { (trimmed, f) ->
         if (trimmed.isEmpty()) return@flatMapLatest flowOf(emptyList())
-
-        combine(
-            taskDao.observeTasks(1, null, null, null, null, 0, null),
-            taskDao.observeTrash(),
-            ritualDao.observeReviews(0, 47500)
-        ) { tasks, trash, reviews ->
-            val results = mutableListOf<SearchResultItem>()
-
-        // 1. Задачи
-        if (f == HistoryFilter.ALL || f == HistoryFilter.TASKS) {
-            tasks.forEach { t ->
-                val task = t.task
-                val titleMatch = task.title.lowercase().contains(trimmed)
-                val noteMatch = task.note?.lowercase()?.contains(trimmed) == true
-                if (titleMatch || noteMatch) {
-                    val statusText = if (task.status == "DONE") "✓ Выполнена" else "Активная"
-                    val dateText = task.dueDate?.let { LocalDate.ofEpochDay(it.toLong()).format(DATE_FORMAT) }
-                    results += SearchResultItem(
-                        id = "task-${task.id}",
-                        type = HistoryItemType.TASK,
-                        title = task.title,
-                        subtitle = task.note ?: statusText,
-                        date = dateText,
-                        taskId = task.id
-                    )
+        when (f) {
+            HistoryFilter.TASKS -> taskRows.map { rows ->
+                rows.toSearchResults(trimmed, archived = false)
+            }
+            HistoryFilter.ARCHIVE -> trashRows.map { rows ->
+                rows.toSearchResults(trimmed, archived = true)
+            }
+            HistoryFilter.NOTES -> noteRows.map { rows ->
+                rows.filter { it.note.lowercase().contains(trimmed) }.map { review ->
+                    val date = LocalDate.ofEpochDay(review.date.toLong()).format(DATE_FORMAT)
+                    SearchResultItem("review-${review.date}", HistoryItemType.NOTE, "Заметка дня: $date", review.note, date)
                 }
             }
-        }
-
-        // 2. Архив / Корзина
-        if (f == HistoryFilter.ALL || f == HistoryFilter.ARCHIVE) {
-            trash.forEach { t ->
-                val task = t.task
-                val titleMatch = task.title.lowercase().contains(trimmed)
-                val noteMatch = task.note?.lowercase()?.contains(trimmed) == true
-                if (titleMatch || noteMatch) {
-                    results += SearchResultItem(
-                        id = "trash-${task.id}",
-                        type = HistoryItemType.ARCHIVE,
-                        title = task.title,
-                        subtitle = "В корзине" + (task.note?.let { " · $it" } ?: ""),
-                        date = task.dueDate?.let { LocalDate.ofEpochDay(it.toLong()).format(DATE_FORMAT) },
-                        taskId = task.id
-                    )
-                }
+            HistoryFilter.ALL -> combine(
+                taskRows,
+                trashRows,
+                noteRows
+            ) { tasks, trash, reviews ->
+                tasks.toSearchResults(trimmed, archived = false) +
+                    trash.toSearchResults(trimmed, archived = true) +
+                    reviews.filter { it.note.lowercase().contains(trimmed) }.map { review ->
+                        val date = LocalDate.ofEpochDay(review.date.toLong()).format(DATE_FORMAT)
+                        SearchResultItem("review-${review.date}", HistoryItemType.NOTE, "Заметка дня: $date", review.note, date)
+                    }
             }
-        }
-
-        // 3. Заметки ритуалов
-        if (f == HistoryFilter.ALL || f == HistoryFilter.NOTES) {
-            reviews.filter { !it.note.isNullOrBlank() }.forEach { rev ->
-                val note = rev.note.orEmpty()
-                if (note.lowercase().contains(trimmed)) {
-                    val dateText = LocalDate.ofEpochDay(rev.date.toLong()).format(DATE_FORMAT)
-                    results += SearchResultItem(
-                        id = "review-${rev.date}",
-                        type = HistoryItemType.NOTE,
-                        title = "Заметка дня: $dateText",
-                        subtitle = note,
-                        date = dateText,
-                        taskId = null
-                    )
-                }
-            }
-        }
-
-            results
         }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private fun List<SearchTaskRow>.toSearchResults(query: String, archived: Boolean): List<SearchResultItem> =
+        filter { it.title.lowercase().contains(query) || it.note?.lowercase()?.contains(query) == true }
+            .map { task ->
+                val date = task.dueDate?.let { LocalDate.ofEpochDay(it.toLong()).format(DATE_FORMAT) }
+                SearchResultItem(
+                    id = "${if (archived) "trash" else "task"}-${task.id}",
+                    type = if (archived) HistoryItemType.ARCHIVE else HistoryItemType.TASK,
+                    title = task.title,
+                    subtitle = if (archived) "В корзине" + (task.note?.let { " · $it" } ?: "")
+                        else task.note ?: if (task.status == "DONE") "✓ Выполнена" else "Активная",
+                    date = date,
+                    taskId = task.id
+                )
+            }
 
     fun setQuery(value: String) { _query.value = value }
     fun setFilter(value: HistoryFilter) { _filter.value = value }

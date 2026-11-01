@@ -19,8 +19,23 @@ import dev.ashwake.data.db.entity.tasks.TaskWithRelations
 import dev.ashwake.data.db.entity.tasks.TaskListRow
 import kotlinx.coroutines.flow.Flow
 
+/** Только поля, которые нужны поиску; без тегов, вложений и подзадач. */
+data class SearchTaskRow(
+    val id: Long,
+    val title: String,
+    val note: String?,
+    val status: String,
+    val dueDate: Int?
+)
+
 @Dao
 interface TaskDao {
+
+    @Query("SELECT id, title, note, status, dueDate FROM tasks WHERE isTemplate = 0 AND parentTaskId IS NULL AND status != 'DROPPED'")
+    fun observeSearchTasks(): Flow<List<SearchTaskRow>>
+
+    @Query("SELECT id, title, note, status, dueDate FROM tasks WHERE isTemplate = 0 AND status = 'DROPPED'")
+    fun observeSearchTrash(): Flow<List<SearchTaskRow>>
 
     /**
      * Основа быстрых списков. Не присоединяем вложения и подзадачи к каждой

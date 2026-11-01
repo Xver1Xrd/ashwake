@@ -25,7 +25,7 @@ class TaskDayGroupingTest {
         val groups = groupTasksByDay(tasks, today)
 
         assertEquals(5, groups.size)
-        assertEquals("Просрочено", groups[0].title)
+        assertEquals(today.minusDays(2), groups[0].date)
         assertTrue(groups[0].isOverdue)
         assertEquals(1, groups[0].tasks.size)
 
@@ -47,6 +47,19 @@ class TaskDayGroupingTest {
     fun `пустой список возвращает пустые группы`() {
         val groups = groupTasksByDay(emptyList(), today)
         assertTrue(groups.isEmpty())
+    }
+
+    @Test
+    fun `выполненные и активные задачи сохраняют общий порядок дат`() {
+        val monday = LocalDate.of(2026, 10, 19)
+        val tasks = (0..6).map { day ->
+            task(day.toLong(), "Задача", monday.plusDays(day.toLong())).copy(
+                status = if (day == 3 || day == 4) TaskStatus.DONE else TaskStatus.ACTIVE
+            )
+        }.reversed()
+        val groups = groupTasksByDay(tasks, monday.plusDays(7))
+        assertEquals((0..6).map { monday.plusDays(it.toLong()) }, groups.map { it.date })
+        assertEquals(7, groups.sumOf { it.tasks.size })
     }
 
     private fun task(id: Long, title: String, due: LocalDate?) = Task(

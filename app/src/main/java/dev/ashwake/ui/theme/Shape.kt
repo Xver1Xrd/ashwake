@@ -33,7 +33,9 @@ import kotlin.math.sin
  */
 class SquircleShape(
     private val radius: Dp,
-    private val smoothing: Float = DEFAULT_SMOOTHING
+    private val smoothing: Float = DEFAULT_SMOOTHING,
+    private val topCorners: Boolean = true,
+    private val bottomCorners: Boolean = true
 ) : Shape {
 
     override fun createOutline(
@@ -44,13 +46,14 @@ class SquircleShape(
         val maxRadius = min(size.width, size.height) / 2f
         val r = min(with(density) { radius.toPx() }, maxRadius)
         if (r <= 0f) return Outline.Rectangle(size.toRect())
-        return Outline.Generic(squirclePath(size, r, smoothing))
+        return Outline.Generic(squirclePath(size, r, smoothing, topCorners, bottomCorners))
     }
 
     override fun equals(other: Any?): Boolean =
-        other is SquircleShape && other.radius == radius && other.smoothing == smoothing
+        other is SquircleShape && other.radius == radius && other.smoothing == smoothing &&
+            other.topCorners == topCorners && other.bottomCorners == bottomCorners
 
-    override fun hashCode(): Int = 31 * radius.hashCode() + smoothing.hashCode()
+    override fun hashCode(): Int = ((31 * radius.hashCode() + smoothing.hashCode()) * 31 + topCorners.hashCode()) * 31 + bottomCorners.hashCode()
 
     companion object {
         const val DEFAULT_SMOOTHING = 0.6f
@@ -62,7 +65,7 @@ private fun Size.toRect() = androidx.compose.ui.geometry.Rect(0f, 0f, width, hei
 private const val SEGMENTS = 12
 private const val QUARTER = (Math.PI / 2.0).toFloat()
 
-private fun squirclePath(size: Size, r: Float, smoothing: Float): Path {
+private fun squirclePath(size: Size, r: Float, smoothing: Float, topCorners: Boolean, bottomCorners: Boolean): Path {
     val w = size.width
     val h = size.height
     // 0 → окружность, 1 → почти прямой угол. Диапазон подобран так, чтобы
@@ -71,15 +74,19 @@ private fun squirclePath(size: Size, r: Float, smoothing: Float): Path {
     val power = 2f / n
 
     return Path().apply {
-        moveTo(r, 0f)
-        lineTo(w - r, 0f)
-        corner(w - r, r, r, sx = 1f, sy = -1f, from = QUARTER, to = 0f, power = power)
-        lineTo(w, h - r)
-        corner(w - r, h - r, r, sx = 1f, sy = 1f, from = 0f, to = QUARTER, power = power)
-        lineTo(r, h)
-        corner(r, h - r, r, sx = -1f, sy = 1f, from = QUARTER, to = 0f, power = power)
-        lineTo(0f, r)
-        corner(r, r, r, sx = -1f, sy = -1f, from = 0f, to = QUARTER, power = power)
+        moveTo(if (topCorners) r else 0f, 0f)
+        lineTo(w - if (topCorners) r else 0f, 0f)
+        if (topCorners) corner(w - r, r, r, sx = 1f, sy = -1f, from = QUARTER, to = 0f, power = power)
+        else lineTo(w, 0f)
+        lineTo(w, h - if (bottomCorners) r else 0f)
+        if (bottomCorners) corner(w - r, h - r, r, sx = 1f, sy = 1f, from = 0f, to = QUARTER, power = power)
+        else lineTo(w, h)
+        lineTo(if (bottomCorners) r else 0f, h)
+        if (bottomCorners) corner(r, h - r, r, sx = -1f, sy = 1f, from = QUARTER, to = 0f, power = power)
+        else lineTo(0f, h)
+        lineTo(0f, if (topCorners) r else 0f)
+        if (topCorners) corner(r, r, r, sx = -1f, sy = -1f, from = 0f, to = QUARTER, power = power)
+        else lineTo(0f, 0f)
         close()
     }
 }
@@ -131,6 +138,16 @@ data class AshShapeScheme(
     val small: Shape get() = shape(smallRadius)
     /** Группы сгруппированных списков и поля ввода. */
     val group: Shape get() = shape(groupRadius)
+    fun groupSegment(first: Boolean, last: Boolean): Shape = when {
+        groupRadius <= 0.dp -> RoundedCornerShape(0.dp)
+        continuous -> SquircleShape(groupRadius, smoothing, first, last)
+        else -> RoundedCornerShape(
+            topStart = if (first) groupRadius else 0.dp,
+            topEnd = if (first) groupRadius else 0.dp,
+            bottomStart = if (last) groupRadius else 0.dp,
+            bottomEnd = if (last) groupRadius else 0.dp
+        )
+    }
     /** Карточки и плитки. */
     val card: Shape get() = shape(cardRadius)
     /** Обложка, герой-блок, модальные листы. */

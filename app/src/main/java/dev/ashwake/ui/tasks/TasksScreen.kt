@@ -73,6 +73,7 @@ import dev.ashwake.ui.components.FloatingTabBarClearance
 import androidx.compose.material3.AlertDialog
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import java.time.LocalDate
 import androidx.compose.ui.res.stringResource
 import dev.ashwake.R
 
@@ -85,7 +86,6 @@ fun TasksScreen(
     viewModel: TasksViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
     val voice by viewModel.voiceState.collectAsStateWithLifecycle()
     val colors = AshTheme.colors
     val haptics = dev.ashwake.ui.theme.rememberHaptics()
@@ -100,7 +100,7 @@ fun TasksScreen(
     var showHeaderMenu by remember { mutableStateOf(false) }
     val compactHeader = LocalConfiguration.current.screenWidthDp < 400 || LocalDensity.current.fontScale > 1.3f
     val isImeVisible = WindowInsets.isImeVisible
-    val visibleTaskIds = state.tasks.map { it.id }.toSet()
+    val visibleTaskIds = remember(state.tasks) { state.tasks.map { it.id }.toSet() }
 
     fun startSelection(ids: Set<Long> = emptySet()) {
         viewBeforeSelection = state.viewMode.takeIf { it != TasksViewMode.LIST }
@@ -261,9 +261,11 @@ fun TasksScreen(
                     Spacer(Modifier.height(FloatingTabBarClearance))
                 }
             } else {
+                val quickInput by viewModel.quickInputState.collectAsStateWithLifecycle()
+                val parsedInput by viewModel.parsedQuickInput.collectAsStateWithLifecycle()
                 QuickAddBar(
-                    value = state.quickInput,
-                    parsed = state.parsed,
+                    value = quickInput,
+                    parsed = parsedInput,
                     onValueChange = viewModel::onQuickInputChange,
                     onSubmit = viewModel::submitQuickInput,
                     listening = voice is VoiceResult.Listening || voice is VoiceResult.Partial,
@@ -298,14 +300,10 @@ fun TasksScreen(
                 when {
                     state.viewMode == TasksViewMode.TIMEBOX -> TimeboxScreen()
 
-                    state.viewMode == TasksViewMode.CALENDAR -> TaskCalendar(
-                        state = calendar,
+                    state.viewMode == TasksViewMode.CALENDAR -> CalendarMode(
+                        viewModel = viewModel,
                         today = state.today,
-                        onScaleChange = viewModel::setCalendarScale,
-                        onDateSelected = viewModel::selectDate,
-                        onShift = viewModel::shiftCalendar,
-                        onToday = viewModel::goToToday,
-                        onTaskClick = { onOpenTask(it.id) }
+                        onOpenTask = onOpenTask
                     )
 
                     state.tasks.isEmpty() -> EmptyState(onlyStale = state.filter.onlyStale)
@@ -434,6 +432,21 @@ fun TasksScreen(
 
 internal fun toggleVisibleSelection(selected: Set<Long>, visible: Set<Long>): Set<Long> =
     if (visible.isNotEmpty() && selected.containsAll(visible)) selected - visible else selected + visible
+
+@Composable
+private fun CalendarMode(viewModel: TasksViewModel, today: LocalDate, onOpenTask: (Long) -> Unit) {
+    // Подписка на диапазон дат живёт только пока календарь на экране.
+    val calendar by viewModel.calendarState.collectAsStateWithLifecycle()
+    TaskCalendar(
+        state = calendar,
+        today = today,
+        onScaleChange = viewModel::setCalendarScale,
+        onDateSelected = viewModel::selectDate,
+        onShift = viewModel::shiftCalendar,
+        onToday = viewModel::goToToday,
+        onTaskClick = { onOpenTask(it.id) }
+    )
+}
 
 private fun nextMode(mode: TasksViewMode): TasksViewMode = when (mode) {
     TasksViewMode.LIST -> TasksViewMode.MATRIX

@@ -1,6 +1,8 @@
 package dev.ashwake.ui.tasks.components
 
 import android.graphics.BitmapFactory
+import android.graphics.Bitmap
+import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -181,15 +183,33 @@ private fun AttachmentImage(attachment: TaskAttachment, modifier: Modifier, cont
     var bitmap by remember(file.path, contentScale) { mutableStateOf<android.graphics.Bitmap?>(null) }
     LaunchedEffect(file.path, contentScale) {
         bitmap = withContext(Dispatchers.IO) {
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeFile(file.path, bounds)
             val limit = if (contentScale == ContentScale.Fit) 2048 else 512
-            var sample = 1
-            while (maxOf(bounds.outWidth, bounds.outHeight) / sample > limit * 2) sample *= 2
-            BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+            AttachmentBitmapCache.load(file, limit)
         }
     }
     bitmap?.let { Image(it.asImageBitmap(), null, modifier, contentScale = contentScale) }
+}
+
+/** Bounded cache shared between cards and the viewer; decoding remains off the UI thread. */
+private object AttachmentBitmapCache {
+    private const val MAX_BYTES = 12 * 1024 * 1024
+    private val cache = object : LruCache<String, Bitmap>(MAX_BYTES) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount
+    }
+
+    fun load(file: File, limit: Int): Bitmap? {
+        val key = "${file.path}:$limit"
+        cache.get(key)?.let { return it }
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(file.path, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > limit) sample *= 2
+        val bitmap = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+            ?: return null
+        if (bitmap.byteCount <= MAX_BYTES) cache.put(key, bitmap)
+        return bitmap
+    }
 }
 
 private fun fileSize(bytes: Long): String = when {

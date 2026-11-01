@@ -13,7 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,12 +35,15 @@ import dev.ashwake.ui.components.ChipButton
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ListDivider
 import dev.ashwake.ui.components.ListGroup
+import dev.ashwake.ui.components.ListGroupHeader
+import dev.ashwake.ui.components.ListGroupFooter
 import dev.ashwake.ui.components.ListRow
 import dev.ashwake.ui.components.ScreenPadding
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.components.tappable
 import dev.ashwake.ui.theme.AshShapes
 import dev.ashwake.ui.theme.AshTheme
+import dev.ashwake.ui.theme.LocalAshShapes
 
 /**
  * «Ещё» — четвёртая вкладка.
@@ -63,29 +67,29 @@ fun MoreScreen(
     val filter by viewModel.filter.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
 
-    Column(
+    LazyColumn(
         Modifier
             .fillMaxSize()
             .background(colors.background)
             .appHazeSource()
             .imePadding()
-            .verticalScroll(rememberScrollState())
             .statusBarsPadding()
             .padding(bottom = dev.ashwake.ui.components.FloatingTabBarClearance),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        Text(
+        item(key = "title") { Text(
             text = stringResource(R.string.more_esche),
             style = AshTheme.type.largeTitle,
             color = colors.text,
-            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp)
-        )
+            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = 4.dp).padding(bottom = 16.dp)
+        ) }
 
         // Поле поиска по истории
-        Column(
+        item(key = "search") { Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = ScreenPadding),
+                .padding(horizontal = ScreenPadding)
+                .padding(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             AshTextField(
@@ -120,50 +124,52 @@ fun MoreScreen(
                     )
                 }
             }
-        }
+        } }
 
         if (query.isNotBlank()) {
             // Результаты поиска
-            ListGroup(
-                header = "Найдено: ${searchResults.size}",
-                footer = if (searchResults.isEmpty()) "По вашему запросу ничего не найдено" else null
-            ) {
-                searchResults.forEachIndexed { index, item ->
-                    SearchResultRow(
-                        item = item,
+            item(key = "results-header") { ListGroupHeader("Найдено: ${searchResults.size}") }
+            if (searchResults.isEmpty()) {
+                item(key = "results-empty") { ListGroupFooter("По вашему запросу ничего не найдено") }
+            } else {
+                itemsIndexed(searchResults, key = { _, item -> item.id }) { index, result ->
+                    val shape = LocalAshShapes.current.groupSegment(index == 0, index == searchResults.lastIndex)
+                    Column(Modifier.padding(horizontal = ScreenPadding).clip(shape).background(colors.surface1)) {
+                        SearchResultRow(
+                        item = result,
                         onClick = {
-                            item.taskId?.let { onOpenTask(it) }
+                            result.taskId?.let { onOpenTask(it) }
                         }
                     )
-                    if (index != searchResults.lastIndex) {
-                        ListDivider(56.dp)
+                        if (index != searchResults.lastIndex) ListDivider(56.dp)
                     }
                 }
             }
         } else {
             // Обычные разделы «Ещё»
-            ListGroup(header = stringResource(R.string.more_razdely)) {
+            item(key = "sections") { ListGroup(header = stringResource(R.string.more_razdely)) {
                 MoreRow(stringResource(R.string.abstinence_otkazy), AshIcons.Prohibit, onOpenAbstinence)
                 ListDivider(52.dp)
                 MoreRow(stringResource(R.string.more_taymery_i_rutiny), AshIcons.Timer, onOpenTimers)
                 ListDivider(52.dp)
                 MoreRow(stringResource(R.string.stats_statistika), AshIcons.BarChart, onOpenStats)
-            }
+            } }
 
-            ListGroup(header = stringResource(R.string.more_zadachi_group)) {
+            item(key = "trash") { ListGroup(modifier = Modifier.padding(top = 16.dp), header = stringResource(R.string.more_zadachi_group)) {
                 MoreRow(stringResource(R.string.more_trash), AshIcons.Trash, onOpenTrash)
-            }
+            } }
 
-            ListGroup(header = stringResource(R.string.more_vecher)) {
+            item(key = "evening") { ListGroup(modifier = Modifier.padding(top = 16.dp), header = stringResource(R.string.more_vecher)) {
                 MoreRow(stringResource(R.string.ritual_vecherniy_ritual), AshIcons.Moon, onOpenRitual)
-            }
+            } }
 
-            ListGroup(
+            item(key = "app") { ListGroup(
+                modifier = Modifier.padding(top = 16.dp),
                 header = stringResource(R.string.more_prilozhenie),
                 footer = stringResource(R.string.more_prilozhenie_rabotaet_oflayn_ni_odnogo_setevo)
             ) {
                 MoreRow(stringResource(R.string.character_nastroyki), AshIcons.Settings, onOpenSettings)
-            }
+            } }
         }
     }
 }

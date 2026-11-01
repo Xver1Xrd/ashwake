@@ -70,7 +70,7 @@ class ImageExporter @Inject constructor(
         }
 
     /** Интент «поделиться» через FileProvider: прямой file:// система не примет. */
-    suspend fun shareIntent(bitmap: Bitmap, name: String): Intent? =
+    suspend fun shareIntent(bitmap: Bitmap, name: String, asDocument: Boolean = false): Intent? =
         withContext(Dispatchers.IO) {
             runCatching {
                 val dir = File(context.cacheDir, "shared").apply { mkdirs() }
@@ -83,7 +83,7 @@ class ImageExporter @Inject constructor(
                     file
                 )
                 Intent(Intent.ACTION_SEND).apply {
-                    type = "image/png"
+                    type = if (asDocument) "application/octet-stream" else "image/png"
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }

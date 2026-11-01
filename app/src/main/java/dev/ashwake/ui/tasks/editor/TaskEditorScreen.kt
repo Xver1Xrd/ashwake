@@ -396,17 +396,22 @@ fun TaskEditorScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         tagSuggestions.take(12).forEach { tag ->
-                            Box(
-                                modifier = Modifier
-                                    .clip(AshShapes.pill)
-                                    .background(colors.surface2)
-                                    .tappable { viewModel.appendTag(tag.name) }
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                            Row(
+                                modifier = Modifier.clip(AshShapes.pill).background(colors.surface2),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
                                     text = "+ #${tag.name}",
                                     style = AshTheme.type.caption,
-                                    color = colors.text2
+                                    color = colors.text2,
+                                    modifier = Modifier.tappable { viewModel.appendTag(tag.name) }
+                                        .padding(horizontal = 10.dp, vertical = 12.dp)
+                                )
+                                dev.ashwake.ui.components.IconAction(
+                                    icon = dev.ashwake.ui.components.AshIcons.Close,
+                                    contentDescription = "Убрать #${tag.name} из предлагаемых",
+                                    tint = colors.text2,
+                                    onClick = { viewModel.hideTagSuggestion(tag.name) }
                                 )
                             }
                         }

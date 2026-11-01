@@ -10,8 +10,13 @@ import dev.ashwake.data.db.entity.ritual.DailyReviewTopTaskEntity
 import dev.ashwake.data.db.entity.ritual.WeeklyReportEntity
 import kotlinx.coroutines.flow.Flow
 
+data class SearchReviewRow(val date: Int, val note: String)
+
 @Dao
 interface RitualDao {
+
+    @Query("SELECT date, note FROM daily_reviews WHERE note IS NOT NULL AND note != '' ORDER BY date DESC")
+    fun observeSearchNotes(): Flow<List<SearchReviewRow>>
 
     @Query("SELECT * FROM daily_reviews WHERE date = :date")
     fun observeReview(date: Int): Flow<DailyReviewEntity?>

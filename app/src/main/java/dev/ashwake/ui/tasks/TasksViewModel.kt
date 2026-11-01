@@ -32,6 +32,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -72,8 +73,6 @@ data class TasksUiState(
     val tags: List<Tag> = emptyList(),
     val filter: TaskFilter = TaskFilter(),
     val viewMode: TasksViewMode = TasksViewMode.LIST,
-    val quickInput: String = "",
-    val parsed: ParsedQuickInput? = null,
     val today: LocalDate = EPOCH_DAY,
     val staleDialogTask: Task? = null,
     val expandedTaskIds: Set<Long> = emptySet()
@@ -86,27 +85,8 @@ fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
 
     val groups = mutableListOf<TaskDayGroup>()
 
-    // 1. Просроченные (активные задачи с датой раньше сегодня)
-    val overdue = tasks.filter { it.isOverdue(today) }
-    if (overdue.isNotEmpty()) {
-        groups += TaskDayGroup(
-            title = "Просрочено",
-            isOverdue = true,
-            tasks = overdue
-        )
-    }
-
-    // 2. Ранее выполненные с датой в прошлом
-    val pastDone = tasks.filter { it.dueDate != null && it.dueDate < today && it.isDone }
-    if (pastDone.isNotEmpty()) {
-        groups += TaskDayGroup(
-            title = "Выполненные ранее",
-            tasks = pastDone
-        )
-    }
-
-    // 3. Задачи с датой >= сегодня
-    val datedTasks = tasks.filter { it.dueDate != null && it.dueDate >= today }
+    // Все датированные задачи идут в одной хронологии, независимо от статуса.
+    val datedTasks = tasks.filter { it.dueDate != null }
     val byDate = datedTasks.groupBy { it.dueDate!! }
     val sortedDates = byDate.keys.sorted()
 
@@ -127,6 +107,7 @@ fun groupTasksByDay(tasks: List<Task>, today: LocalDate): List<TaskDayGroup> {
             title = title,
             date = date,
             isToday = date == today,
+            isOverdue = date < today && list.any { !it.isDone },
             tasks = list
         )
     }
@@ -170,58 +151,55 @@ class TasksViewModel @Inject constructor(
     private val imageExporter: ImageExporter
 ) : ViewModel() {
 
-    private data class Quad<A, B, C, D>(
-        val first: A,
-        val second: B,
-        val third: C,
-        val fourth: D
-    )
-
     private data class UiBits(
         val filter: TaskFilter,
         val mode: TasksViewMode,
-        val input: String,
         val staleTaskId: Long?,
         val expanded: Set<Long>
+    )
+
+    private data class TaskListSnapshot(
+        val tasks: List<Task>,
+        val groups: List<TaskDayGroup>,
+        val today: LocalDate
     )
 
     private val filter = MutableStateFlow(TaskFilter())
     private val viewMode = MutableStateFlow(TasksViewMode.LIST)
     private val quickInput = MutableStateFlow("")
+    val quickInputState: StateFlow<String> = quickInput.asStateFlow()
+    val parsedQuickInput: StateFlow<ParsedQuickInput?> = quickInput.map { input ->
+        input.takeIf { it.isNotBlank() }?.let { parser.parse(it, clock.today()) }
+    }.flowOn(Dispatchers.Default).stateIn(
+        viewModelScope, SharingStarted.WhileSubscribed(5_000), null
+    )
     private val staleTaskId = MutableStateFlow<Long?>(null)
     private val expandedTaskIds = MutableStateFlow<Set<Long>>(emptySet())
 
-    private val uiBits = combine(
-        filter,
-        combine(viewMode, quickInput, staleTaskId, expandedTaskIds) { vm, qi, st, exp ->
-            Quad(vm, qi, st, exp)
-        }
-    ) { f, quad ->
-        UiBits(f, quad.first, quad.second, quad.third, quad.fourth)
+    private val uiBits = combine(filter, viewMode, staleTaskId, expandedTaskIds) { f, mode, stale, expanded ->
+        UiBits(f, mode, stale, expanded)
+    }
+
+    private val taskListSnapshot = filter.flatMapLatest { tasks.observeTaskList(it) }.map { taskList ->
+        val today = clock.today()
+        TaskListSnapshot(taskList, groupTasksByDay(taskList, today), today)
     }
 
     val state: StateFlow<TasksUiState> = combine(
-        filter.flatMapLatest { tasks.observeTaskList(it) },
+        taskListSnapshot,
         projects.observeProjects(),
         tags.observeTags(),
         uiBits
-    ) { taskList, projectList, tagList, bits ->
-        val today = clock.today()
-        val groups = groupTasksByDay(taskList, today)
-
+    ) { snapshot, projectList, tagList, bits ->
         TasksUiState(
-            tasks = taskList,
-            dayGroups = groups,
+            tasks = snapshot.tasks,
+            dayGroups = snapshot.groups,
             projects = projectList,
             tags = tagList,
             filter = bits.filter,
             viewMode = bits.mode,
-            quickInput = bits.input,
-            // Разбор идёт на каждое нажатие клавиши: парсер чистый и дешёвый,
-            // зато пользователь сразу видит, что распозналось.
-            parsed = bits.input.takeIf { it.isNotBlank() }?.let { parser.parse(it, today) },
-            today = today,
-            staleDialogTask = taskList.firstOrNull { it.id == bits.staleTaskId },
+            today = snapshot.today,
+            staleDialogTask = snapshot.tasks.firstOrNull { it.id == bits.staleTaskId },
             expandedTaskIds = bits.expanded
         )
     }.flowOn(Dispatchers.Default).stateIn(
@@ -495,8 +473,14 @@ class TasksViewModel @Inject constructor(
         onReady: (android.content.Intent) -> Unit
     ) {
         viewModelScope.launch {
-            val bitmap = imageExporter.renderTasksCard(selectedTasks, dateTitle)
-            val intent = imageExporter.shareIntent(bitmap, "tasks_${clock.today()}")
+            val bitmap = kotlinx.coroutines.withContext(Dispatchers.Default) {
+                imageExporter.renderTasksCard(selectedTasks, dateTitle)
+            }
+            val intent = try {
+                imageExporter.shareIntent(bitmap, "tasks_${clock.today()}", asDocument = true)
+            } finally {
+                bitmap.recycle()
+            }
             if (intent != null) {
                 onReady(intent)
             }

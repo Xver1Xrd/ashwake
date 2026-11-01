@@ -16,7 +16,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import kotlin.math.roundToInt
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,7 +46,7 @@ import dev.ashwake.ui.components.AshIcons
 import dev.ashwake.ui.components.EmptyState
 import dev.ashwake.ui.components.IconAction
 import dev.ashwake.ui.components.ListDivider
-import dev.ashwake.ui.components.ListGroup
+import dev.ashwake.ui.components.ListGroupHeader
 import dev.ashwake.ui.components.NORMAL_MS
 import dev.ashwake.ui.components.ScreenPadding
 import dev.ashwake.ui.components.SkeletonList
@@ -52,6 +54,7 @@ import dev.ashwake.ui.components.ToastHost
 import dev.ashwake.ui.components.appHazeSource
 import dev.ashwake.ui.components.rememberToastState
 import dev.ashwake.ui.theme.AshShapes
+import dev.ashwake.ui.theme.LocalAshShapes
 import dev.ashwake.ui.theme.AshTheme
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -88,7 +91,7 @@ fun TodayScreen(
             // Нижний остров лежит поверх контента. Этот запас не даёт ему
             // перекрывать последнюю карточку, в частности «Отказы».
             contentPadding = PaddingValues(bottom = 116.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp)
+            verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
             item {
                 Row(
@@ -131,7 +134,8 @@ fun TodayScreen(
             DateStrip(
                 today = state.today,
                 selectedDate = state.selectedDate,
-                onSelectDate = viewModel::selectDate
+                onSelectDate = viewModel::selectDate,
+                modifier = Modifier.padding(top = 22.dp)
             )
         }
 
@@ -140,7 +144,7 @@ fun TodayScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = ScreenPadding),
+                        .padding(horizontal = ScreenPadding, vertical = 22.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -160,17 +164,17 @@ fun TodayScreen(
         item {
             TodaySummaryCard(
                 state = state,
-                modifier = Modifier.padding(horizontal = ScreenPadding)
+                modifier = Modifier.padding(horizontal = ScreenPadding).padding(top = 22.dp)
             )
         }
 
             if (state.loading) {
-                item { SkeletonList(count = 4) }
+                item { Box(Modifier.padding(top = 22.dp)) { SkeletonList(count = 4) } }
             }
 
             if (!state.loading && state.isEmpty) {
                 item {
-                    EmptyState(
+                    Box(Modifier.padding(top = 22.dp)) { EmptyState(
                         icon = AshIcons.Sun,
                         title = stringResource(R.string.today_na_segodnya_pusto),
                         description = stringResource(
@@ -178,117 +182,74 @@ fun TodayScreen(
                         ),
                         actionText = stringResource(R.string.today_sozdat_zadachu),
                         onAction = onCreateTask
-                    )
+                    ) }
                 }
             }
 
             // Просрочка
             if (state.overdueTasks.isNotEmpty()) {
-                item {
-                    AppearingGroup(order = 0) {
-                        ListGroup(
-                            items = state.overdueTasks,
-                            header = stringResource(R.string.today_prosrocheno),
-                            dividerInset = 62.dp
-                        ) { task ->
-                            TaskTodayRow(
-                                task = task,
-                                today = state.today,
-                                onToggle = { _ ->
-                                    if (!task.isDone) {
-                                        haptics.play(dev.ashwake.ui.theme.HapticKind.TASK_COMPLETE)
-                                    }
-                                    viewModel.toggleTask(task)
-                                },
-                                onPostpone = {
-                                    viewModel.postponeTask(task)
-                                    toast.show(postponedText, undoText) {
-                                        viewModel.undoPostpone(task.id)
-                                    }
-                                },
-                                onOpen = { onOpenTask(task.id) }
-                            )
-                        }
-                    }
+                todayGroup(state.overdueTasks, "overdue", 0, 62.dp, { it.id },
+                    { stringResource(R.string.today_prosrocheno) }) { task, _ ->
+                    TaskTodayRow(
+                        task = task, today = state.today,
+                        onToggle = { _ ->
+                            if (!task.isDone) haptics.play(dev.ashwake.ui.theme.HapticKind.TASK_COMPLETE)
+                            viewModel.toggleTask(task)
+                        },
+                        onPostpone = {
+                            viewModel.postponeTask(task)
+                            toast.show(postponedText, undoText) { viewModel.undoPostpone(task.id) }
+                        },
+                        onOpen = { onOpenTask(task.id) }
+                    )
                 }
             }
 
             // Задачи на сегодня
             if (state.todayTasks.isNotEmpty()) {
-                item {
-                    AppearingGroup(order = 1) {
-                        ListGroup(
-                            items = state.todayTasks,
-                            header = stringResource(R.string.today_zadachi_1_s_iz_2_s, state.todayTasks.count { it.isDone }, state.todayTasks.size),
-                            dividerInset = 62.dp
-                        ) { task ->
-                            TaskTodayRow(
-                                task = task,
-                                today = state.today,
-                                onToggle = { _ ->
-                                    if (!task.isDone) {
-                                        haptics.play(dev.ashwake.ui.theme.HapticKind.TASK_COMPLETE)
-                                    }
-                                    viewModel.toggleTask(task)
-                                },
-                                onPostpone = {
-                                    viewModel.postponeTask(task)
-                                    toast.show(postponedText, undoText) {
-                                        viewModel.undoPostpone(task.id)
-                                    }
-                                },
-                                onOpen = { onOpenTask(task.id) },
-                                onDelete = { viewModel.deleteTask(task.id) }
-                            )
-                        }
-                    }
+                todayGroup(state.todayTasks, "today", 1, 62.dp, { it.id },
+                    { stringResource(R.string.today_zadachi_1_s_iz_2_s, state.todayTasks.count { it.isDone }, state.todayTasks.size) }) { task, _ ->
+                    TaskTodayRow(
+                        task = task, today = state.today,
+                        onToggle = { _ ->
+                            if (!task.isDone) haptics.play(dev.ashwake.ui.theme.HapticKind.TASK_COMPLETE)
+                            viewModel.toggleTask(task)
+                        },
+                        onPostpone = {
+                            viewModel.postponeTask(task)
+                            toast.show(postponedText, undoText) { viewModel.undoPostpone(task.id) }
+                        },
+                        onOpen = { onOpenTask(task.id) },
+                        onDelete = { viewModel.deleteTask(task.id) }
+                    )
                 }
             }
 
             // Привычки
             if (state.habits.isNotEmpty()) {
-                item {
-                    AppearingGroup(order = 2) {
-                        ListGroup(
-                            header = stringResource(R.string.today_privychki_1_s_iz_2_s, state.habits.count { it.doneToday }, state.habits.size)
-                        ) {
-                            state.habits.forEachIndexed { index, progress ->
-                                HabitTodayRow(
-                                    progress = progress,
-                                    onToggle = { _ ->
-                                        viewModel.toggleHabit(progress)
-                                    },
-                                    onOpen = { onOpenHabit(progress.habit.id) },
-                                    onCounterClick = { counterDialogTarget = progress },
-                                    onMoveUp = if (index > 0) { { viewModel.reorderHabits(index, index - 1) } } else null,
-                                    onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null,
-                                    onDelete = { viewModel.deleteHabit(progress.habit.id) }
-                                )
-                                if (index != state.habits.lastIndex) {
-                                    ListDivider(56.dp)
-                                }
-                            }
-                        }
-                    }
+                todayGroup(state.habits, "habits", 2, 56.dp, { it.habit.id },
+                    { stringResource(R.string.today_privychki_1_s_iz_2_s, state.habits.count { it.doneToday }, state.habits.size) }) { progress, index ->
+                    HabitTodayRow(
+                        progress = progress,
+                        onToggle = { _ -> viewModel.toggleHabit(progress) },
+                        onOpen = { onOpenHabit(progress.habit.id) },
+                        onCounterClick = { counterDialogTarget = progress },
+                        onMoveUp = if (index > 0) { { viewModel.reorderHabits(index, index - 1) } } else null,
+                        onMoveDown = if (index < state.habits.size - 1) { { viewModel.reorderHabits(index, index + 1) } } else null,
+                        onDelete = { viewModel.deleteHabit(progress.habit.id) }
+                    )
                 }
             }
 
             // Отказы
             if (state.abstinences.isNotEmpty()) {
-                item {
-                    AppearingGroup(order = 3) {
-                        ListGroup(
-                            items = state.abstinences,
-                            header = stringResource(R.string.abstinence_otkazy),
-                            dividerInset = 16.dp
-                        ) { item ->
-                            AbstinenceTodayRow(
-                                item = item,
-                                onOpen = { onOpenAbstinence(item.abstinence.id) },
-                                onDelete = { viewModel.deleteAbstinence(item.abstinence.id) }
-                            )
-                        }
-                    }
+                todayGroup(state.abstinences, "abstinences", 3, 16.dp, { it.abstinence.id },
+                    { stringResource(R.string.abstinence_otkazy) }) { abstinence, _ ->
+                    AbstinenceTodayRow(
+                        item = abstinence,
+                        onOpen = { onOpenAbstinence(abstinence.abstinence.id) },
+                        onDelete = { viewModel.deleteAbstinence(abstinence.abstinence.id) }
+                    )
                 }
             }
         }
@@ -303,6 +264,36 @@ fun TodayScreen(
                 },
                 onDismiss = { counterDialogTarget = null }
             )
+        }
+    }
+}
+
+/** Each row is its own lazy item while the rounded group remains visually intact. */
+private fun <T> LazyListScope.todayGroup(
+    entries: List<T>,
+    groupKey: String,
+    order: Int,
+    dividerInset: Dp,
+    id: (T) -> Any,
+    header: @Composable () -> String,
+    row: @Composable (T, Int) -> Unit
+) {
+    item(key = "$groupKey-header") {
+        AppearingGroup(order) {
+            ListGroupHeader(header(), Modifier.padding(top = 22.dp))
+        }
+    }
+    itemsIndexed(entries, key = { _, entry -> "$groupKey-${id(entry)}" }) { index, entry ->
+        val shape = LocalAshShapes.current.groupSegment(index == 0, index == entries.lastIndex)
+        AppearingGroup(order) {
+            Column(
+                Modifier.padding(horizontal = ScreenPadding)
+                    .clip(shape)
+                    .background(AshTheme.colors.surface1)
+            ) {
+                row(entry, index)
+                if (index != entries.lastIndex) ListDivider(dividerInset)
+            }
         }
     }
 }
